@@ -40,6 +40,7 @@ uniform sampler2D colortex1;
 uniform sampler2D composite;
 uniform sampler2D gaux1;
 uniform sampler2D gaux2;
+uniform sampler2D gaux3;
 uniform sampler2D gcolor;
 uniform sampler2D depthtex0;
 uniform sampler2D depthtex1;
@@ -301,13 +302,14 @@ void main() {
       color.rgb = (color.rgb * refract_amount * 0.76) + (ref_color.rgb * ref_color.a * (1 - refract_amount) * vec3(0.6,0.7,0.9)) + watercolor * (1 - ref_color.a * (1 - refract_amount) - refract_amount) + sun_ref;
 
     } else {
-      float wetness_cr = iswet * (dot(normal, upVec) * 0.5 + 0.5);
-      if (wetness_cr > 0.05) {
+      float wetness_cr = iswet * (dot(normal, upVec) * 0.5 + 0.5) + texture2D(gaux3, texcoord.st).r;
+    //  vec3 ref_color = vec3(0.44) * wetness_cr + texture2D(gaux3, texcoord.st).rgb;
 
+      if (wetness_cr > 0.05) {
         vec3 viewRefRay = reflect(normalize(viewPosition.xyz), normal);
         vec4 ref_color = waterRayTarcing(viewPosition.xyz + normal * (-viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
         vec3 sun_ref = suncolor *(1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * (1 - wetness_cr);
-        color.rgb += sun_ref * wetness_cr + ref_color.rgb * ref_color.a * wetness_cr * 0.44;
+        color.rgb += sun_ref * wetness_cr + ref_color.rgb * ref_color.a * wetness_cr;
       }
     }
     color.rgb = mix(color.rgb, gl_Fog.color.rgb * skyColor, clamp(pow(dist, (1 - wetness * 0.5) * 3.95 - wetness), 0.0, 1.0));
