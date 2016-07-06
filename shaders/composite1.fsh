@@ -217,10 +217,11 @@ float water_wave_adjust(vec3 posxz) {
     return n;
   }
 
-  vec3 cloud(vec3 color, vec3 spos, vec3 direction, float dist) {
+  vec3 cloud(vec3 color, vec3 spos, in vec3 direction, float dist) {
     vec4 t_color = vec4(0);
 
-    float bias =  dot(direction, vec3(0, 1, 0));
+    direction = normalize(direction);
+    float bias = dot(direction, vec3(0, 1, 0));
     float am = 0;
 
     bool var_l = false;
@@ -249,7 +250,7 @@ float water_wave_adjust(vec3 posxz) {
         break;
 
       if (test_point.y > CLOUD_HEIGHT && test_point.y < CLOUD_HEIGHT_CEILING)
-        am += cloud_noise(test_point * 3.4) * 0.5;
+        am += cloud_noise(test_point * 3.4);
 
       if (var_l)
         test_point += direction * i;
@@ -292,6 +293,45 @@ float water_wave_adjust(vec3 posxz) {
   }
 #endif
 
+float water_wave_adjust(vec3 posxz, float dep) {
+
+	float wave = 0.0;
+
+	float factor = 1.1;
+	float amplitude = 0.19;
+	float speed = 5.4;
+	float size = 0.27;
+
+	float px = posxz.x/50.0 + 250.0;
+	float py = posxz.z/50.0  + 250.0;
+
+	float fpx = abs(fract(px*20.0)-0.5)*2.0;
+	float fpy = abs(fract(py*20.0)-0.5)*2.0;
+
+	float d = length(vec2(fpx,fpy));
+
+	for (int i = 1; i < 6; i++) {
+		wave -= d*factor*sin( (1/factor)*px*py*size + 1.0*frameTimeCounter*speed);
+		factor /= 2;
+	}
+
+	factor = 1.0;
+	px = -posxz.x/50.0 + 250.0;
+	py = -posxz.z/150.0 - 250.0;
+	fpx = abs(fract(px*20.0)-0.5)*2.0;
+	fpy = abs(fract(py*20.0)-0.5)*2.0;
+
+	d = length(vec2(fpx,fpy));
+	float wave2 = 0.0;
+
+	for (int i = 1; i < 6; i++) {
+		wave2 -= d*factor*cos( (1/factor)*px*py*size + 1.0*frameTimeCounter*speed);
+		factor /= 2;
+	}
+
+	return amplitude*wave2+amplitude*wave;
+}
+
 float sky_lightmap = pow(aux.r,3.0);
 
 // ===========================================================================
@@ -301,6 +341,9 @@ float sky_lightmap = pow(aux.r,3.0);
 // ===========================================================================
 void main() {
 	vec4 color = texture(gcolor, texcoord.st);
+
+  if (isEyeInWater)
+    iswater = !iswater;
 
   float transition_fading = 1.0-(clamp((worldTime-12000.0)/300.0,0.0,1.0)-clamp((worldTime-13000.0)/300.0,0.0,1.0) + clamp((worldTime-22800.0)/200.0,0.0,1.0)-clamp((worldTime-23400.0)/200.0,0.0,1.0));	//fading between sun/moon shadows
 
@@ -315,6 +358,7 @@ void main() {
 	viewPosition_nw /= viewPosition_nw.w;
 
 	vec4 worldPosition = gbufferModelViewInverse * (viewPosition + vec4(normal * 0.05 * sqrt(abs(viewPosition.z)), 0.0));
+  vec3 wpos = worldPosition.xyz + cameraPosition;
   vec4 worldPosition_nw = gbufferModelViewInverse * (viewPosition_nw + vec4(normal_nw * 0.05 * sqrt(abs(viewPosition_nw.z)), 0.0));
 
   float dist = length(worldPosition.xyz) / far;
@@ -339,13 +383,20 @@ void main() {
     // ===========================================================================
     //  WATER
     // ===========================================================================
-    if (!isEyeInWater)
     if (iswater) {
-      float uw_shade2 = 0;
-      float under_water_shade = clamp(shadowMapping(worldPosition, dist, normal, color.a) + uw_shade2, 0.0, 1.0) * 0.42;
+      float deltaPos = 0.1;
+      float depth_diff = abs(depth_nw - depth);
+      float h0 = water_wave_adjust(wpos, depth_diff);
 
-      r_shade = shadowMapping(worldPosition_nw, dist_nw, normal_nw, color.a);
-      shade = under_water_shade + r_shade * 0.58;
+      float under_water_shade = clamp(shadowMapping(worldPosition, dist, normal, color.a), 0.0, 1.0) * 0.42 + h0;
+
+      if (!isEyeInWater) {
+        r_shade = shadowMapping(worldPosition_nw, dist_nw, normal_nw, color.a);
+        shade = under_water_shade + r_shade * 0.58;
+      } else {
+        r_shade = under_water_shade;
+        shade = r_shade;
+      }
     } else {
       r_shade = shadowMapping(worldPosition, dist, normal, color.a);// * 0.5 + shadowMapping(worldPosition + vec4(lightPosition * normal, 0) * 0.3, dist, normal, color.a) * 0.5;
 
