@@ -257,8 +257,10 @@ float water_wave_adjust(vec3 posxz) {
         test_point += direction * 2;
     }
 
-    am = clamp(0, am, 1);
-    return color + (vec3(am) * skyColor) * (1 - clamp(0, length(test_point - spos) / 1512, 1));
+    float redution = 1.0 - clamp(0.0, length(test_point - spos) / 1512, 1.0);
+      redution = clamp(0.0, redution, 1.0);
+    am = clamp(0.0, am, 1.0);
+    return color + (vec3(am) * skyColor) * redution;
   }
 #endif
 
