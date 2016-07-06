@@ -294,11 +294,11 @@ void main() {
 
       vec4 ref_color = waterRayTarcing(viewPosition_nw.xyz + normal_nw * (-viewPosition_nw.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
 
-      vec3 sun_ref = suncolor * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * (1 - wetness);
+      vec3 sun_ref = suncolor * (1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade);
 
       float fresnel = 0.02 + 0.98 * pow(1.0 - dot(viewRefRay, normal_nw), 5.0);
       float refract_amount = clamp((1 - fresnel) * (12 - clamp((dist - dist_nw) * far, 0.0, 12.0)) / 12, 0.0, 1.0);
-      color.rgb = (color.rgb * refract_amount * 0.8) + (ref_color.rgb * ref_color.a * (1 - refract_amount)) + watercolor * (1 - ref_color.a * (1 - refract_amount) - refract_amount) + sun_ref;
+      color.rgb = (color.rgb * refract_amount * 0.76) + (ref_color.rgb * ref_color.a * (1 - refract_amount) * vec3(0.6,0.7,0.9)) + watercolor * (1 - ref_color.a * (1 - refract_amount) - refract_amount) + sun_ref;
 
     } else {
       float wetness_cr = iswet * (dot(normal, upVec) * 0.5 + 0.5);
@@ -306,8 +306,8 @@ void main() {
 
         vec3 viewRefRay = reflect(normalize(viewPosition.xyz), normal);
         vec4 ref_color = waterRayTarcing(viewPosition.xyz + normal * (-viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
-        vec3 sun_ref = suncolor * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * (1 - wetness_cr);
-        color.rgb += sun_ref * 0.2 * wetness_cr + ref_color.rgb * ref_color.a * wetness_cr * 0.34;
+        vec3 sun_ref = suncolor *(1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * (1 - wetness_cr);
+        color.rgb += sun_ref * wetness_cr + ref_color.rgb * ref_color.a * wetness_cr * 0.44;
       }
     }
     color.rgb = mix(color.rgb, gl_Fog.color.rgb * skyColor, clamp(pow(dist, (1 - wetness * 0.5) * 3.95 - wetness), 0.0, 1.0));
