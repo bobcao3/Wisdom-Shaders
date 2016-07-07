@@ -24,6 +24,6 @@ void main() {
 
 	if (discard_flag == 1) discard;
 
-	gl_FragData[0] = vec4(depth, texture2D(tex, texcoord.st).gba);
+	gl_FragData[0] = vec4(texture2D(tex, texcoord.st).rgb, 1 - discard_flag);
 	//gl_FragData[]
 }

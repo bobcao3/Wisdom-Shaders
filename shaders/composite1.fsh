@@ -24,7 +24,7 @@ const int RG16 = 0;
 const int RGBA8 = 0;
 const int colortex1Format = RGBA8;
 const int gnormalFormat = RG16;
-const int shadowMapResolution = 1024;
+const int shadowMapResolution = 2048;
 const float 	centerDepthHalflife 	 = 2.0f;
 const float 	shadowIntervalSize 		 = 6.f;
 const float 	wetnessHalflife 		 	 = 500.0f; 	 // Wet to dry.
@@ -63,6 +63,7 @@ uniform sampler2D noisetex;
 uniform sampler2D gaux1;
 uniform sampler2D gaux2;
 uniform sampler2DShadow shadowtex0;
+uniform sampler2D shadowcolor0;
 
 in float extShadow;
 in vec3 lightPosition;
@@ -119,8 +120,9 @@ float blockId = aux.g * 256;
 bool iswater = (abs(aux.g - 0.125) < 0.002);
 bool issky = ((aux.r < 0.001) && (aux.g < 0.001) && (aux.b < 0.001));
 bool ishand = (aux.g > 0.98);
+bool is_stained_glass = (aux.g > 0.895) && (aux.g < 0.905);
 
-float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha) {
+float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, out vec4 shadow_color) {
 	if(dist > 0.9)
 		return extShadow;
 	float shade = 0.0;
@@ -140,7 +142,8 @@ float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha) {
 		shadowposition.xy /= distortFactor;
 		shadowposition /= shadowposition.w;
 		shadowposition = shadowposition * 0.5 + 0.5;
-		shade = 1.0 - shadow2D(shadowtex0, vec3(shadowposition.st, shadowposition.z - 0.0001)).z;
+		shade = 1.0 - shadow2D(shadowtex0, vec3(shadowposition.st, shadowposition.z - 0.00001)).z;
+    shadow_color = texture(shadowcolor0, shadowposition.st);
 		if(angle < 0.2 && alpha > 0.99 && !is_plant && !iswater)
 		   shade = max(shade, pow(1.0 - (angle - 0.1) * 10.0, 2));
 		shade -= max(0.0, edgeX * 10.0);
@@ -355,22 +358,23 @@ void main() {
     // ===========================================================================
     //  WATER
     // ===========================================================================
+    vec4 shadow_color = vec4(1.0);
     if (iswater) {
       float deltaPos = 0.1;
       float depth_diff = abs(depth_nw - depth);
       float h0 = water_wave_adjust(wpos, depth_diff);
 
-      float under_water_shade = clamp(shadowMapping(worldPosition, dist, normal, color.a), 0.0, 1.0) * 0.42 + h0;
+      float under_water_shade = clamp(shadowMapping(worldPosition, dist, normal, color.a, shadow_color), 0.0, 1.0) * 0.42 + h0;
 
       if (!isEyeInWater) {
-        r_shade = shadowMapping(worldPosition_nw, dist_nw, normal_nw, color.a);
+        r_shade = shadowMapping(worldPosition_nw, dist_nw, normal_nw, color.a, shadow_color);
         shade = under_water_shade + r_shade * 0.58;
       } else {
         r_shade = under_water_shade;
         shade = r_shade;
       }
     } else {
-      r_shade = shadowMapping(worldPosition, dist, normal, color.a);// * 0.5 + shadowMapping(worldPosition + vec4(lightPosition * normal, 0) * 0.3, dist, normal, color.a) * 0.5;
+      r_shade = shadowMapping(worldPosition, dist, normal, color.a, shadow_color);// * 0.5 + shadowMapping(worldPosition + vec4(lightPosition * normal, 0) * 0.3, dist, normal, color.a) * 0.5;
 
       shade = r_shade;
     }
@@ -399,6 +403,9 @@ void main() {
 
     vec3 sun_l = suncolor * (1 - shade) * (1 - wetness * 0.5);
     vec3 amb_color = clamp(suncolor, vec3(min_light), vec3(1.25));
+
+    if (shadow_color.a > 0.49 && shadow_color.a < 0.51)
+      sun_l = shadow_color.rgb * (length(suncolor) * (1.0 - wetness * 0.86) / length(shadow_color.rgb));
 
     vec3 light = clamp(amb_color * 0.25 + sun_l * 0.5 + torchlight, vec3(min_light), vec3(1.8));
 
