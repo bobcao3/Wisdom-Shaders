@@ -18,21 +18,31 @@
 #define PI 3.14159
 
 #define TEST_CLOUD
+#define HQ_SMOOTH_SHADOW
 
 #define SHADOW_MAP_BIAS 0.8
-const int RG16 = 0;
-const int RGBA8 = 0;
-const int colortex1Format = RGBA8;
-const int gnormalFormat = RG16;
-const int shadowMapResolution = 2048;
-const float 	centerDepthHalflife 	 = 2.0f;
-const float 	shadowIntervalSize 		 = 6.f;
-const float 	wetnessHalflife 		 	 = 500.0f; 	 // Wet to dry.
-const float 	drynessHalflife 		 	 = 60.0f;		 // Dry ro wet.
-const float		sunPathRotation			 	 = -39.5f;
-const float		eyeBrightnessHalflife	 = 8.5f;
-const bool shadowHardwareFiltering = true;
-const float ambientOcclusionLevel = 1.0;
+const int     RG16 = 0;
+const int     RGBA8 = 0;
+const int     colortex1Format = RGBA8;
+const int     gnormalFormat = RG16;
+#ifdef HQ_SMOOTH_SHADOW
+  const int     shadowMapResolution     = 2048;
+#else
+  const int     shadowMapResolution     = 1024;
+#endif
+const float 	centerDepthHalflife 	  = 2.0f;
+const float 	shadowIntervalSize 		  = 6.f;
+const float 	wetnessHalflife 		 	  = 500.0f; 	 // Wet to dry.
+const float 	drynessHalflife 		 	  = 60.0f;		 // Dry ro wet.
+const float		sunPathRotation			 	  = -39.5f;
+const float		eyeBrightnessHalflife	  = 8.5f;
+const bool    shadowHardwareFiltering = true;
+const bool    gcolorMipmapEnabled     = true;
+#ifdef HQ_SMOOTH_SHADOW
+  const bool    shadowtex1Mipmap        = true;
+  const bool    shadowcolor0Mipmap      = true;
+#endif
+const float   ambientOcclusionLevel   = 1.0;
 
 uniform float far;
 uniform float near;
@@ -62,6 +72,7 @@ uniform sampler2D depthtex1;
 uniform sampler2D noisetex;
 uniform sampler2D gaux1;
 uniform sampler2D gaux2;
+uniform sampler2D shadowtex0;
 uniform sampler2DShadow shadowtex1;
 uniform sampler2D shadowcolor0;
 
@@ -122,6 +133,9 @@ bool issky = ((aux.r < 0.001) && (aux.g < 0.001) && (aux.b < 0.001));
 bool ishand = (aux.g > 0.98);
 bool is_stained_glass = (aux.g > 0.895) && (aux.g < 0.905);
 
+#ifdef HQ_SMOOTH_SHADOW
+  const float shadow_weight[4] = float[] (0.51, 0.26, 0.14, 0.09);
+#endif
 float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, out vec4 shadow_color) {
 	if(dist > 0.9)
 		return extShadow;
@@ -142,8 +156,26 @@ float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, ou
 		shadowposition.xy /= distortFactor;
 		shadowposition /= shadowposition.w;
 		shadowposition = shadowposition * 0.5 + 0.5;
-		shade = 1.0 - shadow2D(shadowtex1, vec3(shadowposition.st, shadowposition.z - 0.00001)).z;
-    shadow_color = texture(shadowcolor0, shadowposition.st);
+
+    #ifdef HQ_SMOOTH_SHADOW
+      float soft_shade = 0.0;
+      for (int i = 0; i < 4; i++) {
+        soft_shade += (shadow2DLod(shadowtex1, vec3(shadowposition.st, shadowposition.z - 0.00001), float(i)).z) * shadow_weight[i];
+      }
+//      float shadowDepth = texture(shadowtex0, shadowposition.st).z;
+
+      /*shade = 1.0;
+      if(shadowDepth + 0.0001 < shadowposition.z)
+        shade = (shadowposition.z - shadowDepth) * far;
+*/
+      shade = soft_shade;
+
+      shadow_color = texture(shadowcolor0, shadowposition.st) * 0.7 + textureLod(shadowcolor0, shadowposition.st, 1.0) * 0.3;
+      shade = 1.0 - shade;
+    #else
+      shade = 1.0 - shadow2D(shadowtex1, vec3(shadowposition.st, shadowposition.z - 0.00001)).z;
+      shadow_color = texture(shadowcolor0, shadowposition.st);
+    #endif
 		if(angle < 0.2 && alpha > 0.99 && !is_plant && !iswater)
 		   shade = max(shade, pow(1.0 - (angle - 0.1) * 10.0, 2));
 		shade -= max(0.0, edgeX * 10.0);
@@ -404,8 +436,8 @@ void main() {
     vec3 sun_l = suncolor * (1 - shade) * (1 - wetness * 0.5);
     vec3 amb_color = clamp(suncolor, vec3(min_light), vec3(1.25));
 
-    if (shade < 0.1 && shadow_color.a > 0.49 && shadow_color.a < 0.51)
-      sun_l = shadow_color.rgb * (length(suncolor) * (1.0 - wetness * 0.86) / length(shadow_color.rgb));
+    if (shade < 0.999 && shadow_color.a > 0.49 && shadow_color.a < 0.51)
+      sun_l = (1 - shade) * shadow_color.rgb * (length(suncolor) * (1.0 - wetness * 0.86) / length(shadow_color.rgb));
 
     vec3 light = clamp(amb_color * 0.25 + sun_l * 0.5 + torchlight, vec3(min_light), vec3(1.8));
 

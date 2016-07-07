@@ -26,6 +26,9 @@ void main() {
 
 	if (texcolor.a < 0.1 || discard_flag == 1) discard;
 
-	gl_FragData[0] = vec4(texcolor.rgb, 1 - discard_flag);
+	if (discard_flag == 0.5)
+		gl_FragData[0] = vec4(texcolor.rgb, discard_flag);
+	else
+		gl_FragData[0] = texcolor;
 	//gl_FragData[]
 }
