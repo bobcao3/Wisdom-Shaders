@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #version 130
+#extension GL_ARB_shader_texture_lod : require
 
 #define PI 3.14159
 
@@ -349,8 +350,8 @@ void main() {
 
 	vec3 normal = normalDecode(texture(gnormal, texcoord.st).rg);
   vec3 normal_nw = normalDecode(texture(gaux2, texcoord.st).rg);
-	float depth = textureLod(depthtex1, texcoord.st, 0.0).x;
-  float depth_nw = textureLod(depthtex0, texcoord.st, 0.0).x;
+	float depth = texture(depthtex1, texcoord.st).x;
+  float depth_nw = texture(depthtex0, texcoord.st).x;
 
 	vec4 viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0f);
 	viewPosition /= viewPosition.w;

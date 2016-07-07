@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #version 130
+#extension GL_ARB_shader_texture_lod : require
 
 #define VIGNETTE
 #define LF
@@ -20,6 +21,9 @@
 //	#define DOF_NEARVIEWBLUR
 
 #define BLOOM_AMOUNT 0.32
+
+const bool gcolorMipmapEnabled = true;
+const bool gdepthMipmapEnabled = true;
 
 uniform sampler2D gcolor;
 uniform sampler2D depthtex1;
@@ -221,24 +225,24 @@ vec3 dof(vec3 color, vec2 uv, float depth) {
     //0.12456 0.10381 0.12456
     //0.10380 0.08651 0.10380
     //0.12456 0.10381 0.12456
-    blurColor += texture2D(gcolor, uv + offset * vec2(-1.0, -1.0)).rgb * 0.12456;
-    blurColor += texture2D(gcolor, uv + offset * vec2(0.0, -1.0)).rgb * 0.10381;
-    blurColor += texture2D(gcolor, uv + offset * vec2(1.0, -1.0)).rgb * 0.12456;
-    blurColor += texture2D(gcolor, uv + offset * vec2(-1.0, 0.0)).rgb * 0.10381;
-    blurColor += texture2D(gcolor, uv).rgb * 0.08651;
-    blurColor += texture2D(gcolor, uv + offset * vec2(1.0, 0.0)).rgb * 0.10381;
-    blurColor += texture2D(gcolor, uv + offset * vec2(-1.0, 1.0)).rgb * 0.12456;
-    blurColor += texture2D(gcolor, uv + offset * vec2(0.0, 1.0)).rgb * 0.10381;
-    blurColor += texture2D(gcolor, uv + offset * vec2(1.0, 1.0)).rgb * 0.12456;
+    blurColor += textureLod(gcolor, uv + offset * vec2(-1.0, -1.0), 2.0).rgb * 0.12456;
+    blurColor += textureLod(gcolor, uv + offset * vec2(0.0, -1.0), 1.0).rgb * 0.10381;
+    blurColor += textureLod(gcolor, uv + offset * vec2(1.0, -1.0), 2.0).rgb * 0.12456;
+    blurColor += textureLod(gcolor, uv + offset * vec2(-1.0, 0.0), 1.0).rgb * 0.10381;
+    blurColor += texture(gcolor, uv).rgb * 0.08651;
+    blurColor += textureLod(gcolor, uv + offset * vec2(1.0, 0.0), 1.0).rgb * 0.10381;
+    blurColor += textureLod(gcolor, uv + offset * vec2(-1.0, 1.0), 2.0).rgb * 0.12456;
+    blurColor += textureLod(gcolor, uv + offset * vec2(0.0, 1.0), 1.0).rgb * 0.10381;
+    blurColor += textureLod(gcolor, uv + offset * vec2(1.0, 1.0), 2.0).rgb * 0.12456;
     return mix(color, blurColor, fade);
 }
 #endif
 
 void main() {
 
-	vec3 color =  texture2D(gcolor, texcoord.st).rgb;
+	vec3 color =  texture(gcolor, texcoord.st).rgb;
 
-	float depth = texture2D(depthtex1, texcoord.st).x;
+	float depth = texture(depthtex1, texcoord.st).x;
 /*
 	vec4 viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0f);
 	viewPosition /= viewPosition.w;
@@ -252,7 +256,7 @@ void main() {
 		color = dof(color, texcoord.st, depth);
 	#endif
 
-	vec3 highlight = texture2D(colortex1, texcoord.st).rgb;
+	vec3 highlight = textureLod(colortex1, texcoord.st, 1.0).rgb;
 	color = pow(color, vec3(1.4));
 	color *= 6.0;
 	vec3 curr = uncharted2Tonemap(color);

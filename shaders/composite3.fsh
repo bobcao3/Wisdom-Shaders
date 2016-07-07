@@ -13,6 +13,9 @@
 // limitations under the License.
 
 #version 130
+#extension GL_ARB_shader_texture_lod : require
+
+const bool gdepthMipmapEnabled = true;
 
 uniform sampler2D gcolor;
 uniform sampler2D colortex3;
@@ -28,19 +31,10 @@ const float weight[9] = float[] (0.066812, 0.129101, 0.112504, 0.08782, 0.061406
 vec3 blur(sampler2D image, vec2 uv, vec2 direction) {
 	vec3 color = texture2D(image, uv).rgb * weight[0];
 	for(int i = 1; i < 9; i++) {
-		color += texture2D(image, uv + direction * offset[i]).rgb * weight[i];
-		color += texture2D(image, uv - direction * offset[i]).rgb * weight[i];
+		color += textureLod(image, uv + direction * offset[i], 2.0).rgb * weight[i];
+		color += textureLod(image, uv - direction * offset[i], 2.0).rgb * weight[i];
 	}
 	return color;
-}
-
-float vl(sampler2D image, vec2 uv, vec2 direction) {
-	float am = texture2D(image, uv).a * weight[0];
-	for(int i = 1; i < 9; i++) {
-		am += texture2D(image, uv + direction * offset[i]).a * weight[i];
-		am += texture2D(image, uv - direction * offset[i]).a * weight[i];
-	}
-	return am;
 }
 
 void main() {
