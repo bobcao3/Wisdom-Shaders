@@ -18,7 +18,6 @@
 #define PI 3.14159
 
 #define TEST_CLOUD
-#define VOLUMETRIC_LIGHT
 
 #define SHADOW_MAP_BIAS 0.8
 const int RG16 = 0;
@@ -266,34 +265,6 @@ float water_wave_adjust(vec3 posxz) {
   }
 #endif
 
-#ifdef VOLUMETRIC_LIGHT
-  #define SAMPLE_AM 32
-  vec3 VL(vec3 color, vec3 spos, vec3 direction,float dist, vec3 suncolor) {
-    float am = 0;
-
-    vec3 test_point = spos;
-    for (int i = 1; i < 32; i++) {
-
-      float l = length(test_point - spos) / far;
-      if ((dist < 313) && (dist < l))
-        break;
-
-      vec4 vpos = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * l - 1.0, 1.0f);
-      vpos /= vpos.w;
-      vec4 wpos = gbufferModelViewInverse * vpos;
-
-      if (test_point.x > 147 && test_point.x < 148 && test_point.z > 290 && test_point.z < 291) {//(shadowMapping(wpos, l, lightPosition, 1.0) < 0.1) {
-        am += 0.1; //
-        break;
-      }
-
-      test_point += direction / 32;
-    }
-
-    return color ;//+ am * suncolor * 0.5;
-  }
-#endif
-
 float water_wave_adjust(vec3 posxz, float dep) {
 
 	float wave = 0.0;
@@ -434,11 +405,6 @@ void main() {
     color.rgb *= 1 - wetness * 0.25;
 
     color.rgb *= light;
-
-    #ifdef VOLUMETRIC_LIGHT
-    if (shade > 0.1)
-      color.rgb = VL(color.rgb, cameraPosition, worldPosition.xyz, dist, suncolor);
-    #endif
   }
 
   #ifdef TEST_CLOUD
