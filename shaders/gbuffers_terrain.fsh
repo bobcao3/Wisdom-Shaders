@@ -30,8 +30,10 @@ in float iswater;
 
 /* DRAWBUFFERS:0246 */
 void main() {
-	gl_FragData[0] = texture2D(texture, texcoord.st) * texture2D(lightmap, lmcoord.st) * color;
+	vec4 texcolor = texture2D(texture, texcoord.st);
+
+	gl_FragData[0] = texcolor * texture2D(lightmap, lmcoord.st) * color;
 	gl_FragData[1] = vec4(normal, 0.0, 1.0);
 	gl_FragData[2] = vec4(lmcoord.t, entities, lmcoord.s, 1.0);
-	gl_FragData[3] = texture2D(specular, texcoord.st);
+	gl_FragData[3] = vec4(texture2D(specular, texcoord.st).rgb, texcolor.a);
 }

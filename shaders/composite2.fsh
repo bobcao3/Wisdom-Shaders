@@ -315,10 +315,10 @@ void main() {
       color.rgb = (color.rgb * refract_amount * 0.76) + (ref_color.rgb * ref_color.a * (1 - refract_amount) * vec3(0.6,0.7,0.9)) + watercolor * (1 - ref_color.a * (1 - refract_amount) - refract_amount) + sun_ref;
 
     } else {
-      vec3 specular = texture(gaux3, texcoord.st).rgb;
+      vec4 specular = texture(gaux3, texcoord.st);
 
-      float ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5 + specular.g) + specular.r, 1.0);
-      float sun_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) + specular.b, 1.0);
+      float ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5 + specular.g * specular.a) + specular.r, 1.0);
+      float sun_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) + specular.b * specular.a, 1.0);
     //  vec3 ref_color = vec3(0.44) * wetness_cr + texture2D(gaux3, texcoord.st).rgb;
 
       vec4 ref_color = vec4(0.0);
