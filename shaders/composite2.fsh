@@ -315,15 +315,21 @@ void main() {
       color.rgb = (color.rgb * refract_amount * 0.76) + (ref_color.rgb * ref_color.a * (1 - refract_amount) * vec3(0.6,0.7,0.9)) + watercolor * (1 - ref_color.a * (1 - refract_amount) - refract_amount) + sun_ref;
 
     } else {
-      float wetness_cr = iswet * (dot(normal, upVec) * 0.5 + 0.5) + texture2D(gaux3, texcoord.st).r;
+      vec3 specular = texture(gaux3, texcoord.st).rgb;
+
+      float ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5 + specular.g) + specular.r, 1.0);
+      float sun_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) + specular.b, 1.0);
     //  vec3 ref_color = vec3(0.44) * wetness_cr + texture2D(gaux3, texcoord.st).rgb;
 
-      if (wetness_cr > 0.05) {
-        vec3 viewRefRay = reflect(normalize(viewPosition.xyz), normal);
-        vec4 ref_color = waterRayTarcing(viewPosition.xyz + normal * (-viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
-        vec3 sun_ref = suncolor *(1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * (1 - wetness_cr);
-        color.rgb += sun_ref * wetness_cr + ref_color.rgb * ref_color.a * wetness_cr;
+      vec4 ref_color = vec4(0.0);
+      vec3 sun_ref = vec3(0.0);
+      vec3 viewRefRay = reflect(normalize(viewPosition.xyz), normal);
+      if (ref_cr > 0.05) {
+        ref_color = waterRayTarcing(viewPosition.xyz + normal * (-viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
       }
+      if (sun_cr > 0.05)
+        sun_ref = suncolor * (1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * sun_cr;
+      color.rgb += sun_ref * sun_cr + ref_color.rgb * ref_color.a * ref_cr;
     }
     color.rgb = mix(color.rgb, gl_Fog.color.rgb * skyColor, clamp(pow(dist, (1 - wetness * 0.5) * 3.95 - wetness), 0.0, 1.0));
     float ddist = dist;
