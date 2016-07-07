@@ -203,6 +203,7 @@ float blockId = aux.g * 256;
 
 bool iswater = (abs(aux.g - 0.125) < 0.002);
 bool issky = (aux.g < 0.01) && (aux.r < 0.001) && (aux.b < 0.001);
+bool isentity = (aux.g < 0.01) || !issky;
 
 vec3 blur(sampler2D image, vec2 uv, vec2 direction) {
    vec3 color = texture2D(image, uv).rgb * weight[0];
@@ -314,7 +315,7 @@ void main() {
       float refract_amount = clamp((1 - fresnel) * (12 - clamp((dist - dist_nw) * far, 0.0, 12.0)) / 12, 0.0, 1.0);
       color.rgb = (color.rgb * refract_amount * 0.76) + (ref_color.rgb * ref_color.a * (1 - refract_amount) * vec3(0.6,0.7,0.9)) + watercolor * (1 - ref_color.a * (1 - refract_amount) - refract_amount) + sun_ref;
 
-    } else {
+    } else if (!isentity) {
       vec4 specular = texture(gaux3, texcoord.st);
 
       float ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5 + specular.g * specular.a) + specular.r, 1.0);
