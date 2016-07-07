@@ -62,7 +62,7 @@ uniform sampler2D depthtex1;
 uniform sampler2D noisetex;
 uniform sampler2D gaux1;
 uniform sampler2D gaux2;
-uniform sampler2DShadow shadowtex0;
+uniform sampler2DShadow shadowtex1;
 uniform sampler2D shadowcolor0;
 
 in float extShadow;
@@ -142,7 +142,7 @@ float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, ou
 		shadowposition.xy /= distortFactor;
 		shadowposition /= shadowposition.w;
 		shadowposition = shadowposition * 0.5 + 0.5;
-		shade = 1.0 - shadow2D(shadowtex0, vec3(shadowposition.st, shadowposition.z - 0.00001)).z;
+		shade = 1.0 - shadow2D(shadowtex1, vec3(shadowposition.st, shadowposition.z - 0.00001)).z;
     shadow_color = texture(shadowcolor0, shadowposition.st);
 		if(angle < 0.2 && alpha > 0.99 && !is_plant && !iswater)
 		   shade = max(shade, pow(1.0 - (angle - 0.1) * 10.0, 2));
@@ -404,7 +404,7 @@ void main() {
     vec3 sun_l = suncolor * (1 - shade) * (1 - wetness * 0.5);
     vec3 amb_color = clamp(suncolor, vec3(min_light), vec3(1.25));
 
-    if (shadow_color.a > 0.49 && shadow_color.a < 0.51)
+    if (shade < 0.1 && shadow_color.a > 0.49 && shadow_color.a < 0.51)
       sun_l = shadow_color.rgb * (length(suncolor) * (1.0 - wetness * 0.86) / length(shadow_color.rgb));
 
     vec3 light = clamp(amb_color * 0.25 + sun_l * 0.5 + torchlight, vec3(min_light), vec3(1.8));

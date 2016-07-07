@@ -22,8 +22,10 @@ in float discard_flag;
 
 void main() {
 
-	if (discard_flag == 1) discard;
+	vec4 texcolor = texture2D(tex, texcoord.st);
 
-	gl_FragData[0] = vec4(texture2D(tex, texcoord.st).rgb, 1 - discard_flag);
+	if (texcolor.a < 0.1 || discard_flag == 1) discard;
+
+	gl_FragData[0] = vec4(texcolor.rgb, 1 - discard_flag);
 	//gl_FragData[]
 }
