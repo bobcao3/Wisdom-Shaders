@@ -239,6 +239,7 @@ float water_wave_adjust(vec3 posxz) {
 
   float CLOUD_HEIGHT = 185;
   float CLOUD_HEIGHT_CEILING = 255;
+  #define CLOUD_SCALE 3.4
 
   float cloud_noise(vec3 worldPos) {
     vec3 coord = worldPos;
@@ -285,12 +286,16 @@ float water_wave_adjust(vec3 posxz) {
         break;
 
       if (test_point.y > CLOUD_HEIGHT && test_point.y < CLOUD_HEIGHT_CEILING)
-        am += cloud_noise(test_point * 3.4);
+        am += cloud_noise(test_point * CLOUD_SCALE) * 0.35 * clamp(0.0, abs(test_point.y - CLOUD_HEIGHT), 6.0) / 2.0;
 
       if (var_l)
         test_point += direction * i;
       else
-        test_point += direction * 2;
+        if (direction.y >= 0)
+          test_point += min((CLOUD_HEIGHT_CEILING - CLOUD_HEIGHT) / 32 / direction.y, float(i)) * direction;
+        else
+          test_point += min((CLOUD_HEIGHT_CEILING - CLOUD_HEIGHT) / 32 / abs(direction.y), float(i)) * direction;
+
     }
 
     float redution = 1.0 - clamp(0.0, length(test_point - spos) / 1512, 1.0);
