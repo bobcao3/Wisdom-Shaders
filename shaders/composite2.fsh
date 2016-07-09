@@ -13,9 +13,11 @@
 // limitations under the License.
 
 #version 130
+#extension GL_ARB_shader_texture_lod : require
 
 const int RGB8 = 0;
 const int colortex3Format = RGB8;
+const bool gcolorMipmapEnabled = true;
 
 #define WATER_REFLECTIONS
 
@@ -40,6 +42,7 @@ uniform sampler2D colortex1;
 uniform sampler2D composite;
 uniform sampler2D gaux1;
 uniform sampler2D gaux2;
+uniform sampler2D gaux3;
 uniform sampler2D gcolor;
 uniform sampler2D depthtex0;
 uniform sampler2D depthtex1;
@@ -149,7 +152,7 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color) {
       float sampleDepth = textureLod(depthtex0, uv, 0.0).x;
       sampleDepth = linearizeDepth(sampleDepth);
       if(testDepth - sampleDepth < 0.5) {
-        hitColor = vec4(textureLod(gcolor, uv, 0.0).rgb, 1.0);
+        hitColor = vec4(textureLod(gcolor, uv, 0.0).rgb, 1.2);
         hitColor.a = clamp(1.0 - pow(distance(uv, vec2(0.5))*2.0, 4.0), 0.0, 1.0);
       }
     }
@@ -195,18 +198,19 @@ float water_wave_adjust(vec3 posxz, float dep) {
 	return amplitude*wave2+amplitude*wave;
 }
 
-vec4 aux = texture2D(gaux1, texcoord.st);
+vec4 aux = texture(gaux1, texcoord.st);
 float blockId = aux.g * 256;
 
 bool iswater = (abs(aux.g - 0.125) < 0.002);
 bool issky = (aux.g < 0.01) && (aux.r < 0.001) && (aux.b < 0.001);
+bool isentity = (aux.g < 0.01) && !issky;
 
 vec3 blur(sampler2D image, vec2 uv, vec2 direction) {
    vec3 color = texture2D(image, uv).rgb * weight[0];
    for(int i = 1; i < 9; i++)
    {
-       color += texture2D(image, uv + direction * offset[i]).rgb * weight[i];
-       color += texture2D(image, uv - direction * offset[i]).rgb * weight[i];
+       color += textureLod(image, uv + direction * offset[i], 3.0).rgb * weight[i];
+       color += textureLod(image, uv - direction * offset[i], 3.0).rgb * weight[i];
    }
    return color;
 }
@@ -217,7 +221,18 @@ float iswet;
 
 void main() {
 
-  vec4 color = texture2D(gcolor, texcoord.st);
+  if (isEyeInWater)
+    iswater = !iswater;
+
+  vec3 blur_color = blur(colortex1, texcoord.st, vec2(1.0, 0.0) / vec2(viewWidth, viewHeight));
+
+  vec4 color;
+  if (iswater) {
+    color = textureLod(gcolor, texcoord.st, 2.0);
+    color.rgb = mix(color.rgb, blur_color, 0.4);
+  } else
+    color = texture(gcolor, texcoord.st);
+
   float shade = color.a;
   color = vec4(color.rgb, 1.0);
 
@@ -225,8 +240,8 @@ void main() {
 
 	vec3 normal = normalDecode(texture(gnormal, texcoord.st).rg);
   vec3 normal_nw = normalDecode(texture(gaux2, texcoord.st).rg);
-	float depth = textureLod(depthtex1, texcoord.st, 0.0).x;
-  float depth_nw = textureLod(depthtex0, texcoord.st, 0.0).x;
+	float depth = texture(depthtex1, texcoord.st).x;
+  float depth_nw = texture(depthtex0, texcoord.st).x;
 
   iswet = wetness * pow(sky_lightmap, 10.0) * sqrt(0.5 + max(dot(normal, normalize(upPosition)), 0.0));
 
@@ -258,6 +273,7 @@ void main() {
     //  WATER
     // ===========================================================================
     if (iswater) {
+      #ifdef WATER_REFLECTIONS
 
       vec3 watercolor = skyColor * (0.6 - wetness / 4); // Water got dark after rain
 
@@ -294,21 +310,29 @@ void main() {
 
       vec4 ref_color = waterRayTarcing(viewPosition_nw.xyz + normal_nw * (-viewPosition_nw.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
 
-      vec3 sun_ref = suncolor * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * (1 - wetness);
+      vec3 sun_ref = suncolor * (1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade);
 
       float fresnel = 0.02 + 0.98 * pow(1.0 - dot(viewRefRay, normal_nw), 5.0);
       float refract_amount = clamp((1 - fresnel) * (12 - clamp((dist - dist_nw) * far, 0.0, 12.0)) / 12, 0.0, 1.0);
-      color.rgb = (color.rgb * refract_amount * 0.8) + (ref_color.rgb * ref_color.a * (1 - refract_amount)) + watercolor * (1 - ref_color.a * (1 - refract_amount) - refract_amount) + sun_ref;
+      color.rgb = (color.rgb * refract_amount * 0.76) + (ref_color.rgb * ref_color.a * (1 - refract_amount) * vec3(0.6,0.7,0.9)) + watercolor * (1 - ref_color.a * (1 - refract_amount) - refract_amount) + sun_ref;
 
-    } else {
-      float wetness_cr = iswet * (dot(normal, upVec) * 0.5 + 0.5);
-      if (wetness_cr > 0.05) {
+      #endif
+    } else if (!isentity) {
+      vec4 specular = texture(gaux3, texcoord.st);
 
-        vec3 viewRefRay = reflect(normalize(viewPosition.xyz), normal);
-        vec4 ref_color = waterRayTarcing(viewPosition.xyz + normal * (-viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
-        vec3 sun_ref = suncolor * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * (1 - wetness_cr);
-        color.rgb += sun_ref * 0.2 * wetness_cr + ref_color.rgb * ref_color.a * wetness_cr * 0.34;
-      }
+      float ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) + specular.g * specular.a + specular.r, 1.0);
+      float sun_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) + specular.b * specular.a, 1.0);
+    //  vec3 ref_color = vec3(0.44) * wetness_cr + texture2D(gaux3, texcoord.st).rgb;
+
+      vec4 ref_color = vec4(0.0);
+      vec3 sun_ref = vec3(0.0);
+      vec3 viewRefRay = reflect(normalize(viewPosition.xyz), normal);
+      if (ref_cr > 0.05)
+        ref_color = waterRayTarcing(viewPosition.xyz + normal * (-viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
+      if (sun_cr > 0.05)
+        sun_ref = suncolor * (1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * sun_cr;
+
+      color.rgb += sun_ref * sun_cr + ref_color.rgb * ref_color.a * ref_cr;
     }
     color.rgb = mix(color.rgb, gl_Fog.color.rgb * skyColor, clamp(pow(dist, (1 - wetness * 0.5) * 3.95 - wetness), 0.0, 1.0));
     float ddist = dist;
@@ -321,5 +345,5 @@ void main() {
 
 /* DRAWBUFFERS:03 */
   gl_FragData[0] = color;
-  gl_FragData[1] = vec4(blur(colortex1, texcoord.st, vec2(1.0, 0.0) / vec2(viewWidth, viewHeight)), 1.0);
+  gl_FragData[1] = vec4(blur_color, 1.0);
 }

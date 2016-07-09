@@ -37,11 +37,12 @@ uniform mat4 gbufferModelViewInverse;
 
 void main() {
 	discard_flag = 0;
-	if (mc_Entity.x == 8 || mc_Entity.x == 9 || mc_Entity.x == 160.0f || mc_Entity.x == 95.0f || mc_Entity.x == 51.0f) discard_flag = 1;
+	if (mc_Entity.x == 8 || mc_Entity.x == 9 || mc_Entity.x == 51.0f) discard_flag = 1;
 		//water
+		//Fire
+	if (mc_Entity.x == 160.0f || mc_Entity.x == 95.0f) discard_flag = 0.5;
 		//stained glass pane
 		//stained glass
-		//Fire
 
 	gl_Position = ftransform();
 
