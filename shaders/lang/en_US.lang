@@ -1,2 +1,23 @@
-option.TEST_CLOUD = Clouds
-option.TEST_CLOUD.comment = Testing Volumetric Clouds support. Have a light or medium effect on performance.
+profile.LOW=Low
+profile.MEDIUM=Medium
+profile.HIGH=High
+
+screen.SKY=Atmospherics & Sky Options
+screen.LIGHTING=Lighting & Shadows Options
+screen.SURFACE=Surface (Blocks) Options
+screen.AFTER_EFFECTS=After Effects
+
+option.DOF=Depth of Field
+option.DOF.comment=Blur out the surroundings and illustrate the focus point.
+
+option.LF=Lens Flare
+option.LF.comment=The effects of lens when directly looking at sun.
+
+option.TEST_CLOUD=Volumetric Clouds
+option.TEST_CLOUD.comment=Testing Volumetric Clouds support with light or medium performance load.
+
+option.HQ_SMOOTH_SHADOW=High Quality Smooth Shadow
+option.TEST_CLOUD.comment=Smoothing out the edge of shadow to create a more relastic effect, but with a medium performance load.
+
+option.WATER_REFLECTIONS=Water surface reflections
+option.WATER_REFLECTIONS.comment=The reflections on water surface.
