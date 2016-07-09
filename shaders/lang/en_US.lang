@@ -1,0 +1,2 @@
+option.TEST_CLOUD = Clouds
+option.TEST_CLOUD.comment = Testing Volumetric Clouds support. Have a light or medium effect on performance.

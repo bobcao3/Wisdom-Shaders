@@ -15,6 +15,8 @@
 #version 130
 #extension GL_ARB_shader_texture_lod : require
 
+#define BLOOM
+
 const bool gdepthMipmapEnabled = true;
 
 uniform sampler2D gcolor;
@@ -65,5 +67,7 @@ void main() {
 	clraverge/=count;
 	gl_FragData[0] = clraverge;
 */
-	gl_FragData[0] = vec4(blur(colortex3, texcoord.st, vec2(0.0, 1.0) / vec2(viewWidth, viewHeight)), 1.0);
+	#ifdef BLOOM
+		gl_FragData[0] = vec4(blur(colortex3, texcoord.st, vec2(0.0, 1.0) / vec2(viewWidth, viewHeight)), 1.0);
+	#endif
 }

@@ -19,6 +19,7 @@
 
 #define TEST_CLOUD
 #define HQ_SMOOTH_SHADOW
+#define BLOOM
 
 #define SHADOW_MAP_BIAS 0.8
 const int     RG16 = 0;
@@ -459,13 +460,17 @@ void main() {
   // ===========================================================================
   //  BLOOM
   // ===========================================================================
-  float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
-  vec3 highlight = color.rgb * max(brightness - 0.25, 0.0);
+  #ifdef BLOOM
+    float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    vec3 highlight = color.rgb * max(brightness - 0.25, 0.0);
+  #endif
 
   // ===========================================================================
   //  OUT
   // ===========================================================================
 /* DRAWBUFFERS:01 */
 	gl_FragData[0] = vec4(color.rgb, r_shade);
-  gl_FragData[1] = vec4(highlight, 1.0);
+  #ifdef BLOOM
+    gl_FragData[1] = vec4(highlight, 1.0);
+  #endif
 }

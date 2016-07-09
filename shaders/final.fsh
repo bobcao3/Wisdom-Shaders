@@ -20,7 +20,8 @@
 #define DOF
 //	#define DOF_NEARVIEWBLUR
 
-#define BLOOM_AMOUNT 0.32
+#define BLOOM
+#define BLOOM_AMOUNT 0.32 // The brightness level of Bloom [0 0.25 0.32 0.41]
 
 const bool gcolorMipmapEnabled = true;
 const bool gdepthMipmapEnabled = true;
@@ -256,6 +257,7 @@ void main() {
 		color = dof(color, texcoord.st, depth);
 	#endif
 
+	#ifdef BLOOM
 	vec3 highlight = textureLod(colortex1, texcoord.st, 1.0).rgb;
 	color = pow(color, vec3(1.4));
 	color *= 6.0;
@@ -265,7 +267,7 @@ void main() {
 
 	color += highlight * BLOOM_AMOUNT;
 
-	float sky_lightmap = aux.b;
+	#endif
 
 	vec3 hslColor = rgbToHsl(color);
 	hslColor = vibrance(hslColor, 0.75);
