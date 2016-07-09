@@ -203,7 +203,7 @@ float blockId = aux.g * 256;
 
 bool iswater = (abs(aux.g - 0.125) < 0.002);
 bool issky = (aux.g < 0.01) && (aux.r < 0.001) && (aux.b < 0.001);
-bool isentity = (aux.g < 0.01) || !issky;
+bool isentity = (aux.g < 0.01) && !issky;
 
 vec3 blur(sampler2D image, vec2 uv, vec2 direction) {
    vec3 color = texture2D(image, uv).rgb * weight[0];
@@ -318,18 +318,18 @@ void main() {
     } else if (!isentity) {
       vec4 specular = texture(gaux3, texcoord.st);
 
-      float ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5 + specular.g * specular.a) + specular.r, 1.0);
+      float ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) + specular.g * specular.a + specular.r, 1.0);
       float sun_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) + specular.b * specular.a, 1.0);
     //  vec3 ref_color = vec3(0.44) * wetness_cr + texture2D(gaux3, texcoord.st).rgb;
 
       vec4 ref_color = vec4(0.0);
       vec3 sun_ref = vec3(0.0);
       vec3 viewRefRay = reflect(normalize(viewPosition.xyz), normal);
-      if (ref_cr > 0.05) {
+      if (ref_cr > 0.05)
         ref_color = waterRayTarcing(viewPosition.xyz + normal * (-viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
-      }
       if (sun_cr > 0.05)
         sun_ref = suncolor * (1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * sun_cr;
+
       color.rgb += sun_ref * sun_cr + ref_color.rgb * ref_color.a * ref_cr;
     }
     color.rgb = mix(color.rgb, gl_Fog.color.rgb * skyColor, clamp(pow(dist, (1 - wetness * 0.5) * 3.95 - wetness), 0.0, 1.0));
