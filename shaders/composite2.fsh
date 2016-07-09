@@ -273,6 +273,7 @@ void main() {
     //  WATER
     // ===========================================================================
     if (iswater) {
+      #ifdef WATER_REFLECTIONS
 
       vec3 watercolor = skyColor * (0.6 - wetness / 4); // Water got dark after rain
 
@@ -315,6 +316,7 @@ void main() {
       float refract_amount = clamp((1 - fresnel) * (12 - clamp((dist - dist_nw) * far, 0.0, 12.0)) / 12, 0.0, 1.0);
       color.rgb = (color.rgb * refract_amount * 0.76) + (ref_color.rgb * ref_color.a * (1 - refract_amount) * vec3(0.6,0.7,0.9)) + watercolor * (1 - ref_color.a * (1 - refract_amount) - refract_amount) + sun_ref;
 
+      #endif
     } else if (!isentity) {
       vec4 specular = texture(gaux3, texcoord.st);
 

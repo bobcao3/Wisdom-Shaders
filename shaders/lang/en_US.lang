@@ -7,6 +7,9 @@ screen.LIGHTING=Lighting & Shadows Options
 screen.SURFACE=Surface (Blocks) Options
 screen.AFTER_EFFECTS=After Effects
 
+option.BLOOM=Bloom
+option.BLOOM.comment=Bloom effect of highlighted objects.
+
 option.DOF=Depth of Field
 option.DOF.comment=Blur out the surroundings and illustrate the focus point.
 
