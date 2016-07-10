@@ -377,9 +377,9 @@ void main() {
   float dist = length(worldPosition.xyz) / far;
   float dist_nw = length(worldPosition_nw.xyz) / far;
 
-  vec3 suncolor_sunrise = vec3(2.52, 1.2, 0.9) * TimeSunrise;
+  vec3 suncolor_sunrise = vec3(1.52, 1.2, 0.9) * TimeSunrise;
   vec3 suncolor_noon = vec3(2.52, 2.25, 2.0) * TimeNoon;
-  vec3 suncolor_sunset = vec3(2.52, 1.0, 0.7) * TimeSunset;
+  vec3 suncolor_sunset = vec3(1.52, 1.0, 0.7) * TimeSunset;
   vec3 suncolor_midnight = vec3(0.3, 0.7, 1.3) * 0.37 * TimeMidnight * (1.0 - rainStrength2 * 1.0);
 
   vec3 suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
@@ -390,6 +390,9 @@ void main() {
   float r_shade = 0.0;
 
   if (issky) {
+  //  color.rgb = mix(skyColor.rgb, vec3(0.3, 0.44, 0.86) * length(suncolor) / length(suncolor_noon), clamp(0.0, dot(normalize(worldPosition.xyz), vec3(0.0, 1.0, 0.0)) - 0.2, 1.0));
+
+
     dist = 317; // MAGIC
   } else {
     float shade = 0.0;
@@ -437,7 +440,7 @@ void main() {
     float tlight = clamp(aux.b, 0.0, 1.0);
     vec3 torchlight = pow(tlight, torchDistance) * torchBrightness * torchcolor;
 
-    float min_light = 0.85 - float(eyeBrightnessSmooth.y + eyeBrightnessSmooth.x * 0.65) / 560;
+    float min_light = 0.65 - float(eyeBrightnessSmooth.y + eyeBrightnessSmooth.x * 0.65) / 560;
 
     vec3 sun_l = suncolor * (1 - shade) * (1 - wetness * 0.5);
     vec3 amb_color = clamp(suncolor, vec3(min_light), vec3(1.25));

@@ -49,7 +49,7 @@ void main() {
   vec4 normal_map = texture2DGradARB(normals, texcoord.st, dcdx, dcdy);
 	vec3 normal_r;
   #ifdef NORMAL_MAPPING
-    if (length(normal_map) > 0) {
+    if (length(normal_map.rgb) > 0) {
       vec3 bump = normal_map.rgb * 2.0 - 1.0;
       bump = bump * vec3(0.5) + vec3(0.0, 0.0, 0.5);
       mat3 tbnMatrix = mat3(tangent.x, binormal.x, normal.x,

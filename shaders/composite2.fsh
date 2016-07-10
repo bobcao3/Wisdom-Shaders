@@ -256,9 +256,9 @@ void main() {
   float dist = length(worldPosition.xyz) / far;
   float dist_nw = length(worldPosition_nw.xyz) / far;
 
-  vec3 suncolor_sunrise = vec3(2.52, 1.2, 0.9) * TimeSunrise;
+  vec3 suncolor_sunrise = vec3(1.52, 1.2, 0.9) * TimeSunrise;
   vec3 suncolor_noon = vec3(2.52, 2.25, 2.0) * TimeNoon;
-  vec3 suncolor_sunset = vec3(2.52, 1.0, 0.7) * TimeSunset;
+  vec3 suncolor_sunset = vec3(1.95, 1.31, 0.43) * TimeSunset;
   vec3 suncolor_midnight = vec3(0.3, 0.7, 1.3) * 0.37 * TimeMidnight * (1.0 - rainStrength2 * 1.0);
 
   vec3 suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
@@ -342,13 +342,17 @@ void main() {
 
       color.rgb += sun_ref * sun_cr + ref_color.rgb * ref_color.a * ref_cr;
     }
+
     color.rgb = mix(color.rgb, gl_Fog.color.rgb * skyColor, clamp(pow(dist, (1 - wetness * 0.5) * 3.95 - wetness), 0.0, 1.0));
     float ddist = dist;
       ddist *= ddist;
       ddist *= ddist;
       ddist *= ddist;
       ddist *= ddist;
-    color.rgb = mix(color.rgb, skyColor, clamp(pow(dist, 20) * (1 - wetness), 0.0, 1.0));
+    color.rgb = mix(color.rgb, skyColor, clamp(ddist * (1 - wetness), 0.0, 1.0));
+
+    float sun_ray_dif = clamp(0.0, dot(normalize(viewPosition.xyz), normalize(lightPosition)), 1.0) * pow(dist, 2);
+    //color.rgb = mix(color.rgb, suncolor * (1.0 - wetness * 0.86), sun_ray_dif * 0.6);
   }
 
 /* DRAWBUFFERS:03 */
