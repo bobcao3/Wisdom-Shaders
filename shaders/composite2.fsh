@@ -275,7 +275,7 @@ void main() {
     if (iswater) {
       #ifdef WATER_REFLECTIONS
 
-      vec3 watercolor = skyColor * (0.6 - wetness / 4); // Water got dark after rain
+      vec3 watercolor = skyColor * (0.6 - iswet / 4); // Water got dark after rain
 
       float deltaPos = 0.1;
       float depth_diff = abs(depth_nw - depth);
@@ -320,8 +320,16 @@ void main() {
     } else if (!isentity) {
       vec4 specular = texture(gaux3, texcoord.st);
 
-      float ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) + specular.g * specular.a + specular.r, 1.0);
-      float sun_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) + specular.b * specular.a, 1.0);
+      float ref_cr;
+      float sun_cr;
+      if (length(specular.rgb) < 0.1) {
+        ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) * 0.43, 1.0);
+        sun_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) * 0.45, 1.0);
+      } else {
+        ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) * specular.g + specular.r * 0.77, 1.0);
+        sun_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) * specular.g + specular.b * 0.77, 1.0);
+      }
+
     //  vec3 ref_color = vec3(0.44) * wetness_cr + texture2D(gaux3, texcoord.st).rgb;
 
       vec4 ref_color = vec4(0.0);

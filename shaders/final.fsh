@@ -270,7 +270,7 @@ void main() {
 	#endif
 
 	vec3 hslColor = rgbToHsl(color);
-	hslColor = vibrance(hslColor, 0.75);
+	hslColor = vibrance(hslColor, 0.85);
 	color = hslToRgb(hslColor);
 
 	#ifdef LF

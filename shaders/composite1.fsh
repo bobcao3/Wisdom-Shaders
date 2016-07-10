@@ -143,9 +143,9 @@ float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, ou
 	float shade = 0.0;
 	float angle = dot(lightPosition, normal);
 
-	bool is_plant = (abs(blockId - 31.0) < 0.1 || abs(blockId - 37.0) < 0.1 || abs(blockId - 38.0) < 0.01 || abs(blockId - 18.0) < 0.01 || abs(blockId - 106.0) < 0.01 || abs(blockId - 161.0) < 0.01 || abs(blockId - 175.0) < 0.01);
+	bool is_plant = (abs(aux.g - 0.22) < 0.05);
 
-  if(angle <= 0.01 && alpha > 0.99 && !is_plant && !iswater) {
+  if(angle <= 0.01 && alpha > 0.99 && is_plant && !iswater) {
     shade = 1.0;
 	}	else {
     vec4 shadowposition = shadowModelView * worldPosition;
@@ -177,7 +177,7 @@ float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, ou
       shade = 1.0 - shadow2D(shadowtex1, vec3(shadowposition.st, shadowposition.z - 0.00001)).z;
       shadow_color = texture(shadowcolor0, shadowposition.st);
     #endif
-		if(angle < 0.2 && alpha > 0.99 && !is_plant && !iswater)
+		if(angle < 0.2 && alpha > 0.99 && is_plant && !iswater)
 		   shade = max(shade, pow(1.0 - (angle - 0.1) * 10.0, 2));
 		shade -= max(0.0, edgeX * 10.0);
 		shade -= max(0.0, edgeY * 10.0);
@@ -402,7 +402,7 @@ void main() {
       float depth_diff = abs(depth_nw - depth);
       float h0 = water_wave_adjust(wpos, depth_diff);
 
-      float under_water_shade = clamp(shadowMapping(worldPosition, dist, normal, color.a, shadow_color), 0.0, 1.0) * 0.42 + h0;
+      float under_water_shade = clamp(shadowMapping(worldPosition, dist, normal, color.a, shadow_color), 0.0, 1.0) * 0.42 + h0 * 0.5;
 
       if (!isEyeInWater) {
         r_shade = shadowMapping(worldPosition_nw, dist_nw, normal_nw, color.a, shadow_color);
@@ -437,7 +437,7 @@ void main() {
     float tlight = clamp(aux.b, 0.0, 1.0);
     vec3 torchlight = pow(tlight, torchDistance) * torchBrightness * torchcolor;
 
-    float min_light = 1.15 - float(eyeBrightnessSmooth.y + eyeBrightnessSmooth.x * 0.65) / 560;
+    float min_light = 0.85 - float(eyeBrightnessSmooth.y + eyeBrightnessSmooth.x * 0.65) / 560;
 
     vec3 sun_l = suncolor * (1 - shade) * (1 - wetness * 0.5);
     vec3 amb_color = clamp(suncolor, vec3(min_light), vec3(1.25));
@@ -445,7 +445,7 @@ void main() {
     if (shade < 0.999 && shadow_color.a > 0.49 && shadow_color.a < 0.51)
       sun_l = (1 - shade) * shadow_color.rgb * (length(suncolor) * (1.0 - wetness * 0.86) / length(shadow_color.rgb));
 
-    vec3 light = clamp(amb_color * 0.25 + sun_l * 0.5 + torchlight, vec3(min_light), vec3(1.8));
+    vec3 light = clamp(amb_color * 0.25 + sun_l * 0.34 + torchlight, vec3(min_light), vec3(1.8));
 
     color.rgb *= 1 - wetness * 0.25;
 
