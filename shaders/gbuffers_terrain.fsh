@@ -13,6 +13,9 @@
 // limitations under the License.
 
 #version 130
+#extension GL_ARB_shader_texture_lod : enable
+
+#define NORMAL_MAPPING
 
 const int noiseTextureResolution = 256;
 
@@ -20,20 +23,50 @@ uniform int fogMode;
 uniform sampler2D texture;
 uniform sampler2D lightmap;
 uniform sampler2D specular;
+uniform sampler2D normals;
 
 in vec4 color;
 in vec4 texcoord;
 in vec4 lmcoord;
-in vec2 normal;
+in vec3 normal;
+in vec3 binormal;
+in vec3 tangent;
 in float entities;
 in float iswater;
 
+vec2 normalEncode(vec3 n) {
+    vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
+    enc = enc*0.5+0.5;
+    return enc;
+}
+
+vec2 dcdx = dFdx(texcoord.st);
+vec2 dcdy = dFdy(texcoord.st);
+
 /* DRAWBUFFERS:0246 */
 void main() {
-	vec4 texcolor = texture2D(texture, texcoord.st);
+	vec4 texcolor = texture2DGradARB(texture, texcoord.st, dcdx, dcdy);
+  vec4 normal_map = texture2DGradARB(normals, texcoord.st, dcdx, dcdy);
+	vec3 normal_r;
+  #ifdef NORMAL_MAPPING
+    if (length(normal_map) > 0) {
+      vec3 bump = normal_map.rgb * 2.0 - 1.0;
+      bump = bump * vec3(0.5) + vec3(0.0, 0.0, 0.5);
+      mat3 tbnMatrix = mat3(tangent.x, binormal.x, normal.x,
+          tangent.y, binormal.y, normal.y,
+          tangent.z, binormal.z, normal.z);
 
-	gl_FragData[0] = texcolor * texture2D(lightmap, lmcoord.st) * color;
-	gl_FragData[1] = vec4(normal, 0.0, 1.0);
+		  normal_r = normalize(bump * tbnMatrix);
+      normal_r = gl_NormalMatrix * normalize(normal_r);
+	  } else {
+      normal_r = gl_NormalMatrix * normal;
+    }
+  #else
+    normal_r = gl_NormalMatrix * normal;
+  #endif
+
+	gl_FragData[0] = texcolor * color;
+	gl_FragData[1] = vec4(normalEncode(normal_r), 0.0, 1.0);
 	gl_FragData[2] = vec4(lmcoord.t, entities, lmcoord.s, 1.0);
-	gl_FragData[3] = vec4(texture2D(specular, texcoord.st).rgb, texcolor.a);
+	gl_FragData[3] = vec4(texture2DGradARB(specular, texcoord.st, dcdx, dcdy).rgb, texcolor.a);
 }

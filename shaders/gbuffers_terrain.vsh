@@ -24,21 +24,18 @@ attribute vec4 mc_midTexCoord;
 out vec4 color;
 out vec4 texcoord;
 out vec4 lmcoord;
-out vec2 normal;
+out vec3 normal;
+out vec3 binormal;
+out vec3 tangent;
 out float entities;
 out float iswater;
-
-vec2 normalEncode(vec3 n) {
-    vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
-    enc = enc*0.5+0.5;
-    return enc;
-}
 
 void main()
 {
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
   iswater = 0.0;
+	entities = 0.22;
   if (blockId == 8.0 || blockId == 9.0) {
     iswater = 1.0;
   } else {
@@ -52,7 +49,6 @@ void main()
   		position.x += sin(noise.x * 10.0 + time) * 0.2 * reset * maxStrength;
   		position.z += sin(noise.y * 10.0 + time) * 0.2 * reset * maxStrength;
 
-      normal = normalEncode(gl_NormalMatrix * vec3(0,1,0));
       entities = 0.4;
     }	else if(blockId == 18.0 || blockId == 106.0 || blockId == 161.0 || blockId == 175.0) {
 		  vec3 noise = texture2D(noisetex, (position.xz + 0.5) / 16.0).rgb;
@@ -63,18 +59,43 @@ void main()
   		position.x += sin(noise.x * 10.0 + time) * 0.07 * reset * maxStrength;
   		position.z += sin(noise.y * 10.0 + time) * 0.07 * reset * maxStrength;
 
-      normal = normalEncode(gl_NormalMatrix * vec3(0,1,0));
+      entities = 0.4;
     } else if (blockId == 83.0 || blockId == 39 || blockId ==40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115 || blockId == 141 || blockId == 142) {
-      normal = normalEncode(gl_NormalMatrix * vec3(0,1,0));
-	  } else
-      normal = normalEncode(gl_NormalMatrix * gl_Normal);
-  }
+      entities = 0.4;
+	  }
+	}
+
+	normal = gl_Normal;
+	if (gl_Normal.x > 0.5) {
+		//  1.0,  0.0,  0.0
+		tangent  = normalize(gl_NormalMatrix * vec3( 0.0,  0.0, -1.0));
+		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
+	} else if (gl_Normal.x < -0.5) {
+		// -1.0,  0.0,  0.0
+		tangent  = normalize(gl_NormalMatrix * vec3( 0.0,  0.0,  1.0));
+		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
+	} else if (gl_Normal.y > 0.5) {
+		//  0.0,  1.0,  0.0
+		tangent  = normalize(gl_NormalMatrix * vec3( 1.0,  0.0,  0.0));
+		binormal = normalize(gl_NormalMatrix * vec3( 0.0,  0.0,  1.0));
+	} else if (gl_Normal.y < -0.5) {
+		//  0.0, -1.0,  0.0
+		tangent  = normalize(gl_NormalMatrix * vec3( 1.0,  0.0,  0.0));
+		binormal = normalize(gl_NormalMatrix * vec3( 0.0,  0.0,  1.0));
+	} else if (gl_Normal.z > 0.5) {
+		//  0.0,  0.0,  1.0
+		tangent  = normalize(gl_NormalMatrix * vec3( 1.0,  0.0,  0.0));
+		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
+	} else if (gl_Normal.z < -0.5) {
+		//  0.0,  0.0, -1.0
+		tangent  = normalize(gl_NormalMatrix * vec3(-1.0,  0.0,  0.0));
+		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
+	}
+
 	position = gl_ModelViewMatrix * position;
 	gl_Position = gl_ProjectionMatrix * position;
 	gl_FogFragCoord = length(position.xyz);
 	color = gl_Color;
 	texcoord = gl_TextureMatrix[0] * gl_MultiTexCoord0;
 	lmcoord = gl_TextureMatrix[1] * gl_MultiTexCoord1;
-
-  entities = blockId / 256;
 }
