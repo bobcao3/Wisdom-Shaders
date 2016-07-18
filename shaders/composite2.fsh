@@ -202,6 +202,7 @@ vec4 aux = texture(gaux1, texcoord.st);
 float blockId = aux.g * 256;
 
 bool iswater = (abs(aux.g - 0.125) < 0.002);
+bool isglass = (abs(aux.g - 0.130) < 0.002);
 bool issky = (aux.g < 0.01) && (aux.r < 0.001) && (aux.b < 0.001);
 bool isentity = (aux.g < 0.01) && !issky;
 
@@ -227,7 +228,7 @@ void main() {
   vec3 blur_color = blur(colortex1, texcoord.st, vec2(1.0, 0.0) / vec2(viewWidth, viewHeight));
 
   vec4 color;
-  if (iswater) {
+  if (iswater || isglass) {
     color = textureLod(gcolor, texcoord.st, 2.0);
     color.rgb = mix(color.rgb, blur_color, 0.4);
   } else

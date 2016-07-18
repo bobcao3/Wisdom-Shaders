@@ -38,7 +38,7 @@ void main() {
 		gl_FragData[2] = vec4(lmcoord.t, 0.125, lmcoord.s, 1.0);
 	} else {
 		gl_FragData[0] = texture2D(texture, texcoord.xy)*color;
-		gl_FragData[2] = vec4(lmcoord.t, 0.9, lmcoord.s, 1.0);
+		gl_FragData[2] = vec4(lmcoord.t, 0.130, lmcoord.s, 1.0);
 	}
 	if(fogMode == 9729)
 		gl_FragData[0].rgb = mix(gl_Fog.color.rgb, gl_FragData[0].rgb, clamp((gl_Fog.end - gl_FogFragCoord) / (gl_Fog.end - gl_Fog.start), 0.0, 1.0));
