@@ -14,7 +14,7 @@
 
 #version 130
 
-	#define SHADOW_MAP_BIAS 0.8
+	#define SHADOW_MAP_BIAS 0.85
 
 	#define WAVING_TERRAIN
 
