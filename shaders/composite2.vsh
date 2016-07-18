@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #version 130
+#pragma optimize(on)
 
 out vec4 texcoord;
 out float handItemLight;

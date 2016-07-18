@@ -16,7 +16,6 @@
 
 uniform int fogMode;
 uniform sampler2D texture;
-uniform sampler2D lightmap;
 
 in vec4 color;
 in vec4 texcoord;

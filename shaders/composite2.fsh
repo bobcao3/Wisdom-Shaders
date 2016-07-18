@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #version 130
-#extension GL_ARB_shader_texture_lod : require
+#pragma optimize(on)
 
 const int RGB8 = 0;
 const int colortex3Format = RGB8;

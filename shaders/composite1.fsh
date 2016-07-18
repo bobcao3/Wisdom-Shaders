@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #version 130
+#pragma optimize(on)
 
 #define PI 3.14159
 
@@ -38,7 +39,7 @@ const int     shadowMapResolution     = 1024;
 #endif
 const float   shadowDistance          = 128.0f;
 const float 	centerDepthHalflife 	  = 2.0f;
-const float 	shadowIntervalSize 		  = 6.f;
+const float 	shadowIntervalSize 		  = 6.0f;
 const float 	wetnessHalflife 		 	  = 500.0f; 	 // Wet to dry.
 const float 	drynessHalflife 		 	  = 60.0f;		 // Dry ro wet.
 const float		sunPathRotation			 	  = -39.5f;
@@ -54,7 +55,7 @@ const bool    shadowcolor0Mipmap      = true;
 #endif
 #endif
 const bool    gcolorMipmapEnabled     = true;
-const float   ambientOcclusionLevel   = 1.0;
+const float   ambientOcclusionLevel   = 1.0f;
 
 uniform float far;
 uniform float near;
@@ -92,23 +93,23 @@ uniform sampler2DShadow shadowtex1;
 #endif
 uniform sampler2D shadowcolor0;
 
-in float extShadow;
-in vec3 lightPosition;
+flat in float extShadow;
+flat in vec3 lightPosition;
 in vec3 upVec;
 in vec3 sunVec;
 in vec3 moonVec;
-in vec3 suncolor;
+flat in vec3 suncolor;
 in float SdotU;
 in float MdotU;
-in float moonVisibility;
+flat in float moonVisibility;
 in vec4 texcoord;
-in float handlight;
-in vec3 worldSunPosition;
+flat in float handlight;
+flat in vec3 worldSunPosition;
 
-in float TimeSunrise;
-in float TimeNoon;
-in float TimeSunset;
-in float TimeMidnight;
+flat in float TimeSunrise;
+flat in float TimeNoon;
+flat in float TimeSunset;
+flat in float TimeMidnight;
 
 struct SurfaceStruct {
   vec4 worldPosition;
@@ -121,40 +122,20 @@ struct SurfaceStruct {
 vec4 color;
 
 vec3 normalDecode(vec2 enc) {
-  vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
+  vec4 nn = vec4(2.0f * enc - 1.0f, 1.0f, -1.0f);
   float l = dot(nn.xyz,-nn.xyw);
   nn.z = l;
   nn.xy *= sqrt(l);
-  return nn.xyz * 2.0 + vec3(0.0, 0.0, -1.0);
-}
-
-float edepth(vec2 coord) {
-	return texture(depthtex0,coord).z;
-}
-
-float luma(vec3 color) {
-	return dot(color,vec3(0.3, 0.6, 0.1));
-}
-
-float ld(float depth) {
-    return (2.0 * near) / (far + near - depth * (far - near));
-}
-
-vec3 nvec3(vec4 pos) {
-    return pos.xyz/pos.w;
-}
-
-vec4 nvec4(vec3 pos) {
-    return vec4(pos.xyz, 1.0);
+  return nn.xyz * 2.0f + vec3(0.0f, 0.0f, -1.0f);
 }
 
 vec4 aux = texture(gaux1, texcoord.st);
-float blockId = aux.g * 256;
+float blockId = aux.g * 256.0f;
 
-bool iswater = (abs(aux.g - 0.125) < 0.002);
-bool issky = ((aux.r < 0.001) && (aux.g < 0.001) && (aux.b < 0.001));
-bool ishand = (aux.g > 0.98);
-bool is_stained_glass = (aux.g > 0.895) && (aux.g < 0.905);
+bool iswater = (abs(aux.g - 0.125f) < 0.002f);
+bool issky = ((aux.r < 0.001f) && (aux.g < 0.001f) && (aux.b < 0.001f));
+bool ishand = (aux.g > 0.98f);
+bool is_stained_glass = (aux.g > 0.895f) && (aux.g < 0.905f);
 
 #ifdef DRSOE_SS
   const float shadow_weight[5] = float[] (1.0, 0.71, 0.57, 0.33, 0.12);

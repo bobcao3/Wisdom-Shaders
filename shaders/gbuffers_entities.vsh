@@ -17,7 +17,7 @@
 out vec4 color;
 out vec4 texcoord;
 out vec4 lmcoord;
-out vec2 normal;
+flat out vec2 normal;
 
 vec2 normalEncode(vec3 n) {
     vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));

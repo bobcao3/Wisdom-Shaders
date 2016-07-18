@@ -20,7 +20,7 @@ uniform sampler2D texture;
 in vec4 color;
 in vec4 texcoord;
 in vec2 normal;
-in float entityType;
+flat in float entityType;
 
 /* DRAWBUFFERS:02 */
 void main() {

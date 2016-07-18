@@ -17,8 +17,7 @@
 uniform sampler2D tex;
 
 in vec4 texcoord;
-in float depth;
-in float discard_flag;
+flat in lowp float discard_flag;
 
 void main() {
 

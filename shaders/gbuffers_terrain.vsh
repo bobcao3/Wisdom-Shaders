@@ -24,11 +24,11 @@ attribute vec4 mc_midTexCoord;
 out vec4 color;
 out vec4 texcoord;
 out vec4 lmcoord;
-out vec3 normal;
-out vec3 binormal;
-out vec3 tangent;
-out float entities;
-out float iswater;
+flat out vec3 normal;
+flat out vec3 binormal;
+flat out vec3 tangent;
+flat out float entities;
+flat out float iswater;
 
 void main()
 {

@@ -14,6 +14,7 @@
 
 #version 130
 #extension GL_ARB_shader_texture_lod : enable
+#pragma optimize(on)
 
 #define NORMAL_MAPPING
 
@@ -28,11 +29,11 @@ uniform sampler2D normals;
 in vec4 color;
 in vec4 texcoord;
 in vec4 lmcoord;
-in vec3 normal;
-in vec3 binormal;
-in vec3 tangent;
-in float entities;
-in float iswater;
+flat in vec3 normal;
+flat in vec3 binormal;
+flat in vec3 tangent;
+flat in float entities;
+flat in float iswater;
 
 vec2 normalEncode(vec3 n) {
     vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));

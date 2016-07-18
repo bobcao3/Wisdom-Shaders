@@ -22,7 +22,7 @@ uniform float frameTimeCounter;
 
 in vec4 color;
 in vec4 texcoord;
-in float iswater;
+flat in float iswater;
 in vec4 lmcoord;
 in vec3 wpos;
 in vec2 normal;
