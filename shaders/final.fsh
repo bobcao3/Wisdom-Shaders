@@ -18,7 +18,8 @@
 #define VIGNETTE
 #define LF
 #define DOF
-//	#define DOF_NEARVIEWBLUR
+//#define DOF_NEARVIEWBLUR
+#define TILT_SHIFT
 
 #define BLOOM
 #define BLOOM_AMOUNT 0.32 // The brightness level of Bloom [0 0.25 0.32 0.41]
@@ -43,9 +44,13 @@ uniform float near;
 uniform float aspectRatio;
 uniform float viewWidth;
 uniform float viewHeight;
+uniform float wetness;
+uniform int worldTime;
 uniform vec3 skyColor;
 
 in vec4 texcoord;
+
+float rainStrength2 = clamp(wetness, 0.0f, 1.0f)/1.0f;
 
 #ifdef LF
 	in float sunVisibility;
@@ -79,15 +84,16 @@ in vec4 texcoord;
 	const vec4 LF4COLOR = vec4(1.0, 0.13, 0.11, 0.19);
 	const vec4 LF5COLOR = vec4(0, 0.27, 1.0, 0.11);
 
-	vec3 lensFlare(vec3 color, vec2 uv) {
+	vec3 lensFlare(vec3 color, vec2 uv, vec3 sun_color) {
     if(sunVisibility <= 0.0)
         return color;
-    color += LENS_FLARE(color, uv, lf_pos1, LF1SIZE, LF1COLOR);
-    color += LENS_FLARE(color, uv, lf_pos2, LF2SIZE, LF2COLOR);
-    color += LENS_FLARE(color, uv, lf_pos3, LF3SIZE, LF3COLOR);
-    color += LENS_FLARE(color, uv, lf_pos5, LF5SIZE, LF5COLOR);
-		color += LENS_FLARE(color, uv, lf_pos4, LF4SIZE, LF4COLOR);
-		return color;
+		vec3 temp_color = vec3(0);
+    temp_color += LENS_FLARE(color, uv, lf_pos1, LF1SIZE, LF1COLOR);
+    temp_color += LENS_FLARE(color, uv, lf_pos2, LF2SIZE, LF2COLOR);
+    temp_color += LENS_FLARE(color, uv, lf_pos3, LF3SIZE, LF3COLOR);
+    temp_color += LENS_FLARE(color, uv, lf_pos5, LF5SIZE, LF5COLOR);
+		temp_color += LENS_FLARE(color, uv, lf_pos4, LF4SIZE, LF4COLOR);
+		return color + temp_color * sun_color;
 	}
 #endif
 
@@ -219,6 +225,12 @@ vec3 dof(vec3 color, vec2 uv, float depth) {
     #else
     	float fade = smoothstep(0.0, DOF_FADE_RANGE, clamp(delta - DOF_CLEAR_RADIUS, 0.0, DOF_FADE_RANGE));
     #endif
+		#ifdef TILT_SHIFT
+			float vin_dist = distance(texcoord.st, vec2(0.5f));
+			vin_dist = clamp(vin_dist * 1.7 - 0.65, 0.0, 1.0); //各种凑魔数
+			vin_dist = smoothstep(0.0, 1.0, vin_dist);
+			fade = max(vin_dist, fade);
+		#endif
     if(fade < 0.001)
         return color;
     vec2 offset = vec2(1.33333 * aspectRatio / viewWidth, 1.33333 / viewHeight);
@@ -238,6 +250,12 @@ vec3 dof(vec3 color, vec2 uv, float depth) {
     return mix(color, blurColor, fade);
 }
 #endif
+
+float timefract = worldTime;
+float TimeSunrise  = ((clamp(timefract, 23000.0, 24000.0) - 23000.0) / 1000.0) + (1.0 - (clamp(timefract, 0.0, 2000.0)/2000.0));
+float TimeNoon     = ((clamp(timefract, 0.0, 2000.0)) / 2000.0) - ((clamp(timefract, 10000.0, 12000.0) - 10000.0) / 2000.0);
+float TimeSunset   = ((clamp(timefract, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(timefract, 12000.0, 12750.0) - 12000.0) / 750.0);
+float TimeMidnight = ((clamp(timefract, 12000.0, 12750.0) - 12000.0) / 750.0) - ((clamp(timefract, 23000.0, 24000.0) - 23000.0) / 1000.0);
 
 void main() {
 
@@ -273,8 +291,18 @@ void main() {
 	hslColor = vibrance(hslColor, 0.85);
 	color = hslToRgb(hslColor);
 
+	vec3 suncolor_sunrise = vec3(1.52, 1.2, 0.9) * TimeSunrise;
+  vec3 suncolor_noon = vec3(2.52, 2.25, 2.0) * TimeNoon;
+  vec3 suncolor_sunset = vec3(1.52, 1.0, 0.7) * TimeSunset;
+  vec3 suncolor_midnight = vec3(0.3, 0.7, 1.3) * 0.37 * TimeMidnight * (1.0 - rainStrength2 * 1.0);
+
+  vec3 suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
+    suncolor.r = pow(suncolor.r, 1.0 - rainStrength2 * 0.5);
+    suncolor.g = pow(suncolor.g, 1.0 - rainStrength2 * 0.5);
+    suncolor.b = pow(suncolor.b, 1.0 - rainStrength2 * 0.5);
+
 	#ifdef LF
-		color = lensFlare(color, texcoord.st);
+		color = lensFlare(color, texcoord.st, suncolor * (1 - wetness * 0.86));
 	#endif
 
 	#ifdef VIGNETTE
