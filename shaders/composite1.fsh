@@ -31,6 +31,7 @@ const int     gnormalFormat = RG16;
 #else
   const int     shadowMapResolution     = 1024;
 #endif
+const float   shadowDistance          = 128.0f;
 const float 	centerDepthHalflife 	  = 2.0f;
 const float 	shadowIntervalSize 		  = 6.f;
 const float 	wetnessHalflife 		 	  = 500.0f; 	 // Wet to dry.
@@ -265,10 +266,10 @@ float water_wave_adjust(vec3 posxz) {
 
     vec3 test_point = spos;
     if (spos.y > CLOUD_HEIGHT_CEILING) {
-      //if (direction.y >= 0)
-      //  return color;
+      if (direction.y >= 0)
+        return color;
       test_point += (direction / abs(direction.y)) * abs(CLOUD_HEIGHT_CEILING - spos.y);
-      //direction /= direction.y;
+      direction /= abs(direction.y);
     } else if (spos.y < CLOUD_HEIGHT) {
       if (direction.y <= 0)
         return color;
@@ -279,7 +280,7 @@ float water_wave_adjust(vec3 posxz) {
     }
 
     for (int i = 0; i < 32; i++) {
-      if (t_color.a > 0.99)
+      if (am > 0.99)
         break;
 
       float l = length(test_point - spos);
@@ -302,7 +303,7 @@ float water_wave_adjust(vec3 posxz) {
     float redution = 1.0 - clamp(0.0, length(test_point - spos) / 1512, 1.0);
       redution = clamp(0.0, redution, 1.0);
     am = clamp(0.0, am, 1.0);
-    return color + (vec3(am) * skyColor) * redution;
+    return mix(color, skyColor * 1.5, am * redution);//color + (vec3(am) * skyColor) * redution;
   }
 #endif
 
@@ -405,11 +406,12 @@ void main() {
       float depth_diff = abs(depth_nw - depth);
       float h0 = water_wave_adjust(wpos, depth_diff);
 
-      float under_water_shade = clamp(shadowMapping(worldPosition, dist, normal, color.a, shadow_color), 0.0, 1.0) * 0.42 + h0 * 0.5;
+      float under_water_shade = clamp(shadowMapping(worldPosition, dist, normal, color.a, shadow_color), 0.0, 1.0) * 0.88;
+      under_water_shade += (h0 * 1.1) * 0.6 * (1 - under_water_shade);
 
       if (!isEyeInWater) {
         r_shade = shadowMapping(worldPosition_nw, dist_nw, normal_nw, color.a, shadow_color);
-        shade = under_water_shade + r_shade * 0.58;
+        shade = under_water_shade + r_shade * 0.12;
       } else {
         r_shade = under_water_shade;
         shade = r_shade;
@@ -440,7 +442,7 @@ void main() {
     float tlight = clamp(aux.b, 0.0, 1.0);
     vec3 torchlight = pow(tlight, torchDistance) * torchBrightness * torchcolor;
 
-    float min_light = 0.65 - float(eyeBrightnessSmooth.y + eyeBrightnessSmooth.x * 0.65) / 560;
+    float min_light = 0.85 - float(eyeBrightnessSmooth.y + eyeBrightnessSmooth.x * 0.65) / 560;
 
     vec3 sun_l = suncolor * (1 - shade) * (1 - wetness * 0.5);
     vec3 amb_color = clamp(suncolor, vec3(min_light), vec3(1.25));
