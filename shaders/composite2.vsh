@@ -21,6 +21,7 @@ out float MdotU;
 out vec3 sunVec;
 out vec3 moonVec;
 out vec3 upVec;
+out vec3 suncolor;
 out vec3 lightPosition;
 out float sunVisibility;
 out float moonVisibility;
@@ -29,6 +30,7 @@ out vec2 screenSunPosition;
 uniform int worldTime;
 uniform int heldItemId;
 uniform float rainStrength;
+uniform float wetness;
 uniform vec3 sunPosition;
 uniform vec3 moonPosition;
 uniform vec3 upPosition;
@@ -48,6 +50,18 @@ void main() {
 	TimeNoon     = ((clamp(w_time_f, 0.0, 2000.0)) / 2000.0) - ((clamp(w_time_f, 10000.0, 12000.0) - 10000.0) / 2000.0);
 	TimeSunset   = ((clamp(w_time_f, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(w_time_f, 12000.0, 12750.0) - 12000.0) / 750.0);
 	TimeMidnight = ((clamp(w_time_f, 12000.0, 12750.0) - 12000.0) / 750.0) - ((clamp(w_time_f, 23000.0, 24000.0) - 23000.0) / 1000.0);
+
+	float rainStrength2 = clamp(wetness, 0.0f, 1.0f) / 1.0f;
+
+	vec3 suncolor_sunrise = vec3(1.52, 1.2, 0.9) * TimeSunrise;
+  vec3 suncolor_noon = vec3(2.52, 2.25, 2.0) * TimeNoon;
+  vec3 suncolor_sunset = vec3(1.95, 1.31, 0.43) * TimeSunset;
+  vec3 suncolor_midnight = vec3(0.3, 0.7, 1.3) * 0.37 * TimeMidnight * (1.0 - rainStrength2 * 1.0);
+
+  suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
+  suncolor.r = pow(suncolor.r, 1.0 - rainStrength2 * 0.5);
+  suncolor.g = pow(suncolor.g, 1.0 - rainStrength2 * 0.5);
+  suncolor.b = pow(suncolor.b, 1.0 - rainStrength2 * 0.5);
 
 	sunVec = normalize(sunPosition);
 	moonVec = normalize(-sunPosition);

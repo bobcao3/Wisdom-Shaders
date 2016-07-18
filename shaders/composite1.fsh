@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #version 130
-#extension GL_ARB_shader_texture_lod : require
 
 #define PI 3.14159
 
@@ -98,12 +97,28 @@ in vec3 lightPosition;
 in vec3 upVec;
 in vec3 sunVec;
 in vec3 moonVec;
+in vec3 suncolor;
 in float SdotU;
 in float MdotU;
 in float moonVisibility;
 in vec4 texcoord;
 in float handlight;
 in vec3 worldSunPosition;
+
+in float TimeSunrise;
+in float TimeNoon;
+in float TimeSunset;
+in float TimeMidnight;
+
+struct SurfaceStruct {
+  vec4 worldPosition;
+  vec3 normal;
+  vec4 viewPosition;
+
+  float dist;
+} surface, surface_nw;
+
+vec4 color;
 
 vec3 normalDecode(vec2 enc) {
   vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
@@ -133,15 +148,6 @@ vec4 nvec4(vec3 pos) {
     return vec4(pos.xyz, 1.0);
 }
 
-float rainStrength2 = clamp(wetness, 0.0f, 1.0f)/1.0f;
-
-
-float timefract = worldTime;
-float TimeSunrise  = ((clamp(timefract, 23000.0, 24000.0) - 23000.0) / 1000.0) + (1.0 - (clamp(timefract, 0.0, 2000.0)/2000.0));
-float TimeNoon     = ((clamp(timefract, 0.0, 2000.0)) / 2000.0) - ((clamp(timefract, 10000.0, 12000.0) - 10000.0) / 2000.0);
-float TimeSunset   = ((clamp(timefract, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(timefract, 12000.0, 12750.0) - 12000.0) / 750.0);
-float TimeMidnight = ((clamp(timefract, 12000.0, 12750.0) - 12000.0) / 750.0) - ((clamp(timefract, 23000.0, 24000.0) - 23000.0) / 1000.0);
-
 vec4 aux = texture(gaux1, texcoord.st);
 float blockId = aux.g * 256;
 
@@ -158,18 +164,18 @@ bool is_stained_glass = (aux.g > 0.895) && (aux.g < 0.905);
   const float shadow_weight[4] = float[] (0.51, 0.26, 0.14, 0.09);
 #endif
 #endif
-float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, out vec4 shadow_color) {
-	if(dist > 0.9)
+float shadowMapping(in SurfaceStruct sr, float alpha, out vec4 shadow_color) {
+	if(sr.dist > 0.9)
 		return extShadow;
 	float shade = 0.0;
-	float angle = dot(lightPosition, normal);
+	float angle = dot(lightPosition, sr.normal);
 
 	bool is_plant = (abs(aux.g - 0.22) < 0.05);
 
   if(angle <= 0.01 && alpha > 0.99 && is_plant && !iswater) {
     shade = 1.0;
 	}	else {
-    vec4 shadowposition = shadowModelView * worldPosition;
+    vec4 shadowposition = shadowModelView * sr.worldPosition;
 		shadowposition = shadowProjection * shadowposition;
 		float edgeX = abs(shadowposition.x) - 0.9;
 		float edgeY = abs(shadowposition.y) - 0.9;
@@ -192,7 +198,7 @@ float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, ou
             else
               temp_shade += 1.0 * shadow_weight[i];
         }
-        temp_shade /= 5;
+        temp_shade *= 0.2;
         soft_shade += temp_shade;
         if (soft_shade >= 0.99) break;
       }
@@ -219,7 +225,7 @@ float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, ou
 		shade -= max(0.0, edgeX * 10.0);
 		shade -= max(0.0, edgeY * 10.0);
   }
-	shade -= clamp((dist - 0.7) * 5.0, 0.0, 1.0);
+	shade -= clamp((sr.dist - 0.7) * 5.0, 0.0, 1.0);
 	shade = clamp(shade, 0.0, 1.0);
 	return max(shade, extShadow);
 }
@@ -233,8 +239,8 @@ float water_wave_adjust(vec3 posxz) {
 	float speed = 5.5;
 	float size = 0.2;
 
-	float px = posxz.x/50.0 + 250.0;
-	float py = posxz.z/50.0  + 250.0;
+	float px = posxz.x * 0.02f + 250.0f;
+	float py = posxz.z * 0.02f  + 250.0f;
 
 	float fpx = abs(fract(px*20.0)-0.5)*2.0;
 	float fpy = abs(fract(py*20.0)-0.5)*2.0;
@@ -243,12 +249,12 @@ float water_wave_adjust(vec3 posxz) {
 
 	for (int i = 1; i < 6; i++) {
 		wave -= d*factor*sin( (1/factor)*px*py*size + 1.0*frameTimeCounter*speed);
-		factor /= 2;
+		factor *= 0.5;
 	}
 
 	factor = 1.0;
-	px = -posxz.x/50.0 + 250.0;
-	py = -posxz.z/150.0 - 250.0;
+	px = -posxz.x * 0.02 + 250.0;
+	py = -posxz.z / 150 - 250.0;
 	fpx = abs(fract(px*20.0)-0.5)*2.0;
 	fpy = abs(fract(py*20.0)-0.5)*2.0;
 
@@ -257,7 +263,7 @@ float water_wave_adjust(vec3 posxz) {
 
 	for (int i = 1; i < 6; i++) {
 		wave2 -= d*factor*cos( (1/factor)*px*py*size + 1.0*frameTimeCounter*speed);
-		factor /= 2;
+		factor *= 0.5;
 	}
 
 	return amplitude*wave2+amplitude*wave;
@@ -390,39 +396,30 @@ float sky_lightmap = pow(aux.r,3.0);
 // *  Everything starts here
 // ===========================================================================
 void main() {
-	vec4 color = texture(gcolor, texcoord.st);
+	color = texture(gcolor, texcoord.st);
 
   if (isEyeInWater)
     iswater = !iswater;
 
   float transition_fading = 1.0-(clamp((worldTime-12000.0)/300.0,0.0,1.0)-clamp((worldTime-13000.0)/300.0,0.0,1.0) + clamp((worldTime-22800.0)/200.0,0.0,1.0)-clamp((worldTime-23400.0)/200.0,0.0,1.0));	//fading between sun/moon shadows
 
-	vec3 normal = normalDecode(texture(gnormal, texcoord.st).rg);
-  vec3 normal_nw = normalDecode(texture(gaux2, texcoord.st).rg);
+	surface.normal = normalDecode(texture(gnormal, texcoord.st).rg);
+  surface_nw.normal = normalDecode(texture(gaux2, texcoord.st).rg);
 	float depth = texture(depthtex1, texcoord.st).x;
   float depth_nw = texture(depthtex0, texcoord.st).x;
 
-	vec4 viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0f);
-	viewPosition /= viewPosition.w;
-  vec4 viewPosition_nw = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth_nw - 1.0, 1.0f);
-	viewPosition_nw /= viewPosition_nw.w;
+	surface.viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0f);
+	surface.viewPosition /= surface.viewPosition.w;
+  surface_nw.viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth_nw - 1.0, 1.0f);
+	surface_nw.viewPosition /= surface_nw.viewPosition.w;
 
-	vec4 worldPosition = gbufferModelViewInverse * (viewPosition + vec4(normal * 0.05 * sqrt(abs(viewPosition.z)), 0.0));
-  vec3 wpos = worldPosition.xyz + cameraPosition;
-  vec4 worldPosition_nw = gbufferModelViewInverse * (viewPosition_nw + vec4(normal_nw * 0.05 * sqrt(abs(viewPosition_nw.z)), 0.0));
+	surface.worldPosition = gbufferModelViewInverse * (surface.viewPosition + vec4(surface.normal * 0.05 * sqrt(abs(surface.viewPosition.z)), 0.0));
+  vec3 wpos = surface.worldPosition.xyz + cameraPosition;
+  surface_nw.worldPosition = gbufferModelViewInverse * (surface.viewPosition + vec4(surface.normal * 0.05 * sqrt(abs(surface.viewPosition.z)), 0.0));
 
-  float dist = length(worldPosition.xyz) / far;
-  float dist_nw = length(worldPosition_nw.xyz) / far;
+  surface.dist = length(surface.worldPosition.xyz) / far;
+  surface_nw.dist = length(surface_nw.worldPosition.xyz) / far;
 
-  vec3 suncolor_sunrise = vec3(1.52, 1.2, 0.9) * TimeSunrise;
-  vec3 suncolor_noon = vec3(2.52, 2.25, 2.0) * TimeNoon;
-  vec3 suncolor_sunset = vec3(1.52, 1.0, 0.7) * TimeSunset;
-  vec3 suncolor_midnight = vec3(0.3, 0.7, 1.3) * 0.37 * TimeMidnight * (1.0 - rainStrength2 * 1.0);
-
-  vec3 suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
-    suncolor.r = pow(suncolor.r, 1.0 - rainStrength2 * 0.5);
-    suncolor.g = pow(suncolor.g, 1.0 - rainStrength2 * 0.5);
-    suncolor.b = pow(suncolor.b, 1.0 - rainStrength2 * 0.5);
 
   float r_shade = 0.0;
 
@@ -430,7 +427,7 @@ void main() {
   //  color.rgb = mix(skyColor.rgb, vec3(0.3, 0.44, 0.86) * length(suncolor) / length(suncolor_noon), clamp(0.0, dot(normalize(worldPosition.xyz), vec3(0.0, 1.0, 0.0)) - 0.2, 1.0));
 
 
-    dist = 317; // MAGIC
+    surface.dist = 317; // MAGIC
   } else {
     float shade = 0.0;
     // ===========================================================================
@@ -442,18 +439,18 @@ void main() {
       float depth_diff = abs(depth_nw - depth);
       float h0 = water_wave_adjust(wpos, depth_diff);
 
-      float under_water_shade = clamp(shadowMapping(worldPosition, dist, normal, color.a, shadow_color), 0.0, 1.0) * 0.88;
+      float under_water_shade = clamp(shadowMapping(surface, color.a, shadow_color), 0.0, 1.0) * 0.88;
       under_water_shade += (h0 * 1.1) * 0.6 * (1 - under_water_shade);
 
       if (!isEyeInWater) {
-        r_shade = shadowMapping(worldPosition_nw, dist_nw, normal_nw, color.a, shadow_color);
+        r_shade = shadowMapping(surface_nw, color.a, shadow_color);
         shade = under_water_shade + r_shade * 0.12;
       } else {
         r_shade = under_water_shade;
         shade = r_shade;
       }
     } else {
-      r_shade = shadowMapping(worldPosition, dist, normal, color.a, shadow_color);// * 0.5 + shadowMapping(worldPosition + vec4(lightPosition * normal, 0) * 0.3, dist, normal, color.a) * 0.5;
+      r_shade = shadowMapping(surface, color.a, shadow_color);// * 0.5 + shadowMapping(worldPosition + vec4(lightPosition * normal, 0) * 0.3, dist, normal, color.a) * 0.5;
 
       shade = r_shade;
     }
@@ -495,7 +492,7 @@ void main() {
 
   #ifdef TEST_CLOUD
   if (!ishand)
-    color.rgb = cloud(color.rgb, cameraPosition, normalize(worldPosition).xyz, dist);
+    color.rgb = cloud(color.rgb, cameraPosition, normalize(surface.worldPosition).xyz, surface.dist);
   #endif
 
   // ===========================================================================
