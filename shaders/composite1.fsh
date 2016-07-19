@@ -27,6 +27,7 @@ const int     RG16 = 0;
 const int     RGBA8 = 0;
 const int     colortex1Format = RGBA8;
 const int     gnormalFormat = RG16;
+const int     gaux1Format = RGBA8;
 
 #ifdef DRSOE_SS
 const int     shadowMapResolution     = 2048;
@@ -40,7 +41,7 @@ const int     shadowMapResolution     = 1024;
 const float   shadowDistance          = 128.0f;
 const float 	centerDepthHalflife 	  = 2.0f;
 const float 	shadowIntervalSize 		  = 6.0f;
-const float 	wetnessHalflife 		 	  = 500.0f; 	 // Wet to dry.
+const float 	wetnessHalflife 		 	  = 450.0f; 	 // Wet to dry.
 const float 	drynessHalflife 		 	  = 60.0f;		 // Dry ro wet.
 const float		sunPathRotation			 	  = -39.5f;
 const float		eyeBrightnessHalflife	  = 8.5f;
@@ -113,7 +114,7 @@ flat in float TimeMidnight;
 
 struct SurfaceStruct {
   vec4 worldPosition;
-  vec3 normal;
+  lowp vec3 normal;
   vec4 viewPosition;
 
   float dist;
@@ -123,19 +124,22 @@ vec4 color;
 
 vec3 normalDecode(vec2 enc) {
   vec4 nn = vec4(2.0f * enc - 1.0f, 1.0f, -1.0f);
-  float l = dot(nn.xyz,-nn.xyw);
+  float l = dot(nn.xyz, -nn.xyw);
   nn.z = l;
   nn.xy *= sqrt(l);
   return nn.xyz * 2.0f + vec3(0.0f, 0.0f, -1.0f);
 }
 
-vec4 aux = texture(gaux1, texcoord.st);
-float blockId = aux.g * 256.0f;
+struct SurfaceMask {
+  vec4 aux;
+  float blockId;
 
-bool iswater = (abs(aux.g - 0.125f) < 0.002f);
-bool issky = ((aux.r < 0.001f) && (aux.g < 0.001f) && (aux.b < 0.001f));
-bool ishand = (aux.g > 0.98f);
-bool is_stained_glass = (aux.g > 0.895f) && (aux.g < 0.905f);
+  bool iswater;
+  bool issky;
+  bool issun;
+  bool ishand;
+  bool is_stained_glass;
+} mask;
 
 #ifdef DRSOE_SS
   const float shadow_weight[5] = float[] (1.0, 0.71, 0.57, 0.33, 0.12);
@@ -151,9 +155,9 @@ float shadowMapping(in SurfaceStruct sr, float alpha, out vec4 shadow_color) {
 	float shade = 0.0;
 	float angle = dot(lightPosition, sr.normal);
 
-	bool is_plant = (abs(aux.g - 0.22) < 0.05);
+	bool is_plant = (abs(mask.aux.g - 0.22) < 0.05);
 
-  if(angle <= 0.01 && alpha > 0.99 && is_plant && !iswater) {
+  if(angle <= 0.01 && alpha > 0.99 && is_plant && !mask.iswater) {
     shade = 1.0;
 	}	else {
     vec4 shadowposition = shadowModelView * sr.worldPosition;
@@ -201,7 +205,7 @@ float shadowMapping(in SurfaceStruct sr, float alpha, out vec4 shadow_color) {
       shadow_color = texture(shadowcolor0, shadowposition.st);
     #endif
     #endif
-		if(angle < 0.2 && alpha > 0.99 && is_plant && !iswater)
+		if(angle < 0.2 && alpha > 0.99 && is_plant && !mask.iswater)
 		   shade = max(shade, pow(1.0 - (angle - 0.1) * 10.0, 2));
 		shade -= max(0.0, edgeX * 10.0);
 		shade -= max(0.0, edgeY * 10.0);
@@ -302,6 +306,8 @@ float water_wave_adjust(vec3 posxz) {
       var_l = true;
     }
 
+    vec3 cloud_c = skyColor * 1.2;
+
     for (int i = 0; i < 32; i++) {
       if (am > 0.99)
         break;
@@ -310,23 +316,24 @@ float water_wave_adjust(vec3 posxz) {
       if ((dist < 313) && (dist * far < l))
         break;
 
-      if (test_point.y > CLOUD_HEIGHT && test_point.y < CLOUD_HEIGHT_CEILING)
-        am += cloud_noise(test_point * CLOUD_SCALE) * 0.35 * clamp(0.0, abs(test_point.y - CLOUD_HEIGHT), 6.0) / 2.0;
-
+      float step_length;
       if (var_l)
-        test_point += direction * i;
+        step_length = float(i) * 0.5;
       else
-        if (direction.y >= 0)
-          test_point += min((CLOUD_HEIGHT_CEILING - CLOUD_HEIGHT) / 32 / direction.y, float(i)) * direction;
-        else
-          test_point += min((CLOUD_HEIGHT_CEILING - CLOUD_HEIGHT) / 32 / abs(direction.y), float(i)) * direction;
+        step_length = min((CLOUD_HEIGHT_CEILING - CLOUD_HEIGHT) / 32 / abs(direction.y), float(i));
 
+      float d = 0.0;
+      if (test_point.y > CLOUD_HEIGHT && test_point.y < CLOUD_HEIGHT_CEILING)
+        d = cloud_noise(test_point * CLOUD_SCALE) * 0.35 * clamp(0.0, abs(test_point.y - CLOUD_HEIGHT), 6.0) * 0.1 * step_length;
+      am += d;
+
+      test_point += direction * step_length;
     }
 
-    float redution = 1.0 - clamp(0.0, length(test_point - spos) / 1512, 1.0);
+    float redution = 1.0 - clamp(0.0, length(test_point - spos) / 8192, 1.0);
       redution = clamp(0.0, redution, 1.0);
     am = clamp(0.0, am, 1.0);
-    return mix(color, skyColor * 1.5, am * redution);//color + (vec3(am) * skyColor) * redution;
+    return mix(color, cloud_c,  am * redution);
   }
 #endif
 
@@ -349,7 +356,7 @@ float water_wave_adjust(vec3 posxz, float dep) {
 
 	for (int i = 1; i < 6; i++) {
 		wave -= d*factor*sin( (1/factor)*px*py*size + 1.0*frameTimeCounter*speed);
-		factor /= 2;
+		factor *= 0.5;
 	}
 
 	factor = 1.0;
@@ -369,7 +376,7 @@ float water_wave_adjust(vec3 posxz, float dep) {
 	return amplitude*wave2+amplitude*wave;
 }
 
-float sky_lightmap = pow(aux.r,3.0);
+float sky_lightmap;
 
 // ===========================================================================
 //  MAIN Function
@@ -379,8 +386,19 @@ float sky_lightmap = pow(aux.r,3.0);
 void main() {
 	color = texture(gcolor, texcoord.st);
 
+  mask.aux = texture(gaux1, texcoord.st);
+  mask.blockId = mask.aux.g * 256.0f;
+
+  mask.iswater = (abs(mask.aux.g - 0.125f) < 0.002f);
+  mask.issky = ((mask.aux.r < 0.001f) && (mask.aux.g < 0.001f) && (mask.aux.b < 0.001f));
+  mask.issun = mask.issky && (mask.aux.b < 0.31f);
+  mask.ishand = (mask.aux.g > 0.98f);
+  mask.is_stained_glass = (mask.aux.g > 0.895f) && (mask.aux.g < 0.905f);
+
+  sky_lightmap = pow(mask.aux.r,3.0);
+
   if (isEyeInWater)
-    iswater = !iswater;
+    mask.iswater = !mask.iswater;
 
   float transition_fading = 1.0-(clamp((worldTime-12000.0)/300.0,0.0,1.0)-clamp((worldTime-13000.0)/300.0,0.0,1.0) + clamp((worldTime-22800.0)/200.0,0.0,1.0)-clamp((worldTime-23400.0)/200.0,0.0,1.0));	//fading between sun/moon shadows
 
@@ -404,9 +422,8 @@ void main() {
 
   float r_shade = 0.0;
 
-  if (issky) {
+  if (mask.issky) {
   //  color.rgb = mix(skyColor.rgb, vec3(0.3, 0.44, 0.86) * length(suncolor) / length(suncolor_noon), clamp(0.0, dot(normalize(worldPosition.xyz), vec3(0.0, 1.0, 0.0)) - 0.2, 1.0));
-
 
     surface.dist = 317; // MAGIC
   } else {
@@ -415,7 +432,7 @@ void main() {
     //  WATER
     // ===========================================================================
     vec4 shadow_color = vec4(1.0);
-    if (iswater) {
+    if (mask.iswater) {
       float deltaPos = 0.1;
       float depth_diff = abs(depth_nw - depth);
       float h0 = water_wave_adjust(wpos, depth_diff);
@@ -453,7 +470,7 @@ void main() {
     float torchBrightness        = torchBrightnessOutsideDay + torchBrightnessInsideDay + torchBrightnessNight;
 
     vec3 torchcolor = vec3(1.95, 1.31, 0.43);
-    float tlight = clamp(aux.b, 0.0, 1.0);
+    float tlight = clamp(mask.aux.b, 0.0, 1.0);
     vec3 torchlight = pow(tlight, torchDistance) * torchBrightness * torchcolor;
 
     float min_light = 0.45 - float(eyeBrightnessSmooth.y + eyeBrightnessSmooth.x * 0.65) * 0.0014;
@@ -472,7 +489,7 @@ void main() {
   }
 
   #ifdef TEST_CLOUD
-  if (!ishand)
+  if (!mask.ishand)
     color.rgb = cloud(color.rgb, cameraPosition, normalize(surface.worldPosition).xyz, surface.dist);
   #endif
 

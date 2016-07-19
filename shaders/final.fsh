@@ -49,16 +49,17 @@ uniform int worldTime;
 uniform vec3 skyColor;
 
 in vec4 texcoord;
+flat in vec3 suncolor;
 
 float rainStrength2 = clamp(wetness, 0.0f, 1.0f)/1.0f;
 
 #ifdef LF
-	in float sunVisibility;
-	in vec2 lf_pos1;
-	in vec2 lf_pos2;
-	in vec2 lf_pos3;
-	in vec2 lf_pos4;
-	in vec2 lf_pos5;
+	flat in float sunVisibility;
+	flat in vec2 lf_pos1;
+	flat in vec2 lf_pos2;
+	flat in vec2 lf_pos3;
+	flat in vec2 lf_pos4;
+	flat in vec2 lf_pos5;
 
 	#define MANHATTAN_DISTANCE(DELTA) abs(DELTA.x)+abs(DELTA.y)
 
@@ -227,7 +228,7 @@ vec3 dof(vec3 color, vec2 uv, float depth) {
     #endif
 		#ifdef TILT_SHIFT
 			float vin_dist = distance(texcoord.st, vec2(0.5f));
-			vin_dist = clamp(vin_dist * 1.7 - 0.65, 0.0, 1.0); //各种凑魔数
+			vin_dist = clamp(vin_dist * 2.1 - 0.65, 0.0, 1.0); //各种凑魔数
 			vin_dist = smoothstep(0.0, 1.0, vin_dist);
 			fade = max(vin_dist, fade);
 		#endif
@@ -251,25 +252,11 @@ vec3 dof(vec3 color, vec2 uv, float depth) {
 }
 #endif
 
-float timefract = worldTime;
-float TimeSunrise  = ((clamp(timefract, 23000.0, 24000.0) - 23000.0) / 1000.0) + (1.0 - (clamp(timefract, 0.0, 2000.0)/2000.0));
-float TimeNoon     = ((clamp(timefract, 0.0, 2000.0)) / 2000.0) - ((clamp(timefract, 10000.0, 12000.0) - 10000.0) / 2000.0);
-float TimeSunset   = ((clamp(timefract, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(timefract, 12000.0, 12750.0) - 12000.0) / 750.0);
-float TimeMidnight = ((clamp(timefract, 12000.0, 12750.0) - 12000.0) / 750.0) - ((clamp(timefract, 23000.0, 24000.0) - 23000.0) / 1000.0);
-
 void main() {
 
 	vec3 color =  texture(gcolor, texcoord.st).rgb;
 
 	float depth = texture(depthtex1, texcoord.st).x;
-/*
-	vec4 viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0f);
-	viewPosition /= viewPosition.w;
-
-	vec3 normal = normalDecode(texture2D(gnormal, texcoord.st).rg);
-
-	vec4 worldPosition = gbufferModelViewInverse * (viewPosition + vec4(normal * 0.05 * sqrt(abs(viewPosition.z)), 0.0));
-	float dist = length(worldPosition.xyz) / far;*/
 
 	#ifdef DOF
 		color = dof(color, texcoord.st, depth);
@@ -291,18 +278,8 @@ void main() {
 	hslColor = vibrance(hslColor, 0.85);
 	color = hslToRgb(hslColor);
 
-	vec3 suncolor_sunrise = vec3(1.52, 1.2, 0.9) * TimeSunrise;
-  vec3 suncolor_noon = vec3(2.52, 2.25, 2.0) * TimeNoon;
-  vec3 suncolor_sunset = vec3(1.52, 1.0, 0.7) * TimeSunset;
-  vec3 suncolor_midnight = vec3(0.3, 0.7, 1.3) * 0.37 * TimeMidnight * (1.0 - rainStrength2 * 1.0);
-
-  vec3 suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
-    suncolor.r = pow(suncolor.r, 1.0 - rainStrength2 * 0.5);
-    suncolor.g = pow(suncolor.g, 1.0 - rainStrength2 * 0.5);
-    suncolor.b = pow(suncolor.b, 1.0 - rainStrength2 * 0.5);
-
 	#ifdef LF
-		color = lensFlare(color, texcoord.st, suncolor * (1 - wetness * 0.86));
+		color = lensFlare(color, texcoord.st, suncolor * (1 - wetness * 0.86) * 0.42);
 	#endif
 
 	#ifdef VIGNETTE

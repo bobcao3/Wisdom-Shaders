@@ -31,17 +31,20 @@
 	uniform mat4 gbufferProjection;
 	uniform sampler2D depthtex0;
 
-	out float sunVisibility;
-	out vec2 lf_pos1;
-	out vec2 lf_pos2;
-	out vec2 lf_pos3;
-	out vec2 lf_pos4;
-	out vec2 lf_pos5;
+	flat out float sunVisibility;
+	flat out vec2 lf_pos1;
+	flat out vec2 lf_pos2;
+	flat out vec2 lf_pos3;
+	flat out vec2 lf_pos4;
+	flat out vec2 lf_pos5;
 
 #endif
 
-out vec4 texcoord;
+uniform int worldTime;
+uniform float wetness;
 
+out vec4 texcoord;
+flat out vec3 suncolor;
 
 void main() {
 	#ifdef LF
@@ -72,6 +75,24 @@ void main() {
 			lf_pos5 = vec2(0.5) + dir * LF5POS;
 		}
 	#endif
+
+	float timefract = worldTime;
+	float TimeSunrise  = ((clamp(timefract, 23000.0, 24000.0) - 23000.0) / 1000.0) + (1.0 - (clamp(timefract, 0.0, 2000.0)/2000.0));
+	float TimeNoon     = ((clamp(timefract, 0.0, 2000.0)) / 2000.0) - ((clamp(timefract, 10000.0, 12000.0) - 10000.0) / 2000.0);
+	float TimeSunset   = ((clamp(timefract, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(timefract, 12000.0, 12750.0) - 12000.0) / 750.0);
+	float TimeMidnight = ((clamp(timefract, 12000.0, 12750.0) - 12000.0) / 750.0) - ((clamp(timefract, 23000.0, 24000.0) - 23000.0) / 1000.0);
+
+	float rainStrength2 = clamp(wetness, 0.0f, 1.0f) / 1.0f;
+
+	vec3 suncolor_sunrise = vec3(1.52, 1.2, 0.9) * TimeSunrise;
+	vec3 suncolor_noon = vec3(2.52, 2.25, 2.0) * TimeNoon;
+	vec3 suncolor_sunset = vec3(1.52, 1.0, 0.7) * TimeSunset;
+	vec3 suncolor_midnight = vec3(0.3, 0.7, 1.3) * 0.37 * TimeMidnight * (1.0 - rainStrength2 * 1.0);
+
+	suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
+	suncolor.r = pow(suncolor.r, 1.0 - rainStrength2 * 0.5);
+	suncolor.g = pow(suncolor.g, 1.0 - rainStrength2 * 0.5);
+	suncolor.b = pow(suncolor.b, 1.0 - rainStrength2 * 0.5);
 
 	gl_Position = ftransform();
 	texcoord = gl_MultiTexCoord0;
