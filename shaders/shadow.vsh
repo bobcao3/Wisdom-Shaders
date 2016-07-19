@@ -14,15 +14,14 @@
 
 #version 130
 
-	#define SHADOW_MAP_BIAS 0.8
+	#define SHADOW_MAP_BIAS 0.85
 
 	#define WAVING_TERRAIN
 
 const float PI = 3.141593;
 
 out vec4 texcoord;
-out float discard_flag;
-out float depth;
+flat out lowp float discard_flag;
 
 attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
@@ -36,8 +35,8 @@ uniform mat4 gbufferModelView;
 uniform mat4 gbufferModelViewInverse;
 
 void main() {
-	discard_flag = 0;
-	if (mc_Entity.x == 8 || mc_Entity.x == 9 || mc_Entity.x == 51.0f) discard_flag = 1;
+	discard_flag = 0.0f;
+	if (mc_Entity.x == 8.0f || mc_Entity.x == 9.0f || mc_Entity.x == 51.0f) discard_flag = 1;
 		//water
 		//Fire
 	if (mc_Entity.x == 160.0f || mc_Entity.x == 95.0f) discard_flag = 0.5;
@@ -51,8 +50,6 @@ void main() {
 	gl_Position.xy /= distortFactor;
 
 	texcoord = gl_MultiTexCoord0;
-
-	depth = gl_Position.y;
 
 	gl_FrontColor = gl_Color;
 }

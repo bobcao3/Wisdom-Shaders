@@ -22,13 +22,10 @@ out vec4 color;
 out vec4 texcoord;
 out vec4 lmcoord;
 out vec4 position;
-out vec3 binormal;
 out vec2 normal;
-out vec3 tangent;
 out vec3 viewVector;
 out vec3 wpos;
-out float iswater;
-out float waveh;
+flat out float iswater;
 
 attribute vec4 mc_Entity;
 
@@ -69,8 +66,6 @@ void main() {
 						+ 0.09 * sin(2 * PI * (frameTimeCounter*0.4 + worldpos.x / 11.0 - worldpos.z /  5.0)) + 0.09 * sin(2 * PI * (frameTimeCounter*0.4 - worldpos.x / 16.0 + worldpos.z /  10.0)) - 0.1;
 			displacement = clamp(wave, -fy, 1.0-fy);
 			viewpos.y += displacement;
-
-			waveh = displacement;
 		#endif
 
 	}

@@ -13,12 +13,13 @@
 // limitations under the License.
 
 #version 130
-#extension GL_ARB_shader_texture_lod : require
+#pragma optimize(on)
 
 #define VIGNETTE
 #define LF
 #define DOF
-//	#define DOF_NEARVIEWBLUR
+//#define DOF_NEARVIEWBLUR
+#define TILT_SHIFT
 
 #define BLOOM
 #define BLOOM_AMOUNT 0.32 // The brightness level of Bloom [0 0.25 0.32 0.41]
@@ -43,17 +44,22 @@ uniform float near;
 uniform float aspectRatio;
 uniform float viewWidth;
 uniform float viewHeight;
+uniform float wetness;
+uniform int worldTime;
 uniform vec3 skyColor;
 
 in vec4 texcoord;
+flat in vec3 suncolor;
+
+float rainStrength2 = clamp(wetness, 0.0f, 1.0f)/1.0f;
 
 #ifdef LF
-	in float sunVisibility;
-	in vec2 lf_pos1;
-	in vec2 lf_pos2;
-	in vec2 lf_pos3;
-	in vec2 lf_pos4;
-	in vec2 lf_pos5;
+	flat in float sunVisibility;
+	flat in vec2 lf_pos1;
+	flat in vec2 lf_pos2;
+	flat in vec2 lf_pos3;
+	flat in vec2 lf_pos4;
+	flat in vec2 lf_pos5;
 
 	#define MANHATTAN_DISTANCE(DELTA) abs(DELTA.x)+abs(DELTA.y)
 
@@ -79,15 +85,16 @@ in vec4 texcoord;
 	const vec4 LF4COLOR = vec4(1.0, 0.13, 0.11, 0.19);
 	const vec4 LF5COLOR = vec4(0, 0.27, 1.0, 0.11);
 
-	vec3 lensFlare(vec3 color, vec2 uv) {
+	vec3 lensFlare(vec3 color, vec2 uv, vec3 sun_color) {
     if(sunVisibility <= 0.0)
         return color;
-    color += LENS_FLARE(color, uv, lf_pos1, LF1SIZE, LF1COLOR);
-    color += LENS_FLARE(color, uv, lf_pos2, LF2SIZE, LF2COLOR);
-    color += LENS_FLARE(color, uv, lf_pos3, LF3SIZE, LF3COLOR);
-    color += LENS_FLARE(color, uv, lf_pos5, LF5SIZE, LF5COLOR);
-		color += LENS_FLARE(color, uv, lf_pos4, LF4SIZE, LF4COLOR);
-		return color;
+		vec3 temp_color = vec3(0);
+    temp_color += LENS_FLARE(color, uv, lf_pos1, LF1SIZE, LF1COLOR);
+    temp_color += LENS_FLARE(color, uv, lf_pos2, LF2SIZE, LF2COLOR);
+    temp_color += LENS_FLARE(color, uv, lf_pos3, LF3SIZE, LF3COLOR);
+    temp_color += LENS_FLARE(color, uv, lf_pos5, LF5SIZE, LF5COLOR);
+		temp_color += LENS_FLARE(color, uv, lf_pos4, LF4SIZE, LF4COLOR);
+		return color + temp_color * sun_color;
 	}
 #endif
 
@@ -219,6 +226,12 @@ vec3 dof(vec3 color, vec2 uv, float depth) {
     #else
     	float fade = smoothstep(0.0, DOF_FADE_RANGE, clamp(delta - DOF_CLEAR_RADIUS, 0.0, DOF_FADE_RANGE));
     #endif
+		#ifdef TILT_SHIFT
+			float vin_dist = distance(texcoord.st, vec2(0.5f));
+			vin_dist = clamp(vin_dist * 2.1 - 0.65, 0.0, 1.0); //各种凑魔数
+			vin_dist = smoothstep(0.0, 1.0, vin_dist);
+			fade = max(vin_dist, fade);
+		#endif
     if(fade < 0.001)
         return color;
     vec2 offset = vec2(1.33333 * aspectRatio / viewWidth, 1.33333 / viewHeight);
@@ -244,14 +257,6 @@ void main() {
 	vec3 color =  texture(gcolor, texcoord.st).rgb;
 
 	float depth = texture(depthtex1, texcoord.st).x;
-/*
-	vec4 viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0f);
-	viewPosition /= viewPosition.w;
-
-	vec3 normal = normalDecode(texture2D(gnormal, texcoord.st).rg);
-
-	vec4 worldPosition = gbufferModelViewInverse * (viewPosition + vec4(normal * 0.05 * sqrt(abs(viewPosition.z)), 0.0));
-	float dist = length(worldPosition.xyz) / far;*/
 
 	#ifdef DOF
 		color = dof(color, texcoord.st, depth);
@@ -274,7 +279,7 @@ void main() {
 	color = hslToRgb(hslColor);
 
 	#ifdef LF
-		color = lensFlare(color, texcoord.st);
+		color = lensFlare(color, texcoord.st, suncolor * (1 - wetness * 0.86) * 0.42);
 	#endif
 
 	#ifdef VIGNETTE

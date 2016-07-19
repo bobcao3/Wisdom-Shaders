@@ -13,37 +13,50 @@
 // limitations under the License.
 
 #version 130
-#extension GL_ARB_shader_texture_lod : require
+#pragma optimize(on)
 
 #define PI 3.14159
 
 #define TEST_CLOUD
-#define HQ_SMOOTH_SHADOW
+//#define HQ_SMOOTH_SHADOW
 #define BLOOM
+#define DRSOE_SS
 
-#define SHADOW_MAP_BIAS 0.8
+#define SHADOW_MAP_BIAS 0.85
 const int     RG16 = 0;
 const int     RGBA8 = 0;
 const int     colortex1Format = RGBA8;
 const int     gnormalFormat = RG16;
-#ifdef HQ_SMOOTH_SHADOW
-  const int     shadowMapResolution     = 2048;
+const int     gaux1Format = RGBA8;
+
+#ifdef DRSOE_SS
+const int     shadowMapResolution     = 2048;
 #else
-  const int     shadowMapResolution     = 1024;
+#ifdef HQ_SMOOTH_SHADOW
+const int     shadowMapResolution     = 2048;
+#else
+const int     shadowMapResolution     = 1024;
 #endif
+#endif
+const float   shadowDistance          = 128.0f;
 const float 	centerDepthHalflife 	  = 2.0f;
-const float 	shadowIntervalSize 		  = 6.f;
-const float 	wetnessHalflife 		 	  = 500.0f; 	 // Wet to dry.
+const float 	shadowIntervalSize 		  = 6.0f;
+const float 	wetnessHalflife 		 	  = 450.0f; 	 // Wet to dry.
 const float 	drynessHalflife 		 	  = 60.0f;		 // Dry ro wet.
 const float		sunPathRotation			 	  = -39.5f;
 const float		eyeBrightnessHalflife	  = 8.5f;
 const bool    shadowHardwareFiltering = true;
-const bool    gcolorMipmapEnabled     = true;
+#ifdef DRSOE_SS
+const bool    shadowtex1Mipmap        = true;
+const bool    shadowcolor0Mipmap      = true;
+#else
 #ifdef HQ_SMOOTH_SHADOW
-  const bool    shadowtex1Mipmap        = true;
-  const bool    shadowcolor0Mipmap      = true;
+const bool    shadowtex1Mipmap        = true;
+const bool    shadowcolor0Mipmap      = true;
 #endif
-const float   ambientOcclusionLevel   = 1.0;
+#endif
+const bool    gcolorMipmapEnabled     = true;
+const float   ambientOcclusionLevel   = 1.0f;
 
 uniform float far;
 uniform float near;
@@ -74,81 +87,80 @@ uniform sampler2D noisetex;
 uniform sampler2D gaux1;
 uniform sampler2D gaux2;
 uniform sampler2D shadowtex0;
+#ifdef DRSOE_SS
+uniform sampler2D shadowtex1;
+#else
 uniform sampler2DShadow shadowtex1;
+#endif
 uniform sampler2D shadowcolor0;
 
-in float extShadow;
-in vec3 lightPosition;
+flat in float extShadow;
+flat in vec3 lightPosition;
 in vec3 upVec;
 in vec3 sunVec;
 in vec3 moonVec;
+flat in vec3 suncolor;
 in float SdotU;
 in float MdotU;
-in float moonVisibility;
+flat in float moonVisibility;
 in vec4 texcoord;
-in float handlight;
-in vec3 worldSunPosition;
+flat in float handlight;
+flat in vec3 worldSunPosition;
+
+flat in float TimeSunrise;
+flat in float TimeNoon;
+flat in float TimeSunset;
+flat in float TimeMidnight;
+
+struct SurfaceStruct {
+  vec4 worldPosition;
+  lowp vec3 normal;
+  vec4 viewPosition;
+
+  float dist;
+} surface, surface_nw;
+
+vec4 color;
 
 vec3 normalDecode(vec2 enc) {
-  vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
-  float l = dot(nn.xyz,-nn.xyw);
+  vec4 nn = vec4(2.0f * enc - 1.0f, 1.0f, -1.0f);
+  float l = dot(nn.xyz, -nn.xyw);
   nn.z = l;
   nn.xy *= sqrt(l);
-  return nn.xyz * 2.0 + vec3(0.0, 0.0, -1.0);
+  return nn.xyz * 2.0f + vec3(0.0f, 0.0f, -1.0f);
 }
 
-float edepth(vec2 coord) {
-	return texture(depthtex0,coord).z;
-}
+struct SurfaceMask {
+  vec4 aux;
+  float blockId;
 
-float luma(vec3 color) {
-	return dot(color,vec3(0.3, 0.6, 0.1));
-}
+  bool iswater;
+  bool issky;
+  bool issun;
+  bool ishand;
+  bool is_stained_glass;
+} mask;
 
-float ld(float depth) {
-    return (2.0 * near) / (far + near - depth * (far - near));
-}
-
-vec3 nvec3(vec4 pos) {
-    return pos.xyz/pos.w;
-}
-
-vec4 nvec4(vec3 pos) {
-    return vec4(pos.xyz, 1.0);
-}
-
-float rainStrength2 = clamp(wetness, 0.0f, 1.0f)/1.0f;
-
-
-float timefract = worldTime;
-float TimeSunrise  = ((clamp(timefract, 23000.0, 24000.0) - 23000.0) / 1000.0) + (1.0 - (clamp(timefract, 0.0, 2000.0)/2000.0));
-float TimeNoon     = ((clamp(timefract, 0.0, 2000.0)) / 2000.0) - ((clamp(timefract, 10000.0, 12000.0) - 10000.0) / 2000.0);
-float TimeSunset   = ((clamp(timefract, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(timefract, 12000.0, 12750.0) - 12000.0) / 750.0);
-float TimeMidnight = ((clamp(timefract, 12000.0, 12750.0) - 12000.0) / 750.0) - ((clamp(timefract, 23000.0, 24000.0) - 23000.0) / 1000.0);
-
-vec4 aux = texture(gaux1, texcoord.st);
-float blockId = aux.g * 256;
-
-bool iswater = (abs(aux.g - 0.125) < 0.002);
-bool issky = ((aux.r < 0.001) && (aux.g < 0.001) && (aux.b < 0.001));
-bool ishand = (aux.g > 0.98);
-bool is_stained_glass = (aux.g > 0.895) && (aux.g < 0.905);
-
+#ifdef DRSOE_SS
+  const float shadow_weight[5] = float[] (1.0, 0.71, 0.57, 0.33, 0.12);
+  const vec2 shadow_disp[5] = vec2[] (vec2(0.0), vec2(0.001, 0.001), vec2(0.001, -0.001), vec2(-0.001, 0.001), vec2(-0.001, -0.001));
+#else
 #ifdef HQ_SMOOTH_SHADOW
   const float shadow_weight[4] = float[] (0.51, 0.26, 0.14, 0.09);
 #endif
-float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, out vec4 shadow_color) {
-	if(dist > 0.9)
+#endif
+float shadowMapping(in SurfaceStruct sr, float alpha, out vec4 shadow_color, float soft_scale) {
+	if(sr.dist > 0.9)
 		return extShadow;
 	float shade = 0.0;
-	float angle = dot(lightPosition, normal);
+	float angle = dot(lightPosition, sr.normal);
 
-	bool is_plant = (abs(aux.g - 0.22) < 0.05);
+	bool is_plant = (abs(mask.aux.g - 0.22) < 0.05);
 
-  if(angle <= 0.01 && alpha > 0.99 && is_plant && !iswater) {
+  if(angle <= 0.01 && alpha > 0.99 && is_plant && !mask.iswater) {
     shade = 1.0;
 	}	else {
-    vec4 shadowposition = shadowModelView * worldPosition;
+    vec4 shadowposition = shadowModelView * sr.worldPosition;
 		shadowposition = shadowProjection * shadowposition;
 		float edgeX = abs(shadowposition.x) - 0.9;
 		float edgeY = abs(shadowposition.y) - 0.9;
@@ -158,17 +170,32 @@ float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, ou
 		shadowposition /= shadowposition.w;
 		shadowposition = shadowposition * 0.5 + 0.5;
 
+    #ifdef DRSOE_SS
+      float soft_shade = 0.0;
+      for (int i = 0; i < 4; i++) {
+        float temp_shade = 0.0;
+        for (int j = 0; j < 5; j++) {
+          float shadowDepth = textureLod(shadowtex1, shadowposition.st + shadow_disp[j] * float(i), float(i)).z;
+
+          if(shadowDepth + 0.0001 < shadowposition.z)
+            if (i != 0)
+              temp_shade += 1.0 * shadow_weight[i] * clamp(0.0, abs(shadowDepth - shadowposition.z) * far * 2.0 * soft_scale, 1.0);
+            else
+              temp_shade += 1.0 * shadow_weight[i];
+        }
+        temp_shade *= 0.2;
+        soft_shade += temp_shade;
+        if (soft_shade >= 0.99) break;
+      }
+      shade = soft_shade;
+
+      shadow_color = texture(shadowcolor0, shadowposition.st) * 0.7 + textureLod(shadowcolor0, shadowposition.st, 1.0) * 0.3;
+    #else
     #ifdef HQ_SMOOTH_SHADOW
       float soft_shade = 0.0;
       for (int i = 0; i < 4; i++) {
         soft_shade += (shadow2DLod(shadowtex1, vec3(shadowposition.st, shadowposition.z - 0.00001), float(i)).z) * shadow_weight[i];
       }
-//      float shadowDepth = texture(shadowtex0, shadowposition.st).z;
-
-      /*shade = 1.0;
-      if(shadowDepth + 0.0001 < shadowposition.z)
-        shade = (shadowposition.z - shadowDepth) * far;
-*/
       shade = soft_shade;
 
       shadow_color = texture(shadowcolor0, shadowposition.st) * 0.7 + textureLod(shadowcolor0, shadowposition.st, 1.0) * 0.3;
@@ -177,12 +204,13 @@ float shadowMapping(vec4 worldPosition, float dist, vec3 normal, float alpha, ou
       shade = 1.0 - shadow2D(shadowtex1, vec3(shadowposition.st, shadowposition.z - 0.00001)).z;
       shadow_color = texture(shadowcolor0, shadowposition.st);
     #endif
-		if(angle < 0.2 && alpha > 0.99 && is_plant && !iswater)
+    #endif
+		if(angle < 0.2 && alpha > 0.99 && is_plant && !mask.iswater)
 		   shade = max(shade, pow(1.0 - (angle - 0.1) * 10.0, 2));
 		shade -= max(0.0, edgeX * 10.0);
 		shade -= max(0.0, edgeY * 10.0);
   }
-	shade -= clamp((dist - 0.7) * 5.0, 0.0, 1.0);
+	shade -= clamp((sr.dist - 0.7) * 5.0, 0.0, 1.0);
 	shade = clamp(shade, 0.0, 1.0);
 	return max(shade, extShadow);
 }
@@ -196,8 +224,8 @@ float water_wave_adjust(vec3 posxz) {
 	float speed = 5.5;
 	float size = 0.2;
 
-	float px = posxz.x/50.0 + 250.0;
-	float py = posxz.z/50.0  + 250.0;
+	float px = posxz.x * 0.02f + 250.0f;
+	float py = posxz.z * 0.02f  + 250.0f;
 
 	float fpx = abs(fract(px*20.0)-0.5)*2.0;
 	float fpy = abs(fract(py*20.0)-0.5)*2.0;
@@ -206,12 +234,12 @@ float water_wave_adjust(vec3 posxz) {
 
 	for (int i = 1; i < 6; i++) {
 		wave -= d*factor*sin( (1/factor)*px*py*size + 1.0*frameTimeCounter*speed);
-		factor /= 2;
+		factor *= 0.5;
 	}
 
 	factor = 1.0;
-	px = -posxz.x/50.0 + 250.0;
-	py = -posxz.z/150.0 - 250.0;
+	px = -posxz.x * 0.02 + 250.0;
+	py = -posxz.z / 150 - 250.0;
 	fpx = abs(fract(px*20.0)-0.5)*2.0;
 	fpy = abs(fract(py*20.0)-0.5)*2.0;
 
@@ -220,7 +248,7 @@ float water_wave_adjust(vec3 posxz) {
 
 	for (int i = 1; i < 6; i++) {
 		wave2 -= d*factor*cos( (1/factor)*px*py*size + 1.0*frameTimeCounter*speed);
-		factor /= 2;
+		factor *= 0.5;
 	}
 
 	return amplitude*wave2+amplitude*wave;
@@ -265,10 +293,10 @@ float water_wave_adjust(vec3 posxz) {
 
     vec3 test_point = spos;
     if (spos.y > CLOUD_HEIGHT_CEILING) {
-      //if (direction.y >= 0)
-      //  return color;
+      if (direction.y >= 0)
+        return color;
       test_point += (direction / abs(direction.y)) * abs(CLOUD_HEIGHT_CEILING - spos.y);
-      //direction /= direction.y;
+      direction /= abs(direction.y);
     } else if (spos.y < CLOUD_HEIGHT) {
       if (direction.y <= 0)
         return color;
@@ -278,31 +306,34 @@ float water_wave_adjust(vec3 posxz) {
       var_l = true;
     }
 
+    vec3 cloud_c = skyColor * 1.2;
+
     for (int i = 0; i < 32; i++) {
-      if (t_color.a > 0.99)
+      if (am > 0.99)
         break;
 
       float l = length(test_point - spos);
       if ((dist < 313) && (dist * far < l))
         break;
 
-      if (test_point.y > CLOUD_HEIGHT && test_point.y < CLOUD_HEIGHT_CEILING)
-        am += cloud_noise(test_point * CLOUD_SCALE) * 0.35 * clamp(0.0, abs(test_point.y - CLOUD_HEIGHT), 6.0) / 2.0;
-
+      float step_length;
       if (var_l)
-        test_point += direction * i;
+        step_length = float(i) * 0.5;
       else
-        if (direction.y >= 0)
-          test_point += min((CLOUD_HEIGHT_CEILING - CLOUD_HEIGHT) / 32 / direction.y, float(i)) * direction;
-        else
-          test_point += min((CLOUD_HEIGHT_CEILING - CLOUD_HEIGHT) / 32 / abs(direction.y), float(i)) * direction;
+        step_length = min((CLOUD_HEIGHT_CEILING - CLOUD_HEIGHT) / 32 / abs(direction.y), float(i));
 
+      float d = 0.0;
+      if (test_point.y > CLOUD_HEIGHT && test_point.y < CLOUD_HEIGHT_CEILING)
+        d = cloud_noise(test_point * CLOUD_SCALE) * 0.35 * clamp(0.0, abs(test_point.y - CLOUD_HEIGHT), 6.0) * 0.1 * step_length;
+      am += d;
+
+      test_point += direction * step_length;
     }
 
-    float redution = 1.0 - clamp(0.0, length(test_point - spos) / 1512, 1.0);
+    float redution = 1.0 - clamp(0.0, length(test_point - spos) / 8192, 1.0);
       redution = clamp(0.0, redution, 1.0);
     am = clamp(0.0, am, 1.0);
-    return color + (vec3(am) * skyColor) * redution;
+    return mix(color, cloud_c,  am * redution);
   }
 #endif
 
@@ -325,7 +356,7 @@ float water_wave_adjust(vec3 posxz, float dep) {
 
 	for (int i = 1; i < 6; i++) {
 		wave -= d*factor*sin( (1/factor)*px*py*size + 1.0*frameTimeCounter*speed);
-		factor /= 2;
+		factor *= 0.5;
 	}
 
 	factor = 1.0;
@@ -345,7 +376,7 @@ float water_wave_adjust(vec3 posxz, float dep) {
 	return amplitude*wave2+amplitude*wave;
 }
 
-float sky_lightmap = pow(aux.r,3.0);
+float sky_lightmap;
 
 // ===========================================================================
 //  MAIN Function
@@ -353,66 +384,71 @@ float sky_lightmap = pow(aux.r,3.0);
 // *  Everything starts here
 // ===========================================================================
 void main() {
-	vec4 color = texture(gcolor, texcoord.st);
+	color = texture(gcolor, texcoord.st);
+
+  mask.aux = texture(gaux1, texcoord.st);
+  mask.blockId = mask.aux.g * 256.0f;
+
+  mask.iswater = (abs(mask.aux.g - 0.125f) < 0.002f);
+  mask.issky = ((mask.aux.r < 0.001f) && (mask.aux.g < 0.001f) && (mask.aux.b < 0.001f));
+  mask.issun = mask.issky && (mask.aux.b < 0.31f);
+  mask.ishand = (mask.aux.g > 0.98f);
+  mask.is_stained_glass = (mask.aux.g > 0.895f) && (mask.aux.g < 0.905f);
+
+  sky_lightmap = pow(mask.aux.r,3.0);
 
   if (isEyeInWater)
-    iswater = !iswater;
+    mask.iswater = !mask.iswater;
 
   float transition_fading = 1.0-(clamp((worldTime-12000.0)/300.0,0.0,1.0)-clamp((worldTime-13000.0)/300.0,0.0,1.0) + clamp((worldTime-22800.0)/200.0,0.0,1.0)-clamp((worldTime-23400.0)/200.0,0.0,1.0));	//fading between sun/moon shadows
 
-	vec3 normal = normalDecode(texture(gnormal, texcoord.st).rg);
-  vec3 normal_nw = normalDecode(texture(gaux2, texcoord.st).rg);
+	surface.normal = normalDecode(texture(gnormal, texcoord.st).rg);
+  surface_nw.normal = normalDecode(texture(gaux2, texcoord.st).rg);
 	float depth = texture(depthtex1, texcoord.st).x;
   float depth_nw = texture(depthtex0, texcoord.st).x;
 
-	vec4 viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0f);
-	viewPosition /= viewPosition.w;
-  vec4 viewPosition_nw = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth_nw - 1.0, 1.0f);
-	viewPosition_nw /= viewPosition_nw.w;
+	surface.viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0f);
+	surface.viewPosition /= surface.viewPosition.w;
+  surface_nw.viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth_nw - 1.0, 1.0f);
+	surface_nw.viewPosition /= surface_nw.viewPosition.w;
 
-	vec4 worldPosition = gbufferModelViewInverse * (viewPosition + vec4(normal * 0.05 * sqrt(abs(viewPosition.z)), 0.0));
-  vec3 wpos = worldPosition.xyz + cameraPosition;
-  vec4 worldPosition_nw = gbufferModelViewInverse * (viewPosition_nw + vec4(normal_nw * 0.05 * sqrt(abs(viewPosition_nw.z)), 0.0));
+	surface.worldPosition = gbufferModelViewInverse * (surface.viewPosition + vec4(surface.normal * 0.05 * sqrt(abs(surface.viewPosition.z)), 0.0));
+  vec3 wpos = surface.worldPosition.xyz + cameraPosition;
+  surface_nw.worldPosition = gbufferModelViewInverse * (surface.viewPosition + vec4(surface.normal * 0.05 * sqrt(abs(surface.viewPosition.z)), 0.0));
 
-  float dist = length(worldPosition.xyz) / far;
-  float dist_nw = length(worldPosition_nw.xyz) / far;
+  surface.dist = length(surface.worldPosition.xyz) / far;
+  surface_nw.dist = length(surface_nw.worldPosition.xyz) / far;
 
-  vec3 suncolor_sunrise = vec3(2.52, 1.2, 0.9) * TimeSunrise;
-  vec3 suncolor_noon = vec3(2.52, 2.25, 2.0) * TimeNoon;
-  vec3 suncolor_sunset = vec3(2.52, 1.0, 0.7) * TimeSunset;
-  vec3 suncolor_midnight = vec3(0.3, 0.7, 1.3) * 0.37 * TimeMidnight * (1.0 - rainStrength2 * 1.0);
-
-  vec3 suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
-    suncolor.r = pow(suncolor.r, 1.0 - rainStrength2 * 0.5);
-    suncolor.g = pow(suncolor.g, 1.0 - rainStrength2 * 0.5);
-    suncolor.b = pow(suncolor.b, 1.0 - rainStrength2 * 0.5);
 
   float r_shade = 0.0;
 
-  if (issky) {
-    dist = 317; // MAGIC
+  if (mask.issky) {
+  //  color.rgb = mix(skyColor.rgb, vec3(0.3, 0.44, 0.86) * length(suncolor) / length(suncolor_noon), clamp(0.0, dot(normalize(worldPosition.xyz), vec3(0.0, 1.0, 0.0)) - 0.2, 1.0));
+
+    surface.dist = 317; // MAGIC
   } else {
     float shade = 0.0;
     // ===========================================================================
     //  WATER
     // ===========================================================================
     vec4 shadow_color = vec4(1.0);
-    if (iswater) {
+    if (mask.iswater) {
       float deltaPos = 0.1;
       float depth_diff = abs(depth_nw - depth);
       float h0 = water_wave_adjust(wpos, depth_diff);
 
-      float under_water_shade = clamp(shadowMapping(worldPosition, dist, normal, color.a, shadow_color), 0.0, 1.0) * 0.42 + h0 * 0.5;
+      float under_water_shade = clamp(shadowMapping(surface, color.a, shadow_color, 4.0), 0.0, 1.0) * 0.88;
+      under_water_shade += (h0 * 1.1) * 0.6 * (1 - under_water_shade);
 
       if (!isEyeInWater) {
-        r_shade = shadowMapping(worldPosition_nw, dist_nw, normal_nw, color.a, shadow_color);
-        shade = under_water_shade + r_shade * 0.58;
+        r_shade = shadowMapping(surface_nw, color.a, shadow_color, 3.0);
+        shade = under_water_shade + r_shade * 0.12;
       } else {
         r_shade = under_water_shade;
         shade = r_shade;
       }
     } else {
-      r_shade = shadowMapping(worldPosition, dist, normal, color.a, shadow_color);// * 0.5 + shadowMapping(worldPosition + vec4(lightPosition * normal, 0) * 0.3, dist, normal, color.a) * 0.5;
+      r_shade = shadowMapping(surface, color.a, shadow_color, 1.0);// * 0.5 + shadowMapping(worldPosition + vec4(lightPosition * normal, 0) * 0.3, dist, normal, color.a) * 0.5;
 
       shade = r_shade;
     }
@@ -434,10 +470,10 @@ void main() {
     float torchBrightness        = torchBrightnessOutsideDay + torchBrightnessInsideDay + torchBrightnessNight;
 
     vec3 torchcolor = vec3(1.95, 1.31, 0.43);
-    float tlight = clamp(aux.b, 0.0, 1.0);
+    float tlight = clamp(mask.aux.b, 0.0, 1.0);
     vec3 torchlight = pow(tlight, torchDistance) * torchBrightness * torchcolor;
 
-    float min_light = 0.85 - float(eyeBrightnessSmooth.y + eyeBrightnessSmooth.x * 0.65) / 560;
+    float min_light = 0.45 - float(eyeBrightnessSmooth.y + eyeBrightnessSmooth.x * 0.65) * 0.0014;
 
     vec3 sun_l = suncolor * (1 - shade) * (1 - wetness * 0.5);
     vec3 amb_color = clamp(suncolor, vec3(min_light), vec3(1.25));
@@ -445,7 +481,7 @@ void main() {
     if (shade < 0.999 && shadow_color.a > 0.49 && shadow_color.a < 0.51)
       sun_l = (1 - shade) * shadow_color.rgb * (length(suncolor) * (1.0 - wetness * 0.86) / length(shadow_color.rgb));
 
-    vec3 light = clamp(amb_color * 0.25 + sun_l * 0.34 + torchlight, vec3(min_light), vec3(1.8));
+    vec3 light = clamp(amb_color * 0.35 + sun_l * 0.34 + torchlight, vec3(min_light), vec3(1.8));
 
     color.rgb *= 1 - wetness * 0.25;
 
@@ -453,8 +489,8 @@ void main() {
   }
 
   #ifdef TEST_CLOUD
-  if (!ishand)
-    color.rgb = cloud(color.rgb, cameraPosition, normalize(worldPosition).xyz, dist);
+  if (!mask.ishand)
+    color.rgb = cloud(color.rgb, cameraPosition, normalize(surface.worldPosition).xyz, surface.dist);
   #endif
 
   // ===========================================================================

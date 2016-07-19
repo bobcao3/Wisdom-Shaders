@@ -22,7 +22,7 @@ uniform sampler2D lightmap;
 in vec4 color;
 in vec4 texcoord;
 in vec4 lmcoord;
-in vec2 normal;
+flat in vec2 normal;
 
 /* DRAWBUFFERS:024 */
 void main() {

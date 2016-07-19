@@ -13,10 +13,11 @@
 // limitations under the License.
 
 #version 130
+#pragma optimize(on)
 
 out vec4 texcoord;
 out vec3 lightPosition;
-out vec2 screenSunPosition;
+flat out vec2 screenSunPosition;
 out float is_towords_sun;
 
 uniform vec3 sunPosition;

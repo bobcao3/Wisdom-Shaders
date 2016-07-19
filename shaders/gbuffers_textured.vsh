@@ -16,7 +16,7 @@
 
 attribute vec4 mc_Entity;
 
-out float entityType;
+flat out float entityType;
 out vec4 color;
 out vec4 texcoord;
 out vec2 normal;

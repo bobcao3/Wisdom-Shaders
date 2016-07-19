@@ -13,28 +13,26 @@
 // limitations under the License.
 
 #version 130
-#extension GL_ARB_shader_texture_lod : require
-
+#pragma optimize(on)
 #define BLOOM
-
-const bool gdepthMipmapEnabled = true;
 
 uniform sampler2D gcolor;
 uniform sampler2D colortex3;
+uniform sampler2D depthtex1;
 uniform float viewWidth;
 uniform float viewHeight;
 
 in vec4 texcoord;
-in vec2 screenSunPosition;
+flat in vec2 screenSunPosition;
 
 const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
 const float weight[9] = float[] (0.066812, 0.129101, 0.112504, 0.08782, 0.061406, 0.03846, 0.021577, 0.010843, 0.004881);
 
-vec3 blur(sampler2D image, vec2 uv, vec2 direction) {
-	vec3 color = texture2D(image, uv).rgb * weight[0];
+vec3 blur(sampler2D image, vec2 uv, vec2 direction, float dist) {
+	vec3 color = texture(image, uv).rgb * weight[0];
 	for(int i = 1; i < 9; i++) {
-		color += textureLod(image, uv + direction * offset[i], 2.0).rgb * weight[i];
-		color += textureLod(image, uv - direction * offset[i], 2.0).rgb * weight[i];
+		color += texture(image, uv + direction * offset[i]).rgb * weight[i] * (1 + dist);
+		color += texture(image, uv - direction * offset[i]).rgb * weight[i];
 	}
 	return color;
 }
@@ -67,7 +65,9 @@ void main() {
 	clraverge/=count;
 	gl_FragData[0] = clraverge;
 */
+	float depth = texture(depthtex1, texcoord.st).x;
+
 	#ifdef BLOOM
-		gl_FragData[0] = vec4(blur(colortex3, texcoord.st, vec2(0.0, 1.0) / vec2(viewWidth, viewHeight)), 1.0);
+		gl_FragData[0] = vec4(blur(colortex3, texcoord.st, vec2(0.0, 1.0) / vec2(viewWidth, viewHeight), depth), 1.0);
 	#endif
 }

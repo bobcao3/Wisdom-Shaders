@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #version 130
-#extension GL_ARB_shader_texture_lod : require
+#pragma optimize(on)
 
 const int RGB8 = 0;
 const int colortex3Format = RGB8;
@@ -26,6 +26,7 @@ in vec3 lightPosition;
 in vec3 sunVec;
 in vec3 moonVec;
 in vec3 upVec;
+in vec3 suncolor;
 in float SdotU;
 in float MdotU;
 in float sunVisibility;
@@ -84,6 +85,16 @@ float rainStrength2 = clamp(wetness, 0.0f, 1.0f)/1.0f;
 float matflag = texture(gaux1,texcoord.xy).g;
 vec3 fragpos = vec3(texcoord.st, texture(depthtex0, texcoord.st).r);
 
+struct SurfaceStruct {
+  vec4 worldPosition;
+  vec3 normal;
+  vec4 viewPosition;
+
+  float dist;
+} surface, surface_nw;
+
+vec4 color;
+
 vec3 normalDecode(vec2 enc) {
   vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
   float l = dot(nn.xyz,-nn.xyw);
@@ -136,8 +147,8 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color) {
         direction = testPoint - lastPoint;
         BISEARCH(finalPoint, direction, _sign);
         BISEARCH(finalPoint, direction, _sign);
-        BISEARCH(finalPoint, direction, _sign);
-        BISEARCH(finalPoint, direction, _sign);
+        //BISEARCH(finalPoint, direction, _sign);
+        //BISEARCH(finalPoint, direction, _sign);
         uv = getScreenCoordByViewCoord(finalPoint);
         hitColor = vec4(textureLod(gcolor, uv, 0.0).rgb, 1.0);
         hitColor.a = clamp(1.0 - pow(distance(uv, vec2(0.5))*2.0, 4.0), 0.0, 1.0);
@@ -202,6 +213,7 @@ vec4 aux = texture(gaux1, texcoord.st);
 float blockId = aux.g * 256;
 
 bool iswater = (abs(aux.g - 0.125) < 0.002);
+bool isglass = (abs(aux.g - 0.130) < 0.002);
 bool issky = (aux.g < 0.01) && (aux.r < 0.001) && (aux.b < 0.001);
 bool isentity = (aux.g < 0.01) && !issky;
 
@@ -227,7 +239,7 @@ void main() {
   vec3 blur_color = blur(colortex1, texcoord.st, vec2(1.0, 0.0) / vec2(viewWidth, viewHeight));
 
   vec4 color;
-  if (iswater) {
+  if (iswater || isglass) {
     color = textureLod(gcolor, texcoord.st, 2.0);
     color.rgb = mix(color.rgb, blur_color, 0.4);
   } else
@@ -238,33 +250,23 @@ void main() {
 
   float transition_fading = 1.0-(clamp((worldTime-12000.0)/300.0,0.0,1.0)-clamp((worldTime-13000.0)/300.0,0.0,1.0) + clamp((worldTime-22800.0)/200.0,0.0,1.0)-clamp((worldTime-23400.0)/200.0,0.0,1.0));	//fading between sun/moon shadows
 
-	vec3 normal = normalDecode(texture(gnormal, texcoord.st).rg);
-  vec3 normal_nw = normalDecode(texture(gaux2, texcoord.st).rg);
+	surface.normal = normalDecode(texture(gnormal, texcoord.st).rg);
+  surface_nw.normal = normalDecode(texture(gaux2, texcoord.st).rg);
 	float depth = texture(depthtex1, texcoord.st).x;
   float depth_nw = texture(depthtex0, texcoord.st).x;
 
-  iswet = wetness * pow(sky_lightmap, 10.0) * sqrt(0.5 + max(dot(normal, normalize(upPosition)), 0.0));
+  iswet = wetness * pow(sky_lightmap, 10.0) * sqrt(0.5 + max(dot(surface.normal, normalize(upPosition)), 0.0));
 
-	vec4 viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0f);
-	viewPosition /= viewPosition.w;
-  vec4 viewPosition_nw = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth_nw - 1.0, 1.0f);
-	viewPosition_nw /= viewPosition_nw.w;
+	surface.viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth - 1.0, 1.0f);
+	surface.viewPosition /= surface.viewPosition.w;
+  surface_nw.viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 2.0 * depth_nw - 1.0, 1.0f);
+	surface_nw.viewPosition /= surface_nw.viewPosition.w;
 
-	vec4 worldPosition = gbufferModelViewInverse * (viewPosition + vec4(normal * 0.05 * sqrt(abs(viewPosition.z)), 0.0));
-  vec4 worldPosition_nw = gbufferModelViewInverse * (viewPosition_nw + vec4(normal_nw * 0.05 * sqrt(abs(viewPosition_nw.z)), 0.0));
+	surface.worldPosition = gbufferModelViewInverse * (surface.viewPosition + vec4(surface.normal * 0.05 * sqrt(abs(surface.viewPosition.z)), 0.0));
+  surface_nw.worldPosition = gbufferModelViewInverse * (surface_nw.viewPosition + vec4(surface_nw.normal * 0.05 * sqrt(abs(surface_nw.viewPosition.z)), 0.0));
 
-  float dist = length(worldPosition.xyz) / far;
-  float dist_nw = length(worldPosition_nw.xyz) / far;
-
-  vec3 suncolor_sunrise = vec3(2.52, 1.2, 0.9) * TimeSunrise;
-  vec3 suncolor_noon = vec3(2.52, 2.25, 2.0) * TimeNoon;
-  vec3 suncolor_sunset = vec3(2.52, 1.0, 0.7) * TimeSunset;
-  vec3 suncolor_midnight = vec3(0.3, 0.7, 1.3) * 0.37 * TimeMidnight * (1.0 - rainStrength2 * 1.0);
-
-  vec3 suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
-    suncolor.r = pow(suncolor.r, 1.0 - rainStrength2 * 0.5);
-    suncolor.g = pow(suncolor.g, 1.0 - rainStrength2 * 0.5);
-    suncolor.b = pow(suncolor.b, 1.0 - rainStrength2 * 0.5);
+  surface.dist = length(surface.worldPosition.xyz) / far;
+  surface_nw.dist = length(surface_nw.worldPosition.xyz) / far;
 
   if (issky) {
   } else {
@@ -279,7 +281,7 @@ void main() {
 
       float deltaPos = 0.1;
       float depth_diff = abs(depth_nw - depth);
-      vec3 wpos = worldPosition_nw.xyz + cameraPosition;
+      vec3 wpos = surface_nw.worldPosition.xyz + cameraPosition;
   		float h0 = water_wave_adjust(wpos, depth_diff);
   		float h1 = water_wave_adjust(wpos + vec3(deltaPos,0.0,0.0), depth_diff);
   		float h2 = water_wave_adjust(wpos + vec3(-deltaPos,0.0,0.0), depth_diff);
@@ -288,7 +290,7 @@ void main() {
 
   		float xDelta = (h1-h0)+(h0-h2);
   		float yDelta = (h3-h0)+(h0-h4);
-      normal_nw += vec3(xDelta * 0.074, 0, yDelta * 0.074);
+      surface_nw.normal += vec3(xDelta * 0.074, 0, yDelta * 0.074);
 
       watercolor *= 1 + (yDelta + xDelta) * 0.3;
 
@@ -299,21 +301,21 @@ void main() {
           cR.s = clamp(cR.s, 1.0 / viewWidth, 1.0 - 1.0 / viewWidth);
           cR.t = clamp(cR.t, 1.0 / viewHeight, 1.0 - 1.0/viewHeight);
 
-        color.rgb = textureLod(gcolor, texcoord.st + vec2(xDelta, yDelta) / 13.5, 1 - (dist - dist_nw)).rgb;
+        color.rgb = textureLod(gcolor, texcoord.st + vec2(xDelta, yDelta) / 13.5, 1 - (surface.dist - surface_nw.dist)).rgb;
         /*float R = texture(gcolor, texcoord.st + vec2(xDelta * 0.9, yDelta * 1.0) / 13.5).r;
         float G = texture(gcolor, texcoord.st + vec2(xDelta * 0.9, yDelta * 1.1) / 13.5).g;
         float B = texture(gcolor, texcoord.st + vec2(xDelta * 1.1, yDelta * 0.9) / 13.5).b;
         color.rgb = vec3(R,G,B);*/
       }
 
-      vec3 viewRefRay = reflect(normalize(viewPosition_nw.xyz), normal_nw);
+      vec3 viewRefRay = reflect(normalize(surface_nw.viewPosition.xyz), surface_nw.normal);
 
-      vec4 ref_color = waterRayTarcing(viewPosition_nw.xyz + normal_nw * (-viewPosition_nw.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
+      vec4 ref_color = waterRayTarcing(surface_nw.viewPosition.xyz + surface_nw.normal * (-surface_nw.viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
 
       vec3 sun_ref = suncolor * (1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade);
 
-      float fresnel = 0.02 + 0.98 * pow(1.0 - dot(viewRefRay, normal_nw), 5.0);
-      float refract_amount = clamp((1 - fresnel) * (12 - clamp((dist - dist_nw) * far, 0.0, 12.0)) / 12, 0.0, 1.0);
+      float fresnel = 0.02 + 0.98 * pow(1.0 - dot(viewRefRay, surface_nw.normal), 5.0);
+      float refract_amount = clamp((1 - fresnel) * (12 - clamp((surface.dist - surface_nw.dist) * far, 0.0, 12.0)) / 12, 0.0, 1.0);
       color.rgb = (color.rgb * refract_amount * 0.76) + (ref_color.rgb * ref_color.a * (1 - refract_amount) * vec3(0.6,0.7,0.9)) + watercolor * (1 - ref_color.a * (1 - refract_amount) - refract_amount) + sun_ref;
 
       #endif
@@ -322,33 +324,38 @@ void main() {
 
       float ref_cr;
       float sun_cr;
+      float ang = dot(surface.normal, upVec) * 0.5 + 0.5;
       if (length(specular.rgb) < 0.1) {
-        ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) * 0.43, 1.0);
-        sun_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) * 0.45, 1.0);
+        ref_cr = clamp(0.0, iswet * ang * 0.43, 1.0);
+        sun_cr = clamp(0.0, iswet * ang * 0.45, 1.0);
       } else {
-        ref_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) * specular.g + specular.r * 0.77, 1.0);
-        sun_cr = clamp(0.0, iswet * (dot(normal, upVec) * 0.5 + 0.5) * specular.g + specular.b * 0.77, 1.0);
+        ref_cr = clamp(0.0, iswet * ang * specular.g + specular.r * 0.77, 1.0);
+        sun_cr = clamp(0.0, iswet * ang * specular.g + specular.b * 0.77, 1.0);
       }
 
     //  vec3 ref_color = vec3(0.44) * wetness_cr + texture2D(gaux3, texcoord.st).rgb;
 
       vec4 ref_color = vec4(0.0);
       vec3 sun_ref = vec3(0.0);
-      vec3 viewRefRay = reflect(normalize(viewPosition.xyz), normal);
+      vec3 viewRefRay = reflect(normalize(surface.viewPosition.xyz), surface.normal);
       if (ref_cr > 0.05)
-        ref_color = waterRayTarcing(viewPosition.xyz + normal * (-viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
+        ref_color = waterRayTarcing(surface.viewPosition.xyz + surface.normal * (-surface.viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
       if (sun_cr > 0.05)
         sun_ref = suncolor * (1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * sun_cr;
 
       color.rgb += sun_ref * sun_cr + ref_color.rgb * ref_color.a * ref_cr;
     }
-    color.rgb = mix(color.rgb, gl_Fog.color.rgb * skyColor, clamp(pow(dist, (1 - wetness * 0.5) * 3.95 - wetness), 0.0, 1.0));
-    float ddist = dist;
+
+    color.rgb = mix(color.rgb, gl_Fog.color.rgb * skyColor, clamp(pow(surface.dist, (1 - wetness * 0.5) * 3.95 - wetness), 0.0, 1.0));
+    float ddist = surface.dist;
       ddist *= ddist;
       ddist *= ddist;
       ddist *= ddist;
       ddist *= ddist;
-    color.rgb = mix(color.rgb, skyColor, clamp(pow(dist, 20) * (1 - wetness), 0.0, 1.0));
+    color.rgb = mix(color.rgb, skyColor, clamp(ddist * (1 - wetness), 0.0, 1.0));
+
+    float sun_ray_dif = clamp(0.0, dot(normalize(surface.viewPosition.xyz), normalize(lightPosition)), 1.0) * pow(surface.dist, 2);
+    //color.rgb = mix(color.rgb, suncolor * (1.0 - wetness * 0.86), sun_ray_dif * 0.6);
   }
 
 /* DRAWBUFFERS:03 */
