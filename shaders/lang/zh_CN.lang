@@ -19,11 +19,17 @@ option.LF.comment=当面向太阳时的光晕效果。
 option.TEST_CLOUD=体积云
 option.TEST_CLOUD.comment=测试中的体积云支持，并有着轻量到中等的负载。
 
-option.HQ_SMOOTH_SHADOW=高质量软阴影
+option.HQ_SMOOTH_SHADOW=(弃用) 高质量软阴影
 option.HQ_SMOOTH_SHADOW.comment=将阴影边界软化，以提供更为真实的画面效果
+
+option.DRSOE_SS=距离相关超级阴影
+option.HQ_SMOOTH_SHADOW.comment=根据阴影体距离柔化阴影边缘创造更为真实的效果
 
 option.WATER_REFLECTIONS=水面反射
 option.WATER_REFLECTIONS.comment=水表面的反射特效
 
 option.NORMAL_MAPPING=法线贴图
 option.NORMAL_MAPPING.comment=使用法线贴图来提升阴影和光照细节，需要材质包支持法线贴图。
+
+option.TILT_SHIFT=移轴
+option.TILT_SHIFT=模糊画面四角，模拟人眼与摄像机
