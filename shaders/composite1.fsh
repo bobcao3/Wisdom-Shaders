@@ -149,7 +149,7 @@ struct SurfaceMask {
   const float shadow_weight[4] = float[] (0.51, 0.26, 0.14, 0.09);
 #endif
 #endif
-float shadowMapping(in SurfaceStruct sr, float alpha, out vec4 shadow_color) {
+float shadowMapping(in SurfaceStruct sr, float alpha, out vec4 shadow_color, float soft_scale) {
 	if(sr.dist > 0.9)
 		return extShadow;
 	float shade = 0.0;
@@ -179,7 +179,7 @@ float shadowMapping(in SurfaceStruct sr, float alpha, out vec4 shadow_color) {
 
           if(shadowDepth + 0.0001 < shadowposition.z)
             if (i != 0)
-              temp_shade += 1.0 * shadow_weight[i] * clamp(0.0, abs(shadowDepth - shadowposition.z) * far * 2.0, 1.0);
+              temp_shade += 1.0 * shadow_weight[i] * clamp(0.0, abs(shadowDepth - shadowposition.z) * far * 2.0 * soft_scale, 1.0);
             else
               temp_shade += 1.0 * shadow_weight[i];
         }
@@ -437,18 +437,18 @@ void main() {
       float depth_diff = abs(depth_nw - depth);
       float h0 = water_wave_adjust(wpos, depth_diff);
 
-      float under_water_shade = clamp(shadowMapping(surface, color.a, shadow_color), 0.0, 1.0) * 0.88;
+      float under_water_shade = clamp(shadowMapping(surface, color.a, shadow_color, 4.0), 0.0, 1.0) * 0.88;
       under_water_shade += (h0 * 1.1) * 0.6 * (1 - under_water_shade);
 
       if (!isEyeInWater) {
-        r_shade = shadowMapping(surface_nw, color.a, shadow_color);
+        r_shade = shadowMapping(surface_nw, color.a, shadow_color, 3.0);
         shade = under_water_shade + r_shade * 0.12;
       } else {
         r_shade = under_water_shade;
         shade = r_shade;
       }
     } else {
-      r_shade = shadowMapping(surface, color.a, shadow_color);// * 0.5 + shadowMapping(worldPosition + vec4(lightPosition * normal, 0) * 0.3, dist, normal, color.a) * 0.5;
+      r_shade = shadowMapping(surface, color.a, shadow_color, 1.0);// * 0.5 + shadowMapping(worldPosition + vec4(lightPosition * normal, 0) * 0.3, dist, normal, color.a) * 0.5;
 
       shade = r_shade;
     }
