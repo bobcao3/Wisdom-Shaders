@@ -37,7 +37,7 @@ void main() {
 		gl_FragData[0] = vec4((watercolor*color).rgb, watercolor.a);
 		gl_FragData[2] = vec4(lmcoord.t, 0.125, lmcoord.s, 1.0);
 	} else {
-		gl_FragData[0] = texture2D(texture, texcoord.xy)*color;
+		gl_FragData[0] = textureProj(texture, texcoord) * color;
 		gl_FragData[2] = vec4(lmcoord.t, 0.130, lmcoord.s, 1.0);
 	}
 	if(fogMode == 9729)

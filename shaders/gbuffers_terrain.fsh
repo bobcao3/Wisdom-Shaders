@@ -46,8 +46,8 @@ vec2 dcdy = dFdy(texcoord.st);
 
 /* DRAWBUFFERS:0246 */
 void main() {
-	vec4 texcolor = texture2DGradARB(texture, texcoord.st, dcdx, dcdy);
-  vec4 normal_map = texture2DGradARB(normals, texcoord.st, dcdx, dcdy);
+	vec4 texcolor = textureProjGrad(texture, texcoord, dcdx, dcdy);
+  vec4 normal_map = textureProjGrad(normals, texcoord, dcdx, dcdy);
 	vec3 normal_r;
   #ifdef NORMAL_MAPPING
     if (length(normal_map.rgb) > 0) {
@@ -69,5 +69,5 @@ void main() {
 	gl_FragData[0] = texcolor * color;
 	gl_FragData[1] = vec4(normalEncode(normal_r), 0.0, 1.0);
 	gl_FragData[2] = vec4(lmcoord.t, entities, lmcoord.s, 1.0);
-	gl_FragData[3] = vec4(texture2DGradARB(specular, texcoord.st, dcdx, dcdy).rgb, texcolor.a);
+	gl_FragData[3] = vec4(textureProjGrad(specular, texcoord, dcdx, dcdy).rgb, texcolor.a);
 }

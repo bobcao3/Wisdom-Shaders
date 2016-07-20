@@ -23,7 +23,7 @@ in vec2 normal;
 
 /* DRAWBUFFERS:04 */
 void main() {
-	gl_FragData[0] = texture2D(texture, texcoord.st) * color;
+	gl_FragData[0] = textureProj(texture, texcoord) * color;
 	//gl_FragData[1] = vec4(normal, 0.0, 1.0);
 	gl_FragData[1] = vec4(0.0, 0.0, 0.0, 0.3);
 }

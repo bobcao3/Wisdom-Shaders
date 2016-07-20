@@ -22,6 +22,6 @@ in vec4 lmcoord;
 
 void main() {
 /* DRAWBUFFERS:0 */
-	vec4 tex = texture2D(texture, texcoord.xy)*color;
+	vec4 tex = textureProj(texture, texcoord) * color;
 	gl_FragData[0] = tex;
 }

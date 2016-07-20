@@ -24,13 +24,12 @@ uniform sampler2D normals;
 
 void main() {
 /* DRAWBUFFERS:024 */
-	vec2 adjustedTexCoord = texcoord.st;
-
 	float texinterval = 0.0625f;
 
-	vec3 indlmap = texture2D(texture,adjustedTexCoord).rgb*color.rgb;
+	vec4 c = textureProj(texture, texcoord);
+	vec3 indlmap = c.rgb*color.rgb;
 
-	gl_FragData[0] = vec4(indlmap,texture2D(texture,adjustedTexCoord).a*color.a);
+	gl_FragData[0] = vec4(indlmap, c.a * color.a);
 	gl_FragData[1] = vec4(normal, 0.0, 1.0);
 	gl_FragData[2] = vec4(lmcoord.t, 0.99, lmcoord.s, 1.0);
 }

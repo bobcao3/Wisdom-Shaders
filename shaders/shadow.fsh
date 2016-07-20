@@ -21,7 +21,7 @@ flat in lowp float discard_flag;
 
 void main() {
 
-	vec4 texcolor = texture2D(tex, texcoord.st);
+	vec4 texcolor = textureProj(tex, texcoord);
 
 	if (texcolor.a < 0.1 || discard_flag == 1) discard;
 

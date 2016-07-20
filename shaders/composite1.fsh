@@ -195,7 +195,7 @@ float shadowMapping(in SurfaceStruct sr, float alpha, out vec4 shadow_color, flo
       }
       shade = soft_shade;
 
-      shadow_color = texture(shadowcolor0, shadowposition.st) * 0.7 + textureLod(shadowcolor0, shadowposition.st, 1.0) * 0.3;
+      shadow_color = textureProj(shadowcolor0, shadowposition) * 0.7 + textureProjLod(shadowcolor0, shadowposition, 1.0) * 0.3;
     #else
     #ifdef HQ_SMOOTH_SHADOW
       float soft_shade = 0.0;
@@ -324,7 +324,7 @@ float water_wave_adjust(vec3 posxz) {
 
       float step_length;
       if (var_l)
-        step_length = float(i) * 0.5;
+        step_length = float(i);
       else
         step_length = min((CLOUD_HEIGHT_CEILING - CLOUD_HEIGHT) / 32 / abs(direction.y), float(i));
 
@@ -366,7 +366,7 @@ float water_wave_adjust(vec3 posxz, float dep) {
 	}
 
 	factor = 1.0;
-	px = -posxz.x/50.0 + 250.0;
+  px = -posxz.x/50.0 + 250.0;
 	py = -posxz.z/150.0 - 250.0;
 	fpx = abs(fract(px*20.0)-0.5)*2.0;
 	fpy = abs(fract(py*20.0)-0.5)*2.0;
