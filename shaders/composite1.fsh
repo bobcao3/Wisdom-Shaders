@@ -21,6 +21,7 @@
 //#define HQ_SMOOTH_SHADOW
 #define BLOOM
 #define DRSOE_SS
+#define SSADDAO
 
 #define SHADOW_MAP_BIAS 0.85
 const int     RG16 = 0;
@@ -45,7 +46,6 @@ const float 	wetnessHalflife 		 	  = 450.0f; 	 // Wet to dry.
 const float 	drynessHalflife 		 	  = 60.0f;		 // Dry ro wet.
 const float		sunPathRotation			 	  = -39.5f;
 const float		eyeBrightnessHalflife	  = 8.5f;
-const bool    shadowHardwareFiltering = true;
 #ifdef DRSOE_SS
 const bool    shadowtex1Mipmap        = true;
 const bool    shadowcolor0Mipmap      = true;
@@ -56,7 +56,12 @@ const bool    shadowcolor0Mipmap      = true;
 #endif
 #endif
 const bool    gcolorMipmapEnabled     = true;
+#ifdef SSADDAO
+const bool    depthtex1MipmapEnabled  = true;
+const float   ambientOcclusionLevel   = 0.0f;
+#else
 const float   ambientOcclusionLevel   = 1.0f;
+#endif
 
 uniform float far;
 uniform float near;
@@ -68,7 +73,6 @@ uniform float aspectRatio;
 uniform float frameTimeCounter;
 uniform ivec2 eyeBrightness;
 uniform ivec2 eyeBrightnessSmooth;
-uniform vec3 skyColor;
 uniform vec3 cameraPosition;
 uniform bool isEyeInWater;
 uniform int worldTime;
@@ -102,6 +106,8 @@ in vec3 moonVec;
 flat in vec3 suncolor;
 in float SdotU;
 in float MdotU;
+flat in vec3 skyColorC;
+vec3 skyColor = skyColorC;
 flat in float moonVisibility;
 in vec4 texcoord;
 flat in float handlight;
@@ -376,6 +382,38 @@ float water_wave_adjust(vec3 posxz, float dep) {
 	return amplitude*wave2+amplitude*wave;
 }
 
+#ifdef SSADDAO
+const float AO_weight[4] = float[] (0.0, 0.53, 0.31, 0.26);
+const vec2 AO_offset[4] = vec2[] (vec2(0.02, 0.0), vec2(-0.02, 0.0), vec2(0.0, 0.05), vec2(0.0, -0.05));
+float AO(in SurfaceStruct s) {
+  float am = 0.95;
+  float cd = texture(depthtex1, texcoord.st).x;
+  for (int a = 1; a < 4; a++) {
+    float rd = 0;
+    for (int i = 0; i < 4; i++) {
+      vec2 adj_st1 = texcoord.st + AO_offset[i] * a;
+      adj_st1.s = clamp(0.0, adj_st1.s, 1.0);
+      adj_st1.s = clamp(0.0, adj_st1.s, 1.0);
+
+      vec2 adj_st2 = texcoord.st - AO_offset[i] * a;
+      adj_st2.s = clamp(0.0, adj_st2.s, 1.0);
+      adj_st2.s = clamp(0.0, adj_st2.s, 1.0);
+
+      float s1 = textureLod(depthtex1, adj_st1, float(a)).y;
+      float s2 = textureLod(depthtex1, adj_st2, float(a)).y;
+      if (abs(s1 - s2) > 1 / far) {
+        rd += (s1 + s2) * (1 - abs(s1 - s2) * 12) + cd * 2 * abs(s1 - s2) * 12;
+      } else {
+        rd += s1 + s2;
+      }
+    }
+    rd *= 0.125;
+    am += clamp(-0.1, clamp(-2.0, (rd - cd) * far, 0.2) * AO_weight[a], 0.1);
+  }
+  return am;
+}
+#endif
+
 float sky_lightmap;
 
 // ===========================================================================
@@ -391,7 +429,7 @@ void main() {
 
   mask.iswater = (abs(mask.aux.g - 0.125f) < 0.002f);
   mask.issky = ((mask.aux.r < 0.001f) && (mask.aux.g < 0.001f) && (mask.aux.b < 0.001f));
-  mask.issun = mask.issky && (mask.aux.b < 0.31f);
+  mask.issun = mask.issky && (abs(mask.aux.b - 0.31f) < 0.002f);
   mask.ishand = (mask.aux.g > 0.98f);
   mask.is_stained_glass = (mask.aux.g > 0.895f) && (mask.aux.g < 0.905f);
 
@@ -469,11 +507,13 @@ void main() {
     float torchDistance          = torchDistanceOutsideDay   + torchDistanceInsideDay   + torchDistanceNight;
     float torchBrightness        = torchBrightnessOutsideDay + torchBrightnessInsideDay + torchBrightnessNight;
 
+    float ao_am = AO(surface);
+
     vec3 torchcolor = vec3(1.95, 1.31, 0.43);
     float tlight = clamp(mask.aux.b, 0.0, 1.0);
-    vec3 torchlight = pow(tlight, torchDistance) * torchBrightness * torchcolor;
+    vec3 torchlight = pow(tlight, torchDistance) * torchBrightness * torchcolor * ao_am;
 
-    float min_light = 0.45 - float(eyeBrightnessSmooth.y + eyeBrightnessSmooth.x * 0.65) * 0.0014;
+    float min_light = min(0.45 - float(eyeBrightnessSmooth.y + eyeBrightnessSmooth.x * 0.65) * 0.0014, ao_am);
 
     vec3 sun_l = suncolor * (1 - shade) * (1 - wetness * 0.5);
     vec3 amb_color = clamp(suncolor, vec3(min_light), vec3(1.25));

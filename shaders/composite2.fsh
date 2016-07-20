@@ -231,6 +231,86 @@ float sky_lightmap = pow(aux.r,3.0);
 
 float iswet;
 
+vec3 rgbToHsl(vec3 rgbColor) {
+    rgbColor = clamp(rgbColor, vec3(0.0), vec3(1.0));
+    float h, s, l;
+    float r = rgbColor.r, g = rgbColor.g, b = rgbColor.b;
+    float minval = min(r, min(g, b));
+    float maxval = max(r, max(g, b));
+    float delta = maxval - minval;
+    l = ( maxval + minval ) / 2.0;
+    if (delta == 0.0)
+    {
+        h = 0.0;
+        s = 0.0;
+    }
+    else
+    {
+        if ( l < 0.5 )
+            s = delta / ( maxval + minval );
+        else
+            s = delta / ( 2.0 - maxval - minval );
+
+        float deltaR = (((maxval - r) / 6.0) + (delta / 2.0)) / delta;
+        float deltaG = (((maxval - g) / 6.0) + (delta / 2.0)) / delta;
+        float deltaB = (((maxval - b) / 6.0) + (delta / 2.0)) / delta;
+
+        if(r == maxval)
+            h = deltaB - deltaG;
+        else if(g == maxval)
+            h = ( 1.0 / 3.0 ) + deltaR - deltaB;
+        else if(b == maxval)
+            h = ( 2.0 / 3.0 ) + deltaG - deltaR;
+
+        if ( h < 0.0 )
+            h += 1.0;
+        if ( h > 1.0 )
+            h -= 1.0;
+    }
+    return vec3(h, s, l);
+}
+
+float hueToRgb(float v1, float v2, float vH) {
+    if (vH < 0.0)
+        vH += 1.0;
+    if (vH > 1.0)
+        vH -= 1.0;
+    if ((6.0 * vH) < 1.0)
+        return (v1 + (v2 - v1) * 6.0 * vH);
+    if ((2.0 * vH) < 1.0)
+        return v2;
+    if ((3.0 * vH) < 2.0)
+        return (v1 + ( v2 - v1 ) * ( ( 2.0 / 3.0 ) - vH ) * 6.0);
+    return v1;
+}
+
+vec3 hslToRgb(vec3 hslColor) {
+    hslColor = clamp(hslColor, vec3(0.0), vec3(1.0));
+    float r, g, b;
+    float h = hslColor.r, s = hslColor.g, l = hslColor.b;
+    if (s == 0.0)
+    {
+        r = l;
+        g = l;
+        b = l;
+    }
+    else
+    {
+        float v1, v2;
+        if (l < 0.5)
+            v2 = l * (1.0 + s);
+        else
+            v2 = (l + s) - (s * l);
+
+        v1 = 2.0 * l - v2;
+
+        r = hueToRgb(v1, v2, h + (1.0 / 3.0));
+        g = hueToRgb(v1, v2, h);
+        b = hueToRgb(v1, v2, h - (1.0 / 3.0));
+    }
+    return vec3(r, g, b);
+}
+
 void main() {
 
   if (isEyeInWater)
@@ -352,10 +432,10 @@ void main() {
       ddist *= ddist;
       ddist *= ddist;
       ddist *= ddist;
-    color.rgb = mix(color.rgb, skyColor, clamp(ddist * (1 - wetness), 0.0, 1.0));
-
-    float sun_ray_dif = clamp(0.0, dot(normalize(surface.viewPosition.xyz), normalize(lightPosition)), 1.0) * pow(surface.dist, 2);
-    //color.rgb = mix(color.rgb, suncolor * (1.0 - wetness * 0.86), sun_ray_dif * 0.6);
+    color.rgb = mix(color.rgb, skyColor, clamp(ddist, 0.0, 1.0));
+    color.rgb = rgbToHsl(color.rgb);
+    color.g = color.g * (1 - wetness) + color.g * (wetness) * clamp(0.3, 1 - color.g * surface.dist * 2, 1.0);
+    color.rgb = hslToRgb(color.rgb);
   }
 
 /* DRAWBUFFERS:03 */
