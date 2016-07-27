@@ -38,10 +38,10 @@ flat out float moonVisibility;
 flat out float extShadow;
 flat out float handlight;
 
-flat out float TimeSunrise;
-flat out float TimeNoon;
-flat out float TimeSunset;
-flat out float TimeMidnight;
+invariant flat out float TimeSunrise;
+invariant flat out float TimeNoon;
+invariant flat out float TimeSunset;
+invariant flat out float TimeMidnight;
 
 #define SUNRISE 23200.0
 #define SUNSET 12800.0
@@ -185,8 +185,9 @@ void main() {
   skyColorC = skycolor_sunrise + skycolor_noon + skycolor_sunset + skycolor_midnight;
   skyColorC = rgbToHsl(skyColorC);
 	skyColorC.r = pow(skyColorC.r, 1 - wetness * 0.5);
-	skyColorC.b = skyColorC.b * (1 - wetness * 0.75);
+	skyColorC.g = skyColorC.g * (1 - wetness * 0.75);
 	skyColorC = hslToRgb(skyColorC);
+  skyColorC *= (1 - wetness * 0.85);
 
 	moonVisibility = pow(clamp(MdotU+0.1,0.0,0.1)/0.1,2.0);
 

@@ -23,9 +23,9 @@ const bool gcolorMipmapEnabled = true;
 
 in vec4 texcoord;
 in vec3 lightPosition;
-in vec3 sunVec;
-in vec3 moonVec;
-in vec3 upVec;
+invariant flat in vec3 sunVec;
+invariant flat in vec3 moonVec;
+invariant flat in vec3 upVec;
 in vec3 suncolor;
 in float SdotU;
 in float MdotU;
@@ -33,10 +33,10 @@ in float sunVisibility;
 in float moonVisibility;
 in float handItemLight;
 
-in float TimeSunrise;
-in float TimeNoon;
-in float TimeSunset;
-in float TimeMidnight;
+invariant flat  in float TimeSunrise;
+invariant flat  in float TimeNoon;
+invariant flat  in float TimeSunset;
+invariant flat  in float TimeMidnight;
 
 uniform sampler2D noisetex;
 uniform sampler2D colortex1;
@@ -311,6 +311,15 @@ vec3 hslToRgb(vec3 hslColor) {
     return vec3(r, g, b);
 }
 
+vec4 refbl(vec4 a, vec4 b) {
+  vec4 c;
+  c.r = a.r * b.r;
+  c.g = a.g * b.g;
+  c.b = a.b * b.b;
+  c.a = a.a * b.a;
+  return c;
+}
+
 void main() {
 
   if (isEyeInWater)
@@ -390,7 +399,7 @@ void main() {
 
       vec3 viewRefRay = reflect(normalize(surface_nw.viewPosition.xyz), surface_nw.normal);
 
-      vec4 ref_color = waterRayTarcing(surface_nw.viewPosition.xyz + surface_nw.normal * (-surface_nw.viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
+      vec4 ref_color = refbl(waterRayTarcing(surface_nw.viewPosition.xyz + surface_nw.normal * (-surface_nw.viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb), vec4(0.85, 0.90, 0.95, 1.0));
 
       vec3 sun_ref = suncolor * (1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade);
 
@@ -419,7 +428,7 @@ void main() {
       vec3 sun_ref = vec3(0.0);
       vec3 viewRefRay = reflect(normalize(surface.viewPosition.xyz), surface.normal);
       if (ref_cr > 0.05)
-        ref_color = waterRayTarcing(surface.viewPosition.xyz + surface.normal * (-surface.viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb);
+        ref_color = refbl(waterRayTarcing(surface.viewPosition.xyz + surface.normal * (-surface.viewPosition.z / far * 0.2 + 0.05), viewRefRay, color.rgb), color * 0.7 + vec4(max(specular.b, specular.g) * 0.75));
       if (sun_cr > 0.05)
         sun_ref = suncolor * (1.0 - wetness * 0.86) * max(pow(dot(normalize(lightPosition.xyz), normalize(viewRefRay.xyz)), 11.0), 0.0) * (1 - shade) * sun_cr;
 

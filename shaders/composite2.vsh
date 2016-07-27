@@ -19,9 +19,9 @@ out vec4 texcoord;
 out float handItemLight;
 out float SdotU;
 out float MdotU;
-out vec3 sunVec;
-out vec3 moonVec;
-out vec3 upVec;
+invariant flat out vec3 sunVec;
+invariant flat out vec3 moonVec;
+invariant flat out vec3 upVec;
 out vec3 suncolor;
 out vec3 lightPosition;
 out float sunVisibility;
@@ -38,10 +38,10 @@ uniform vec3 upPosition;
 uniform mat4 gbufferProjection;
 uniform mat4 gbufferModelViewInverse;
 
-out float TimeSunrise;
-out float TimeNoon;
-out float TimeSunset;
-out float TimeMidnight;
+invariant flat out float TimeSunrise;
+invariant flat out float TimeNoon;
+invariant flat out float TimeSunset;
+invariant flat out float TimeMidnight;
 
 void main() {
 

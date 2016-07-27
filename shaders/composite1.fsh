@@ -24,21 +24,8 @@
 #define SSADDAO
 
 #define SHADOW_MAP_BIAS 0.85
-const int     RG16 = 0;
-const int     RGBA8 = 0;
-const int     colortex1Format = RGBA8;
-const int     gnormalFormat = RG16;
-const int     gaux1Format = RGBA8;
 
-#ifdef DRSOE_SS
-const int     shadowMapResolution     = 2048;
-#else
-#ifdef HQ_SMOOTH_SHADOW
-const int     shadowMapResolution     = 2048;
-#else
 const int     shadowMapResolution     = 1024;
-#endif
-#endif
 const float   shadowDistance          = 128.0f;
 const float 	centerDepthHalflife 	  = 2.0f;
 const float 	shadowIntervalSize 		  = 6.0f;
@@ -46,22 +33,11 @@ const float 	wetnessHalflife 		 	  = 450.0f; 	 // Wet to dry.
 const float 	drynessHalflife 		 	  = 60.0f;		 // Dry ro wet.
 const float		sunPathRotation			 	  = -39.5f;
 const float		eyeBrightnessHalflife	  = 8.5f;
-#ifdef DRSOE_SS
 const bool    shadowtex1Mipmap        = true;
 const bool    shadowcolor0Mipmap      = true;
-#else
-#ifdef HQ_SMOOTH_SHADOW
-const bool    shadowtex1Mipmap        = true;
-const bool    shadowcolor0Mipmap      = true;
-#endif
-#endif
 const bool    gcolorMipmapEnabled     = true;
-#ifdef SSADDAO
 const bool    depthtex1MipmapEnabled  = true;
-const float   ambientOcclusionLevel   = 0.0f;
-#else
 const float   ambientOcclusionLevel   = 1.0f;
-#endif
 
 uniform float far;
 uniform float near;
@@ -90,6 +66,8 @@ uniform sampler2D depthtex1;
 uniform sampler2D noisetex;
 uniform sampler2D gaux1;
 uniform sampler2D gaux2;
+uniform sampler2D gaux3;
+uniform sampler2D composite;
 uniform sampler2D shadowtex0;
 #ifdef DRSOE_SS
 uniform sampler2D shadowtex1;
@@ -113,10 +91,10 @@ in vec4 texcoord;
 flat in float handlight;
 flat in vec3 worldSunPosition;
 
-flat in float TimeSunrise;
-flat in float TimeNoon;
-flat in float TimeSunset;
-flat in float TimeMidnight;
+invariant flat in float TimeSunrise;
+invariant flat in float TimeNoon;
+invariant flat in float TimeSunset;
+invariant flat in float TimeMidnight;
 
 struct SurfaceStruct {
   vec4 worldPosition;
@@ -134,6 +112,17 @@ vec3 normalDecode(vec2 enc) {
   nn.z = l;
   nn.xy *= sqrt(l);
   return nn.xyz * 2.0f + vec3(0.0f, 0.0f, -1.0f);
+}
+
+void dataDecode(in ivec4 data, out vec4 vp, out vec4 wp) {
+  vp.r = (data.r >> 16) / 32768.0f;
+  wp.r = ((data.r << 16) >> 16) / 32768.0f;
+  vp.g = (data.g >> 16) / 32768.0f;
+  wp.g = ((data.g << 16) >> 16) / 32768.0f;
+  vp.b = (data.b >> 16) / 32768.0f;
+  wp.b = ((data.b << 16) >> 16) / 32768.0f;
+  vp.a = (data.a >> 16) / 32768.0f;
+  wp.a = ((data.a << 16) >> 16) / 32768.0f;
 }
 
 struct SurfaceMask {
@@ -219,6 +208,66 @@ float shadowMapping(in SurfaceStruct sr, float alpha, out vec4 shadow_color, flo
 	shade -= clamp((sr.dist - 0.7) * 5.0, 0.0, 1.0);
 	shade = clamp(shade, 0.0, 1.0);
 	return max(shade, extShadow);
+}
+
+float VL_shade(in SurfaceStruct sr, out vec4 shadow_color, float soft_scale) {
+  float shade = 0.0;
+
+  vec4 shadowposition = shadowModelView * sr.worldPosition;
+	shadowposition = shadowProjection * shadowposition;
+	float edgeX = abs(shadowposition.x) - 0.9;
+	float edgeY = abs(shadowposition.y) - 0.9;
+	float distb = sqrt(shadowposition.x * shadowposition.x + shadowposition.y * shadowposition.y);
+	float distortFactor = (1.0 - SHADOW_MAP_BIAS) + distb * SHADOW_MAP_BIAS;
+	shadowposition.xy /= distortFactor;
+	shadowposition /= shadowposition.w;
+	shadowposition = shadowposition * 0.5 + 0.5;
+
+  float soft_shade = 0.0;
+  for (int i = 0; i < 4; i++) {
+    float temp_shade = 0.0;
+    for (int j = 0; j < 5; j++) {
+      float shadowDepth = textureLod(shadowtex1, shadowposition.st + shadow_disp[j] * float(i), float(i)).z;
+
+      if(shadowDepth + 0.0001 < shadowposition.z)
+        if (i != 0)
+          temp_shade += 1.0 * shadow_weight[i] * clamp(0.0, abs(shadowDepth - shadowposition.z) * far * 2.0 * soft_scale, 1.0);
+        else
+          temp_shade += 1.0 * shadow_weight[i];
+    }
+    temp_shade *= 0.2;
+    soft_shade += temp_shade;
+    if (soft_shade >= 0.99) break;
+  }
+  shade = soft_shade;
+
+  shadow_color = textureProj(shadowcolor0, shadowposition) * 0.7 + textureProjLod(shadowcolor0, shadowposition, 1.0) * 0.3;
+
+  return shade;
+}
+
+vec3 VL(in SurfaceStruct s) {
+  SurfaceStruct k = s;
+  vec4 dir = s.worldPosition;
+
+  vec3 c = vec3(0.0f);
+  float am = 0.0;
+
+  vec4 shadowcolor;
+  if (VL_shade(s, shadowcolor, 1.0f) > 0.05)
+  for (int i = 1; i < 17; i++) {
+    vec4 rdir = dir / 16.0f * i;
+    rdir.w /= rdir.w;
+
+    k.worldPosition = rdir;
+    float shade = VL_shade(k, shadowcolor, 1.0f);
+
+    am += shade * 0.015;
+//    if (i == 0 && shade < 0.1f) break;
+
+    c += (1 - shade) * 0.06 * suncolor;
+  }
+  return c * am;
 }
 
 float water_wave_adjust(vec3 posxz) {
@@ -451,8 +500,9 @@ void main() {
 	surface_nw.viewPosition /= surface_nw.viewPosition.w;
 
 	surface.worldPosition = gbufferModelViewInverse * (surface.viewPosition + vec4(surface.normal * 0.05 * sqrt(abs(surface.viewPosition.z)), 0.0));
+  surface_nw.worldPosition = gbufferModelViewInverse * (surface_nw.viewPosition + vec4(surface_nw.normal * 0.05 * sqrt(abs(surface.viewPosition.z)), 0.0));
+
   vec3 wpos = surface.worldPosition.xyz + cameraPosition;
-  surface_nw.worldPosition = gbufferModelViewInverse * (surface.viewPosition + vec4(surface.normal * 0.05 * sqrt(abs(surface.viewPosition.z)), 0.0));
 
   surface.dist = length(surface.worldPosition.xyz) / far;
   surface_nw.dist = length(surface_nw.worldPosition.xyz) / far;
@@ -475,12 +525,12 @@ void main() {
       float depth_diff = abs(depth_nw - depth);
       float h0 = water_wave_adjust(wpos, depth_diff);
 
-      float under_water_shade = clamp(shadowMapping(surface, color.a, shadow_color, 4.0), 0.0, 1.0) * 0.88;
+      float under_water_shade = clamp(shadowMapping(surface, color.a, shadow_color, 4.0), 0.0, 1.0) * 0.92;
       under_water_shade += (h0 * 1.1) * 0.6 * (1 - under_water_shade);
 
       if (!isEyeInWater) {
         r_shade = shadowMapping(surface_nw, color.a, shadow_color, 3.0);
-        shade = under_water_shade + r_shade * 0.12;
+        shade = under_water_shade + r_shade * 0.08;
       } else {
         r_shade = under_water_shade;
         shade = r_shade;
@@ -526,6 +576,10 @@ void main() {
     color.rgb *= 1 - wetness * 0.25;
 
     color.rgb *= light;
+
+    if (shade > 0.1) {
+      color.rgb += VL(surface);
+    }
   }
 
   #ifdef TEST_CLOUD
