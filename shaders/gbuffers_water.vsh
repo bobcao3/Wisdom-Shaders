@@ -66,6 +66,10 @@ void main() {
 						+ 0.09 * sin(2 * PI * (frameTimeCounter*0.4 + worldpos.x / 11.0 - worldpos.z /  5.0)) + 0.09 * sin(2 * PI * (frameTimeCounter*0.4 - worldpos.x / 16.0 + worldpos.z /  10.0)) - 0.1;
 			displacement = clamp(wave, -fy, 1.0-fy);
 			viewpos.y += displacement;
+
+			if (mc_Entity.x == 9.0) {
+				viewpos.y -= 0.1;
+			}
 		#endif
 
 	}
