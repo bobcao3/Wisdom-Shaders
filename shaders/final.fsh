@@ -91,7 +91,7 @@ vec3 Uncharted2ToneMapping(vec3 color) {
 vec3 bloom() {
 	vec3 bloom = vec3(0.0);//texture(gcolor, texcoord).rgb;
 	const float sbias = 1.0 / 4.0f;
-	for (int i = 1; i < 12; i++) {
+	for (int i = 1; i < 7; i++) {
 		float height_bias = viewWidth / viewWidth;
 		vec3 data = texture(gcolor, texcoord + vec2(0.0, 0.0061) * float(i) * height_bias).rgb;
 		float de = 1.0 / float(i);
@@ -100,7 +100,7 @@ vec3 bloom() {
 		data = texture(gcolor, texcoord + vec2(0.0, -0.0061) * float(i) * height_bias).rgb;
 		bloom += data * de;
 	}
-	return bloom * luma(bloom) * 0.105;
+	return bloom * clamp(0.0, luma(bloom), 5.0) * 0.105;
 }
 #endif
 
