@@ -309,7 +309,7 @@ void main() {
 		#ifdef GlobalIllumination
 		diffuse += blurGI(texture(gaux4, texcoord).rgb) * 0.5;
 		#endif
-		float simulatedGI = 0.1 + 2.2 * mclight.y * mclight.y;
+		float simulatedGI = 0.2 + 2.1 * mclight.y * mclight.y;
 		color = color * diffuse + color * ambientColor * simulatedGI;
 	} else {
 		//vec3 hsl = rgbToHsl(color);
