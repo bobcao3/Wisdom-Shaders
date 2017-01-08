@@ -1,73 +1,97 @@
-// Copyright 2016 bobcao3 <bobcaocheng@163.com>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #version 130
-#extension GL_ARB_shader_texture_lod : enable
 #pragma optimize(on)
 
-#define NORMAL_MAPPING
+#define SMOOTH_TEXTURE
 
-const int noiseTextureResolution = 256;
+#define NORMALS
 
-uniform int fogMode;
 uniform sampler2D texture;
-uniform sampler2D lightmap;
 uniform sampler2D specular;
+#ifdef NORMALS
 uniform sampler2D normals;
+#endif
 
-in vec4 color;
-in vec4 texcoord;
-in vec4 lmcoord;
-flat in vec3 normal;
-flat in vec3 binormal;
-flat in vec3 tangent;
-flat in float entities;
-flat in float iswater;
+in lowp vec4 color;
+in lowp vec3 normal;
+in highp vec2 texcoord;
+in highp vec3 wpos;
+in lowp vec2 lmcoord;
+
+in float flag;
+
+#ifdef NORMALS
+in vec3 tangent;
+in vec3 binormal;
+in vec3 viewVector;
+#endif
+
+#ifdef SMOOTH_TEXTURE
+#define texF texSmooth
+uniform ivec2 atlasSize;
+
+vec4 texSmooth(in sampler2D s, in vec2 texc) {
+	int lod = int(length(dFdx(wpos) * dFdy(wpos)));
+
+	vec2 pix_size = vec2(1.0) / (vec2(atlasSize) * 24.0);
+
+	ivec2 px0 = ivec2((texc + pix_size * vec2(0.1, 0.5)) * atlasSize);
+	vec4 texel0 = texelFetch(s, px0, lod);
+	ivec2 px1 = ivec2((texc + pix_size * vec2(0.5, -0.1)) * atlasSize);
+	vec4 texel1 = texelFetch(s, px1, lod);
+	ivec2 px2 = ivec2((texc + pix_size * vec2(-0.1, -0.5)) * atlasSize);
+	vec4 texel2 = texelFetch(s, px2, lod);
+	ivec2 px3 = ivec2((texc + pix_size * vec2(0.5, 0.1)) * atlasSize);
+	vec4 texel3 = texelFetch(s, px3, lod);
+
+	return (texel0 + texel1 + texel2 + texel3) * 0.25;
+}
+#else
+#define texF texture2D
+#endif
+
+#define ParallaxOcculusion
+#ifdef ParallaxOcculusion
+in vec2 midTexCoord;
+in vec3 TangentFragPos;
+in vec4 vtexcoordam;
+
+const float height_scale = 0.018;
+
+vec2 ParallaxMapping(vec2 texc, vec3 viewDir) {
+	float height = texture2D(normals, texc).a;
+	vec2 p = viewDir.xy / viewDir.z * (height * height_scale);
+	return texc - p;
+}
+#endif
 
 vec2 normalEncode(vec3 n) {
-    vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
-    enc = enc*0.5+0.5;
-    return enc;
+	vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
+	enc = enc*0.5+0.5;
+	return enc;
 }
 
-vec2 dcdx = dFdx(texcoord.st);
-vec2 dcdy = dFdy(texcoord.st);
-
-/* DRAWBUFFERS:0246 */
+/* DRAWBUFFERS:01245 */
 void main() {
-	vec4 texcolor = textureProjGrad(texture, texcoord, dcdx, dcdy);
-  vec4 normal_map = textureProjGrad(normals, texcoord, dcdx, dcdy);
-	vec3 normal_r;
-  #ifdef NORMAL_MAPPING
-    if (length(normal_map.rgb) > 0) {
-      vec3 bump = normal_map.rgb * 2.0 - 1.0;
-      bump = bump * vec3(0.5) + vec3(0.0, 0.0, 0.5);
-      mat3 tbnMatrix = mat3(tangent.x, binormal.x, normal.x,
-          tangent.y, binormal.y, normal.y,
-          tangent.z, binormal.z, normal.z);
+	vec2 texcoord_adj = texcoord;
+	#ifdef ParallaxOcculusion
+	texcoord_adj = ParallaxMapping(texcoord, TangentFragPos);
+	texcoord_adj = fract(texcoord_adj / vtexcoordam.pq) * vtexcoordam.pq + vtexcoordam.st;
+	#endif
 
-		  normal_r = normalize(bump * tbnMatrix);
-      normal_r = gl_NormalMatrix * normalize(normal_r);
-	  } else {
-      normal_r = gl_NormalMatrix * normal;
-    }
-  #else
-    normal_r = gl_NormalMatrix * normal;
-  #endif
-
-	gl_FragData[0] = texcolor * color;
-	gl_FragData[1] = vec4(normalEncode(normal_r), 0.0, 1.0);
-	gl_FragData[2] = vec4(lmcoord.t, entities, lmcoord.s, 1.0);
-	gl_FragData[3] = vec4(textureProjGrad(specular, texcoord, dcdx, dcdy).rgb, texcolor.a);
+	gl_FragData[0] = texF(texture, texcoord_adj) * color;
+	gl_FragData[1] = vec4(wpos, 1.0);
+	#ifdef NORMALS
+		vec3 normal2 = texture2D(normals, texcoord_adj).xyz * 2.0 - 1.0;
+		const float bumpmult = 0.45;
+		normal2 = normal2 * vec3(bumpmult, bumpmult, bumpmult) + vec3(0.0f, 0.0f, 1.0f - bumpmult);
+		mat3 tbnMatrix = mat3(
+			tangent.x, binormal.x, normal.x,
+			tangent.y, binormal.y, normal.y,
+			tangent.z, binormal.z, normal.z);
+		gl_FragData[2] = vec4(normalEncode(normalize(normal2 * tbnMatrix)), flag, 1.0);
+	#else
+		gl_FragData[2] = vec4(normalEncode(normalize(normal)), flag, 1.0);
+	#endif
+	gl_FragData[3] = texture2D(specular, texcoord_adj);
+	gl_FragData[4] = vec4(lmcoord, 1.0, 1.0);
 }

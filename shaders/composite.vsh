@@ -17,12 +17,6 @@ flat out float TimeSunrise;
 flat out float TimeNoon;
 flat out float TimeSunset;
 flat out float TimeMidnight;
-flat out float extShadow;
-
-#define SUNRISE 23200
-#define SUNSET 12800
-#define FADE_START 500
-#define FADE_END 250
 
 void main() {
 	TimeSunrise  = ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0) + (1.0 - (clamp(wTimeF, 0.0, 2000.0)/2000.0));
@@ -41,16 +35,5 @@ void main() {
 	gl_Position = ftransform();
 	texcoord = gl_MultiTexCoord0.st;
 
-	if(worldTime >= SUNRISE - FADE_START && worldTime <= SUNRISE + FADE_START) {
-		extShadow = 1.0;
-		if(worldTime < SUNRISE - FADE_END) extShadow -= float(SUNRISE - FADE_END - worldTime) / float(FADE_END); else if(worldTime > SUNRISE + FADE_END)
-			extShadow -= float(worldTime - SUNRISE - FADE_END) / float(FADE_END);
-	} else if(worldTime >= SUNSET - FADE_START && worldTime <= SUNSET + FADE_START) {
-		extShadow = 1.0;
-		if(worldTime < SUNSET - FADE_END) extShadow -= float(SUNSET - FADE_END - worldTime) / float(FADE_END); else if(worldTime > SUNSET + FADE_END)
-			extShadow -= float(worldTime - SUNSET - FADE_END) / float(FADE_END);
-	} else
-		extShadow = 0.0;
-
-	worldLightPos = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+	worldLightPos = normalize((gbufferModelViewInverse * vec4(shadowLightPosition, 1.0)).xyz);
 }
