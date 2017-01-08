@@ -88,9 +88,9 @@ void main() {
 			tangent.x, binormal.x, normal.x,
 			tangent.y, binormal.y, normal.y,
 			tangent.z, binormal.z, normal.z);
-		gl_FragData[2] = vec4(normalEncode(normalize(normal2 * tbnMatrix)), flag, 1.0);
+		gl_FragData[2] = vec4(normalEncode(normal2 * tbnMatrix), flag, 1.0);
 	#else
-		gl_FragData[2] = vec4(normalEncode(normalize(normal)), flag, 1.0);
+		gl_FragData[2] = vec4(normalEncode(normal), flag, 1.0);
 	#endif
 	gl_FragData[3] = texture2D(specular, texcoord_adj);
 	gl_FragData[4] = vec4(lmcoord, 1.0, 1.0);
