@@ -22,6 +22,9 @@ out float flag;
 out vec3 tangent;
 out vec3 binormal;
 out vec3 viewVector;
+#else
+vec3 tangent;
+vec3 binormal;
 #endif
 
 //#define ParallaxOcculusion
@@ -38,42 +41,6 @@ out vec4 vtexcoordam;
 VSH {
 	color = gl_Color;
 
-	vec4 position = gl_Vertex;
-	float blockId = mc_Entity.x;
-	flag = 0.7;
-	if((blockId == 31.0 || blockId == 37.0 || blockId == 38.0) && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
-		float blockId = mc_Entity.x;
-		vec3 noise = texture2D(noisetex, position.xz / 256.0).rgb;
-		float maxStrength = 1.0 + rainStrength * 0.5;
-		float time = frameTimeCounter * 3.0;
-		float reset = cos(rand(position.xy) * 10.0 + time * 0.1);
-		reset = max( reset * reset, max(rainStrength, 0.1));
-		position.x += sin(rand(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
-		position.z += sin(rand(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
-
-		flag = 0.51;
-	}	else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0) {
-		float maxStrength = 1.0 + rainStrength * 0.5;
-		float time = frameTimeCounter * 3.0;
-		float reset = cos(rand(position.xy) * 10.0 + time * 0.1);
-		reset = max( reset * reset, max(rainStrength, 0.1));
-		position.x += sin(rand(position.xz) * 10.0 + time) * 0.07 * reset * maxStrength;
-		position.z += sin(rand(position.yz) * 10.0 + time) * 0.07 * reset * maxStrength;
-
-		flag = 0.51;
-	} else if (blockId == 83.0 || blockId == 39 || blockId ==40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115 || blockId == 141 || blockId == 142) {
-		flag = 0.51;
-	}
-
-	gl_Position = gl_ModelViewMatrix * position;
-	viewVector = gl_Position.xyz;
-	wpos = (gbufferModelViewInverse * gl_Position).xyz;
-	gl_Position = gl_ProjectionMatrix * gl_Position;
-	normal = normalize(gl_Normal);
-	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
-	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
-
-	#ifdef NORMALS
 	if (gl_Normal.x > 0.5) {
 		//  1.0,  0.0,  0.0
 		tangent  = vec3( 0.0,  0.0, -1.0);
@@ -99,7 +66,41 @@ VSH {
 		tangent  = vec3(-1.0,  0.0,  0.0);
 		binormal = vec3( 0.0, -1.0,  0.0);
 	}
-	#endif
+
+	vec4 position = gl_Vertex;
+	float blockId = mc_Entity.x;
+	flag = 0.7;
+	if((blockId == 31.0 || blockId == 37.0 || blockId == 38.0) && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
+		float blockId = mc_Entity.x;
+		vec3 noise = texture2D(noisetex, position.xz / 256.0).rgb;
+		float maxStrength = 1.0 + rainStrength * 0.5;
+		float time = frameTimeCounter * 3.0;
+		float reset = cos(rand(position.xy) * 10.0 + time * 0.1);
+		reset = max( reset * reset, max(rainStrength, 0.1));
+		position.x += sin(rand(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
+		position.z += sin(rand(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
+
+		flag = 0.51;
+	}	else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0) {
+		float maxStrength = 1.0 + rainStrength * 0.5;
+		float time = frameTimeCounter * 3.0;
+		float reset = cos(rand(position.xy) * 10.0 + time * 0.1);
+		reset = max( reset * reset, max(rainStrength, 0.1));
+		position.xyz += tangent * sin(rand(gl_Vertex.xz) * 5.0 + time) * 0.07 * reset * maxStrength;
+		position.xyz += binormal * sin(rand(gl_Vertex.yz) * 5.0 + time) * 0.07 * reset * maxStrength;
+
+		flag = 0.51;
+	} else if (blockId == 83.0 || blockId == 39 || blockId ==40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115 || blockId == 141 || blockId == 142) {
+		flag = 0.51;
+	}
+
+	gl_Position = gl_ModelViewMatrix * position;
+	viewVector = gl_Position.xyz;
+	wpos = (gbufferModelViewInverse * gl_Position).xyz;
+	gl_Position = gl_ProjectionMatrix * gl_Position;
+	normal = normalize(gl_Normal);
+	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
+	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
 	/*
 	#ifdef ParallaxOcculusion
