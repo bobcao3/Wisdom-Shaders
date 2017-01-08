@@ -259,7 +259,7 @@ void main() {
 
 		const vec3 torchColor = vec3(2.55, 0.95, 0.3) * 0.45;
 
-		float light_distance = clamp(0.08, (1.0 - mclight.x), 1.0);
+		float light_distance = clamp(0.08, (1.0 - pow(mclight.x, 1.6)), 1.0);
 		const float light_quadratic = 1.8f;
 		const float light_linear = 0.89f;
 		const float light_constant = 1.009f;
@@ -309,7 +309,8 @@ void main() {
 		#ifdef GlobalIllumination
 		diffuse += blurGI(texture(gaux4, texcoord).rgb) * 0.5;
 		#endif
-		color = color * diffuse + color * ambientColor;
+		float simulatedGI = 0.1 + 2.2 * mclight.y * mclight.y;
+		color = color * diffuse + color * ambientColor * simulatedGI;
 	} else {
 		//vec3 hsl = rgbToHsl(color);
 		//hsl = vibrance(hsl, 0.73);
