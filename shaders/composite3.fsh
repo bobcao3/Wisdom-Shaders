@@ -395,7 +395,7 @@ void main() {
 		//color = reflection.rgb * reflection.a;
 
 		//color = specular;
-		fogMul = (64.0 - clamp(0.0, wpos.y + cameraPosition.y - 65.0, 64.0)) / 64.0;
+		fogMul = (64.0 - clamp(0.0, wpos.y + cameraPosition.y - 64.0, 64.0)) / 64.0;
 
 		cdepthN = min(1.0, length(max(wpos, water_wpos)) / fogBaseDistance);
 	} else {
@@ -404,14 +404,14 @@ void main() {
 		vec4 viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 1.0, 1.0f);
 		viewPosition /= viewPosition.w;
 		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * far * 2.0;
-		fogMul = (64.0 - clamp(0.0, worldPosition.y + cameraPosition.y - 61.0, 64.0)) / 64.0;
+		fogMul = (64.0 - clamp(0.0, worldPosition.y + cameraPosition.y - 64.0, 64.0)) / 64.0;
 
 		wpos = worldPosition.xyz;
 	}
 	float sunFarScatter = max(0.0, dot(normalize(wpos), worldLightPos));
 	fogColor = mix(ambientColor * skyColor, suncolor * skyColor, 0.5 * sunFarScatter * sunFarScatter);
 	float fogCoord = max(0.0, cdepthN - 0.6) / 0.4;
-	color = mix(color, fogColor, (fogCoord * fogCoord) * fogMul);
+	color = mix(color, fogColor, clamp(0.0, (fogCoord * fogCoord) * fogMul, 1.0));
 
 	gl_FragData[0] = vec4(color, 1.0);
 }
