@@ -24,12 +24,12 @@ out vec3 binormal;
 out vec3 viewVector;
 #endif
 
-#define ParallaxOcculusion
-#ifdef ParallaxOcculusion
+//#define ParallaxOcculusion
+/*#ifdef ParallaxOcculusion
 out vec2 midTexCoord;
 out vec3 TangentFragPos;
 out vec4 vtexcoordam;
-#endif
+#endif*/
 
 #define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
 
@@ -101,6 +101,7 @@ VSH {
 	}
 	#endif
 
+	/*
 	#ifdef ParallaxOcculusion
 	midTexCoord = (gl_TextureMatrix[0] *  mc_midTexCoord).st;
 	vec2 texcoordminusmid = texcoord - midTexCoord;
@@ -111,5 +112,5 @@ VSH {
 		tangent.y, binormal.y, normal.y,
 		tangent.z, binormal.z, normal.z);
 	TangentFragPos  = normalize(TBN * (wpos.xyz - vec3(0.0, 1.67, 0.0)));
-	#endif
+	#endif*/
 }

@@ -49,8 +49,8 @@ vec4 texSmooth(in sampler2D s, in vec2 texc) {
 #define texF texture2D
 #endif
 
-#define ParallaxOcculusion
-#ifdef ParallaxOcculusion
+//#define ParallaxOcculusion
+/*#ifdef ParallaxOcculusion
 in vec2 midTexCoord;
 in vec3 TangentFragPos;
 in vec4 vtexcoordam;
@@ -62,7 +62,7 @@ vec2 ParallaxMapping(vec2 texc, vec3 viewDir) {
 	vec2 p = viewDir.xy / viewDir.z * (height * height_scale);
 	return texc - p;
 }
-#endif
+#endif*/
 
 vec2 normalEncode(vec3 n) {
 	vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
@@ -73,10 +73,10 @@ vec2 normalEncode(vec3 n) {
 /* DRAWBUFFERS:01245 */
 void main() {
 	vec2 texcoord_adj = texcoord;
-	#ifdef ParallaxOcculusion
+	/*#ifdef ParallaxOcculusion
 	texcoord_adj = ParallaxMapping(texcoord, TangentFragPos);
 	texcoord_adj = fract(texcoord_adj / vtexcoordam.pq) * vtexcoordam.pq + vtexcoordam.st;
-	#endif
+	#endif*/
 
 	gl_FragData[0] = texF(texture, texcoord_adj) * color;
 	gl_FragData[1] = vec4(wpos, 1.0);
