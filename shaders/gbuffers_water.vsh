@@ -29,7 +29,7 @@ VSH {
 		position = gl_ModelViewMatrix * gl_Vertex;
 		//normal = gl_Normal;
 	}
-	wpos = (gbufferModelViewInverse * position).xyz;
+	wpos = position.xyz;
 	//normal = normalEncode(normalize(gl_Normal));
 	gl_Position = gl_ProjectionMatrix * position;
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;

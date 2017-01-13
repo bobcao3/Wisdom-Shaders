@@ -11,5 +11,5 @@ uniform mat4 gbufferModelViewInverse;
 VSH {
 	color = gl_Color;
 	gl_Position = ftransform();
-	normal = normalEncode(mat3(gbufferModelViewInverse) * normalize(gl_NormalMatrix * gl_Normal));
+	normal = normalEncode(normalize(gl_NormalMatrix * gl_Normal));
 }
