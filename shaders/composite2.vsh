@@ -4,13 +4,11 @@
 uniform mat4 gbufferModelViewInverse;
 uniform mat4 gbufferProjectionInverse;
 
-uniform vec3 shadowLightPosition;
 uniform int worldTime;
 uniform float rainStrength;
 float wTimeF = float(worldTime);
 
 out vec2 texcoord;
-flat out vec3 worldLightPos;
 flat out vec3 suncolor;
 
 flat out float TimeSunrise;
@@ -36,7 +34,7 @@ void main() {
 	vec3 suncolor_midnight = vec3(0.3, 0.7, 1.3) * 0.15 * TimeMidnight;
 
 	suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
-	suncolor *= 1.0 - rainStrength * 0.63;
+	suncolor *= 1.0 - rainStrength * 0.83;
 
 	gl_Position = ftransform();
 	texcoord = gl_MultiTexCoord0.st;
@@ -52,5 +50,5 @@ void main() {
 	} else
 		extShadow = 0.0;
 
-	worldLightPos = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+	//worldLightPos = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
 }

@@ -19,6 +19,7 @@ uniform mat4 shadowModelView;
 uniform mat4 shadowProjection;
 
 uniform vec3 shadowLightPosition;
+vec3 lightPosition = normalize(shadowLightPosition);
 uniform vec3 cameraPosition;
 uniform vec3 skyColor;
 
@@ -30,7 +31,6 @@ uniform float frameTimeCounter;
 uniform ivec2 eyeBrightnessSmooth;
 
 in vec2 texcoord;
-flat in vec3 worldLightPos;
 flat in vec3 suncolor;
 flat in float extShadow;
 
@@ -49,7 +49,9 @@ vec3 normalDecode(vec2 enc) {
 
 float flag;
 vec3 color = texture(gcolor, texcoord).rgb;
-vec3 wpos = texture(gdepth, texcoord).xyz;
+vec4 vpos = vec4(texture(gdepth, texcoord).xyz, 1.0);
+vec3 wpos = (gbufferModelViewInverse * vpos).xyz;
+lowp vec3 wnormal;
 lowp vec3 normal;
 float cdepth = length(wpos);
 float dFar = 1.0 / far;
@@ -96,7 +98,7 @@ float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos) {
 	float res = 0.0;
 
 	ivec2 px0 = ivec2((texc + pix_size * vec2(0.1, 0.5)) * shadowMapResolution);
-	float bias = 0.00001f + cdepthN * 0.005;
+	float bias = 0.0002f + cdepthN * 0.005;
 	float texel = texelFetch(s, px0, 0).x;
 	res += float(texel + bias < spos);
 	ivec2 px1 = ivec2((texc + pix_size * vec2(0.5, -0.1)) * shadowMapResolution);
@@ -116,7 +118,7 @@ float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos) {
 float shadow_map() {
 	if (cdepthN > 0.9f)
 		return 0.0f;
-	float angle = dot(worldLightPos, normal);
+	float angle = dot(lightPosition, normal);
 	bool is_plant = (flag > 0.49 && flag < 0.53);
 	float shade = 0.0;
 	if (angle <= 0.05f && !is_plant) {
@@ -133,7 +135,7 @@ float shadow_map() {
 			for (int i = 0; i < 25; i++) {
 				ivec2 px = ivec2((shadowposition.st + circle_offsets[i] * 0.0004f) * shadowMapResolution);
 				float shadowDepth = texelFetch(shadowtex1, px, 0).x;
-				float bias = 0.00001f + cdepthN * 0.005;
+				float bias = 0.0002f + cdepthN * 0.005;
 				shade += float(shadowDepth + bias < shadowposition.z);
 			}
 			shade /= 25.0f;
@@ -202,14 +204,14 @@ float blurAO(float c, vec3 cNormal) {
 
 	for (int i = -5; i < 0; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0, 0.0027) * i * d;
-		vec3 nwpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(composite, adj_coord).g, c, saturate(distance(nwpos, wpos))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture(gdepth, adj_coord).rgb;
+		a += mix(texture(composite, adj_coord).g, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	for (int i = 1; i < 6; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0, 0.0027) * i * d;
-		vec3 nwpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(composite, adj_coord).g, c, saturate(distance(nwpos, wpos))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture(gdepth, adj_coord).rgb;
+		a += mix(texture(composite, adj_coord).g, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	return saturate(a * 0.1629 - 0.3) / 0.7;
@@ -225,14 +227,14 @@ vec3 blurGI(vec3 c) {
 
 	for (int i = -5; i < 0; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0, 0.0025) * i * d;
-		vec3 nwpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(gaux4, adj_coord).rgb, c, saturate(distance(nwpos, wpos))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture(gdepth, adj_coord).rgb;
+		a += mix(texture(gaux4, adj_coord).rgb, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	for (int i = 1; i < 6; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0, 0.0025) * i * d;
-		vec3 nwpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(gaux4, adj_coord).rgb, c, saturate(distance(nwpos, wpos))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture(gdepth, adj_coord).rgb;
+		a += mix(texture(gaux4, adj_coord).rgb, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	return a;
@@ -242,6 +244,7 @@ vec3 blurGI(vec3 c) {
 void main() {
 	vec4 normaltex = texture(gnormal, texcoord);
 	normal = normalDecode(normaltex.xy);
+	wnormal = mat3(gbufferModelViewInverse) * normal;
 	vec4 compositetex = texture(composite, texcoord);
 	flag = compositetex.r;
 	bool issky = (flag < 0.01);
@@ -259,11 +262,12 @@ void main() {
 
 		const vec3 torchColor = vec3(2.55, 0.95, 0.3) * 0.45;
 
-		float light_distance = clamp(0.08, (1.0 - pow(mclight.x, 1.6)), 1.0);
-		const float light_quadratic = 1.8f;
-		const float light_linear = 0.89f;
-		const float light_constant = 1.009f;
-		float attenuation = max(0.0, light_constant / (pow(light_distance, light_quadratic) + light_distance * light_linear) - light_constant);
+		float light_distance = clamp(0.08, (1.0 - pow(mclight.x, 2.6)), 1.0);
+		const float light_quadratic = 4.9f;
+		float max_light = 7.5 * mclight.x * mclight.x;
+		const float light_constant1 = 1.09f;
+		const float light_constant2 = 1.09f;
+		float attenuation = clamp(0.0, light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, max_light);
 
 		vec3 diffuse_torch = attenuation * torchColor;
 		vec3 diffuse_sun = (1.0 - shade) * suncolor;
@@ -276,21 +280,21 @@ void main() {
 		//}
 
 		specular.r = clamp(0.01, specular.r, 0.99);
-		vec3 V = normalize(vec3(wpos - vec3(0.0, 1.67, 0.0)));
+		vec3 V = normalize(vpos.xyz);
 		vec3 F0 = vec3(0.02);
     F0 = mix(F0, color, specular.g);
     vec3 F = fresnelSchlickRoughness(max(dot(normal, V), 0.0), F0, specular.r);
 
-		vec3 halfwayDir = normalize(worldLightPos - normalize(wpos));
-		vec3 no = GeometrySmith(normal, V, worldLightPos, specular.r) * DistributionGGX(normal, halfwayDir, specular.r) * F;
-		float denominator = 4 * max(dot(V, normal), 0.0) * max(dot(worldLightPos, normal), 0.0) + 0.001;
+		vec3 halfwayDir = normalize(lightPosition - V);
+		vec3 no = GeometrySmith(normal, V, lightPosition, specular.r) * DistributionGGX(normal, halfwayDir, specular.r) * F;
+		float denominator = 4 * max(dot(V, normal), 0.0) * max(dot(lightPosition, normal), 0.0) + 0.001;
 		vec3 brdf = no / denominator;
 
 		vec3 kS = F;
     vec3 kD = vec3(1.0) - kS;
     kD *= 1.0 - specular.g;
 
-		diffuse_sun += (kD * color * PI + brdf) * max(0.0, dot(worldLightPos, normal)) * (1.0 - shade);
+		diffuse_sun += (kD * color * PI + brdf) * max(0.0, dot(lightPosition, normal)) * (1.0 - shade);
 		//diffuse_sun += no / denominator * diffuse_sun * max(dot(worldLightPos, normal), 0.0);
 		// PBR specular, Red & Green reversed
 		// Spec is in composite1.fsh
