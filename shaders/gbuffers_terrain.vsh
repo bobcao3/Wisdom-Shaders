@@ -21,7 +21,6 @@ out float flag;
 #ifdef NORMALS
 out vec3 tangent;
 out vec3 binormal;
-out vec3 viewVector;
 #else
 vec3 tangent;
 vec3 binormal;
@@ -43,28 +42,28 @@ VSH {
 
 	if (gl_Normal.x > 0.5) {
 		//  1.0,  0.0,  0.0
-		tangent  = vec3( 0.0,  0.0, -1.0);
-		binormal = vec3( 0.0, -1.0,  0.0);
+		tangent  = gl_NormalMatrix * vec3( 0.0,  0.0, -1.0);
+		binormal = gl_NormalMatrix * vec3( 0.0, -1.0,  0.0);
 	} else if (gl_Normal.x < -0.5) {
 		// -1.0,  0.0,  0.0
-		tangent  = vec3( 0.0,  0.0,  1.0);
-		binormal = vec3( 0.0, -1.0,  0.0);
+		tangent  = gl_NormalMatrix * vec3( 0.0,  0.0,  1.0);
+		binormal = gl_NormalMatrix * vec3( 0.0, -1.0,  0.0);
 	} else if (gl_Normal.y > 0.5) {
 		//  0.0,  1.0,  0.0
-		tangent  = vec3( 1.0,  0.0,  0.0);
-		binormal = vec3( 0.0,  0.0,  1.0);
+		tangent  = gl_NormalMatrix * vec3( 1.0,  0.0,  0.0);
+		binormal = gl_NormalMatrix * vec3( 0.0,  0.0,  1.0);
 	} else if (gl_Normal.y < -0.5) {
 		//  0.0, -1.0,  0.0
-		tangent  = vec3( 1.0,  0.0,  0.0);
-		binormal = vec3( 0.0,  0.0,  1.0);
+		tangent  = gl_NormalMatrix * vec3( 1.0,  0.0,  0.0);
+		binormal = gl_NormalMatrix * vec3( 0.0,  0.0,  1.0);
 	} else if (gl_Normal.z > 0.5) {
 		//  0.0,  0.0,  1.0
-		tangent  = vec3( 1.0,  0.0,  0.0);
-		binormal = vec3( 0.0, -1.0,  0.0);
+		tangent  = gl_NormalMatrix * vec3( 1.0,  0.0,  0.0);
+		binormal = gl_NormalMatrix * vec3( 0.0, -1.0,  0.0);
 	} else if (gl_Normal.z < -0.5) {
 		//  0.0,  0.0, -1.0
-		tangent  = vec3(-1.0,  0.0,  0.0);
-		binormal = vec3( 0.0, -1.0,  0.0);
+		tangent  = gl_NormalMatrix * vec3(-1.0,  0.0,  0.0);
+		binormal = gl_NormalMatrix * vec3( 0.0, -1.0,  0.0);
 	}
 
 	vec4 position = gl_Vertex;
@@ -95,10 +94,13 @@ VSH {
 	}
 
 	gl_Position = gl_ModelViewMatrix * position;
-	viewVector = gl_Position.xyz;
-	wpos = (gbufferModelViewInverse * gl_Position).xyz;
+	wpos = gl_Position.xyz;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
-	normal = normalize(gl_Normal);
+	//#ifdef NORMALS
+	normal = normalize(gl_NormalMatrix * gl_Normal);
+	//#else
+	//normal = normalize(gl_NormalMatrix * gl_Normal);
+	//#endif
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 

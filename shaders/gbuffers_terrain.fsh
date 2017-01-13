@@ -22,7 +22,6 @@ in float flag;
 #ifdef NORMALS
 in vec3 tangent;
 in vec3 binormal;
-in vec3 viewVector;
 #endif
 
 #ifdef SMOOTH_TEXTURE
@@ -82,7 +81,7 @@ void main() {
 	gl_FragData[1] = vec4(wpos, 1.0);
 	#ifdef NORMALS
 		vec3 normal2 = texture2D(normals, texcoord_adj).xyz * 2.0 - 1.0;
-		const float bumpmult = 0.45;
+		const float bumpmult = 0.75;
 		normal2 = normal2 * vec3(bumpmult, bumpmult, bumpmult) + vec3(0.0f, 0.0f, 1.0f - bumpmult);
 		mat3 tbnMatrix = mat3(
 			tangent.x, binormal.x, normal.x,
