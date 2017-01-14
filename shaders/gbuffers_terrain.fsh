@@ -29,18 +29,14 @@ in vec3 binormal;
 uniform ivec2 atlasSize;
 
 vec4 texSmooth(in sampler2D s, in vec2 texc) {
-	int lod = int(length(dFdx(wpos) * dFdy(wpos)));
+	float lod = length(dFdx(wpos) + dFdy(wpos)) * 6.0;
 
 	vec2 pix_size = vec2(1.0) / (vec2(atlasSize) * 24.0);
 
-	ivec2 px0 = ivec2((texc + pix_size * vec2(0.1, 0.5)) * atlasSize);
-	vec4 texel0 = texelFetch(s, px0, lod);
-	ivec2 px1 = ivec2((texc + pix_size * vec2(0.5, -0.1)) * atlasSize);
-	vec4 texel1 = texelFetch(s, px1, lod);
-	ivec2 px2 = ivec2((texc + pix_size * vec2(-0.1, -0.5)) * atlasSize);
-	vec4 texel2 = texelFetch(s, px2, lod);
-	ivec2 px3 = ivec2((texc + pix_size * vec2(0.5, 0.1)) * atlasSize);
-	vec4 texel3 = texelFetch(s, px3, lod);
+	vec4 texel0 = texture2DLod(s, texc + pix_size * vec2(0.1, 0.5), lod);
+	vec4 texel1 = texture2DLod(s, texc + pix_size * vec2(0.5, -0.1), lod);
+	vec4 texel2 = texture2DLod(s, texc + pix_size * vec2(-0.1, -0.5), lod);
+	vec4 texel3 = texture2DLod(s, texc + pix_size * vec2(0.5, 0.1), lod);
 
 	return (texel0 + texel1 + texel2 + texel3) * 0.25;
 }
@@ -80,14 +76,18 @@ void main() {
 	gl_FragData[0] = texF(texture, texcoord_adj) * color;
 	gl_FragData[1] = vec4(wpos, 1.0);
 	#ifdef NORMALS
-		vec3 normal2 = texture2D(normals, texcoord_adj).xyz * 2.0 - 1.0;
-		const float bumpmult = 0.35;
-		normal2 = normal2 * vec3(bumpmult, bumpmult, bumpmult) + vec3(0.0f, 0.0f, 1.0f - bumpmult);
-		mat3 tbnMatrix = mat3(
-			tangent.x, binormal.x, normal.x,
-			tangent.y, binormal.y, normal.y,
-			tangent.z, binormal.z, normal.z);
-		gl_FragData[2] = vec4(normalEncode(normal2 * tbnMatrix), flag, 1.0);
+		if (length(wpos) < 128.0) {
+			vec3 normal2 = texF(normals, texcoord_adj).xyz * 2.0 - 1.0;
+			const float bumpmult = 0.35;
+			normal2 = normal2 * vec3(bumpmult, bumpmult, bumpmult) + vec3(0.0f, 0.0f, 1.0f - bumpmult);
+			mat3 tbnMatrix = mat3(
+				tangent.x, binormal.x, normal.x,
+				tangent.y, binormal.y, normal.y,
+				tangent.z, binormal.z, normal.z);
+				gl_FragData[2] = vec4(normalEncode(normal2 * tbnMatrix), flag, 1.0);
+		} else {
+			gl_FragData[2] = vec4(normalEncode(normal), flag, 1.0);
+		}
 	#else
 		gl_FragData[2] = vec4(normalEncode(normal), flag, 1.0);
 	#endif
