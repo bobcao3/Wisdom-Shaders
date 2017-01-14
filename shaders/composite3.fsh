@@ -144,7 +144,7 @@ float getwave(in vec3 pos){
 	wave += n(c * vec2(1.75, 1.50) + vec2(c.y * 0.4, c.x * 1.8));	c.y /= 4; c.x /= 2; c.xy -= t / (256 - 64) * 0.5;
 	wave += n(c * vec2(1.50, 2.00) + vec2(c.y * 0.8, c.x * 1.4));
 
-	return wave;
+	return (wave * wave) * 0.21;// + big_wave * big_wave;
 }
 
 float luma(in vec3 color) {
@@ -300,24 +300,25 @@ void main() {
 		if (flag > 0.93f) wpos = water_wpos;
 		vec3 water_displacement;
 		if (flag > 0.93f) {
-			normal = normalize(cross(dFdx(water_wpos),dFdy(water_wpos)));
+			normal = normalize(cross(dFdx(water_vpos.xyz),dFdy(water_vpos.xyz)));
 		}
 		if (isEyeInWater || (flag > 0.71f && flag < 0.79f)) {
 			iswater = true;
 			float wave = getwave(water_wpos + cameraPosition);
 			vec3 water_plain_normal = normalize(cross(dFdx(water_wpos),dFdy(water_wpos)));
-			water_displacement = (wave - 0.1) * water_plain_normal;
+			water_displacement = wave * water_plain_normal;
 			vec3 water_normal = water_plain_normal;
-			water_wpos -= water_displacement * 0.3;
+			water_wpos += water_displacement;
 			if (water_plain_normal.y > 0.7) {
 				water_normal = water_plain_normal + get_water_normal(water_wpos + cameraPosition, water_displacement);
 				water_normal = normalize(water_normal);
 			}
 
 			float dist_diff = abs(length(wpos - water_wpos));
-			vec3 vsnormal = mat3(gbufferModelView) * water_normal;
+			vec3 vsnormal = normalize(mat3(gbufferModelView) * water_normal);
 			water_vpos = gbufferModelView * vec4(water_wpos, 1.0);
-			vec4 shifted_vpos = vec4(vpos.xyz + normalize(refract(normalize(vpos.xyz), vsnormal, 0.78)), 1.0);
+			const float refindex = 1.02 / 1.24;
+			vec4 shifted_vpos = vec4(vpos.xyz + normalize(refract(normalize(vpos.xyz), vsnormal, refindex)), 1.0);
 			shifted_vpos = gbufferProjection * shifted_vpos;
 			shifted_vpos /= shifted_vpos.w;
 			shifted_vpos = shifted_vpos * 0.5f + 0.5f;
@@ -346,17 +347,19 @@ void main() {
 				color *= 0.5 + pow(length(shifted - vec2(0.5)) / 1.414f, 2.0);
 			}
 
-			color = mix(color, skyColor * 0.1, dist_diff_N);
+			vec3 watercolor = skyColor * (0.35 - wetness * 0.15) * vec3(0.6, 0.85, 0.88);
+			color = mix(color, watercolor, dist_diff_N);
 			float sky_reflection = clamp(0.0, dot(lightPosition, vsnormal) - 0.7, 0.05) + clamp(0.0, wave - 0.1, 0.05);
-			color += skyColor * luma(suncolor) * sky_reflection * vec3(0.09, 0.18, 0.17);
+			//color += skyColor * luma(suncolor) * sky_reflection * vec3(0.09, 0.18, 0.17);
 
 			shade = fast_shadow_map(water_wpos);
 
 			wpos = water_wpos;
-			normal = vsnormal;
-			vpos.xyz = water_vpos.xyz;
+			normal = normalize(0.05 * vsnormal + normalize(mat3(gbufferModelView) * water_plain_normal));
+			vpos.xyz = ovpos.xyz;//mix(water_vpos.xyz,  0.9);
 			wnormal = water_normal;
 		}
+		bool is_trans = iswater || (flag > 0.9);
 
 		wpos.y -= 1.67f;
 		// Preprocess Specular
@@ -398,10 +401,11 @@ void main() {
 		float spec = max(dot(normal, halfwayDir), 0.0) * stdNormal * specular.r;
 
 		#ifdef PLANE_REFLECTION
-		// Water reflections are producing tons of bugs...
-		if (!isEyeInWater && specular.r > 0.01 && !iswater) {
-			vec4 reflection = waterRayTarcing(vpos.xyz + normal * 0.05, reflect(normalize(vpos.xyz), normalize(normal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05)), color, specular.r);
-			color += reflection.rgb * mix(color, vec3(1.0), specular.r) * (reflection.a * specular.r);
+		vec3 viewRefRay = reflect(normalize(vpos.xyz), normalize(normal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
+		float fresnel = is_trans ? 0.02 + 0.98 * pow(1.0 - dot(viewRefRay, normal), 3.0) : 1.0;
+		if (!isEyeInWater && specular.r > 0.01) {
+			vec4 reflection = waterRayTarcing(vpos.xyz + normal * 0.05, viewRefRay, color, specular.r);
+			color += reflection.rgb * mix(color, vec3(1.0), specular.r) * (reflection.a * specular.r) * fresnel;
 		}
 		#endif
 		/*
@@ -417,7 +421,7 @@ void main() {
 
 		// Sun reflect // - F * specular.g
 		vec3 sunref = (0.5 * (suncolor) * spec) * (1.0 - shade);
-		if (iswater) sunref *= 0.05;
+		if (iswater) sunref *= 0.5;
 		#else
 		float shininess = 32.0f - 30.0f * specular.g;
 		vec3 halfwayDir = normalize(lightPosition - normalize(vpos.xyz));
