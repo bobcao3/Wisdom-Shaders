@@ -1,7 +1,7 @@
 #version 130
 #pragma optimize(on)
 
-const int shadowMapResolution = 1512; // [1024 1512 2048]
+const int shadowMapResolution = 1512; // [1024 1512 2048 4096]
 const float shadowDistance = 128.0; // [64 90 128.0 160 256]
 const float sunPathRotation = -39.0;
 const float shadowIntervalSize = 4.0;
