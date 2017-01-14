@@ -51,7 +51,12 @@ vec3 normalDecode(vec2 enc) {
 }
 
 float flag;
+//#define WHITE_WORLD
+#ifdef WHITE_WORLD
+vec3 color = vec3(0.75);
+#else
 vec3 color = texture(gcolor, texcoord).rgb;
+#endif
 vec4 vpos = vec4(texture(gdepth, texcoord).xyz, 1.0);
 vec3 wpos = (gbufferModelViewInverse * vpos).xyz;
 lowp vec3 wnormal;
@@ -60,7 +65,7 @@ float cdepth = length(wpos);
 float dFar = 1.0 / far;
 float cdepthN = cdepth * dFar;
 
-const int shadowMapResolution = 1512; // [1024 1512 2048]
+const int shadowMapResolution = 1512; // [1024 1512 2048 4096]
 
 const vec2 circle_offsets[25] = vec2[25](
 	vec2(-0.48946f,-0.35868f),
@@ -167,9 +172,8 @@ float shadow_map() {
 		shadowposition = shadowposition * 0.5f + 0.5f;
 		#ifdef SHADOW_FILTER
 			for (int i = 0; i < 25; i++) {
-				ivec2 px = ivec2((shadowposition.st + circle_offsets[i] * 0.0004f) * shadowMapResolution);
-				float shadowDepth = texelFetch(shadowtex1, px, 0).x;
-				float bias = cdepthN * 0.005;
+				float shadowDepth = texture(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0004f).x;
+				float bias = 0.0004 + cdepthN * 0.005;
 				shade += float(shadowDepth + bias < shadowposition.z);
 			}
 			shade /= 25.0f;
