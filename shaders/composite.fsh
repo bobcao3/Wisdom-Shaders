@@ -62,6 +62,7 @@ float dFar = 1.0 / far;
 float cdepthN = cdepth * dFar;
 
 #define luma(color) dot(color,vec3(0.2126, 0.7152, 0.0722))
+#define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
 
 #define AO_Enabled
 #ifdef AO_Enabled
@@ -77,8 +78,6 @@ const lowp vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 	vec2( 0.0,    1.0 )
 );
 #define sampleDepth 3
-
-#define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
 
 float AO() {
 	float am = 0;
