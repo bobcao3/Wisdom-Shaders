@@ -275,6 +275,8 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
 
 #define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
 
+#define ENHANCED_WATER
+
 /* DRAWBUFFERS:3 */
 void main() {
 	g.normaltex = texture(gnormal, texcoord);
@@ -298,11 +300,11 @@ void main() {
 		vec4 ovpos = water_vpos;
 		vec3 water_wpos = (gbufferModelViewInverse * water_vpos).xyz;
 		vec3 water_displacement;
-		/*if (frag_mask.is_glass) {
+		if (frag_mask.is_glass) {
 			frag.vpos = water_vpos;
 			frag.wpos = water_wpos;
 			frag.normal = normalize(cross(dFdx(water_vpos.xyz),dFdy(water_vpos.xyz)));
-		}*/
+		}
 		if (isEyeInWater || frag_mask.is_water) {
 			float wave = getwave(water_wpos + cameraPosition);
 			vec3 water_plain_normal = normalize(cross(dFdx(water_wpos),dFdy(water_wpos)));
@@ -316,12 +318,16 @@ void main() {
 
 			vec3 vsnormal = normalize(mat3(gbufferModelView) * water_normal);
 			water_vpos = gbufferModelView * vec4(water_wpos, 1.0);
+			#ifdef ENHANCED_WATER
 			const float refindex = 1.02 / 1.24;
 			vec4 shifted_vpos = vec4(frag.vpos.xyz + normalize(refract(normalize(frag.vpos.xyz), vsnormal, refindex)), 1.0);
 			shifted_vpos = gbufferProjection * shifted_vpos;
 			shifted_vpos /= shifted_vpos.w;
 			shifted_vpos = shifted_vpos * 0.5f + 0.5f;
 			vec2 shifted = shifted_vpos.st;
+			#else
+			vec2 shifted = texcoord + water_normal.xz;
+			#endif
 
 			float shifted_flag = texture(gaux2, shifted).a;
 
@@ -451,5 +457,5 @@ void main() {
 	float fogCoord = max(0.0, frag.cdepthN - 0.6) / 0.4;
 	color = mix(color, fogColor, clamp(0.0, (fogCoord * fogCoord) * fogMul, 1.0));
 
-	gl_FragData[0] = vec4(color, 1.0);
+	gl_FragData[0] = vec4(max(vec3(0.0), color), 1.0);
 }
