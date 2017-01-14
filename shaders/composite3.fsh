@@ -402,7 +402,8 @@ void main() {
 
 		#ifdef PLANE_REFLECTION
 		vec3 viewRefRay = reflect(normalize(vpos.xyz), normalize(normal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
-		float fresnel = is_trans ? 0.02 + 0.98 * pow(1.0 - dot(viewRefRay, normal), 3.0) : 1.0;
+		float reflection_fresnel_mul = is_trans ? 3.0 : 1.5;
+		float fresnel = 0.02 + 0.98 * pow(1.0 - dot(viewRefRay, normal), reflection_fresnel_mul);
 		if (!isEyeInWater && specular.r > 0.01) {
 			vec4 reflection = waterRayTarcing(vpos.xyz + normal * 0.05, viewRefRay, color, specular.r);
 			color += reflection.rgb * mix(color, vec3(1.0), specular.r) * (reflection.a * specular.r) * fresnel;
