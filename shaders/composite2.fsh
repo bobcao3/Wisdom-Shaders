@@ -9,6 +9,7 @@ uniform sampler2D gaux2;
 uniform sampler2D gaux3;
 uniform sampler2D depthtex0;
 uniform sampler2D shadowtex1;
+uniform sampler2D noisetex;
 
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelViewInverse;
@@ -27,6 +28,8 @@ uniform float viewWidth;
 uniform float viewHeight;
 uniform float far;
 uniform float frameTimeCounter;
+
+uniform bool isEyeInWater;
 
 uniform ivec2 eyeBrightnessSmooth;
 
@@ -98,7 +101,7 @@ float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos) {
 	float res = 0.0;
 
 	ivec2 px0 = ivec2((texc + pix_size * vec2(0.1, 0.5)) * shadowMapResolution);
-	float bias = 0.0002f + cdepthN * 0.005;
+	float bias = cdepthN * 0.005;
 	float texel = texelFetch(s, px0, 0).x;
 	res += float(texel + bias < spos);
 	ivec2 px1 = ivec2((texc + pix_size * vec2(0.5, -0.1)) * shadowMapResolution);
@@ -114,17 +117,48 @@ float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos) {
 	return res * 0.25;
 }
 
+bool is_plant;
+
+#define CAUSTIC
+#ifdef CAUSTIC
+#define n(p) sin(texture2D(noisetex, fract(p)).x * 2.0 * PI)
+float getwave(in vec3 pos){
+	float speed = 0.6;
+
+	float t = frameTimeCounter * speed;
+
+	vec3 p = pos / (64 + 32);
+	vec2 c = p.xz;
+
+	c.x -= t / 128;
+
+	float wave = n(c * vec2(2.00, 1.00) + vec2(c.y * 0.2, c.x * 2.0));	c /= 6;	c.x -= t / 256;	c.y += t / (128 + 64) * 1.25;
+	wave += n(c * vec2(1.75, 1.50) + vec2(c.y * 0.4, c.x * 1.8));	c.y /= 4; c.x /= 2; c.xy -= t / (256 - 64) * 0.5;
+	wave += n(c * vec2(1.50, 2.00) + vec2(c.y * 0.8, c.x * 1.4));
+
+	return wave * wave * 0.5;
+}
+
+vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
+	vec3 w1 = vec3(0.1, getwave(wwpos + vec3(0.1, 0.0, 0.0)), 0.0);
+	vec3 w2 = vec3(0.0, getwave(wwpos + vec3(0.0, 0.0, 0.1)), 0.1);
+	vec3 w0 = displacement;
+	#define tangent w1 - w0
+	#define bitangent w2 - w0
+	return normalize(cross(bitangent, tangent));
+}
+#endif
+
 #define SHADOW_FILTER
 float shadow_map() {
 	if (cdepthN > 0.9f)
 		return 0.0f;
 	float angle = dot(lightPosition, normal);
-	bool is_plant = (flag > 0.49 && flag < 0.53);
 	float shade = 0.0;
 	if (angle <= 0.05f && !is_plant) {
 		shade = 1.0f;
 	} else {
-		vec4 shadowposition = shadowModelView * vec4(wpos + normal * 0.015f, 1.0f);
+		vec4 shadowposition = shadowModelView * vec4(wpos + normal * 0.025f, 1.0f);
 		shadowposition = shadowProjection * shadowposition;
 		float distb = sqrt(shadowposition.x * shadowposition.x + shadowposition.y * shadowposition.y);
 		float distortFactor = (1.0f - SHADOW_MAP_BIAS) + distb * SHADOW_MAP_BIAS;
@@ -135,7 +169,7 @@ float shadow_map() {
 			for (int i = 0; i < 25; i++) {
 				ivec2 px = ivec2((shadowposition.st + circle_offsets[i] * 0.0004f) * shadowMapResolution);
 				float shadowDepth = texelFetch(shadowtex1, px, 0).x;
-				float bias = 0.0002f + cdepthN * 0.005;
+				float bias = cdepthN * 0.005;
 				shade += float(shadowDepth + bias < shadowposition.z);
 			}
 			shade /= 25.0f;
@@ -155,6 +189,7 @@ float shadow_map() {
 	shade = saturate(shade);
 	return max(shade, extShadow);
 }
+
 
 #define PBR
 
@@ -243,11 +278,12 @@ vec3 blurGI(vec3 c) {
 
 void main() {
 	vec4 normaltex = texture(gnormal, texcoord);
-	normal = normalDecode(normaltex.xy);
+	normal = normalize(normalDecode(normaltex.xy));
 	wnormal = mat3(gbufferModelViewInverse) * normal;
 	vec4 compositetex = texture(composite, texcoord);
 	flag = compositetex.r;
 	bool issky = (flag < 0.01);
+	is_plant = (flag > 0.48 && flag < 0.53);
 	vec2 mclight = vec2(0.0);
 	float shade = 0.0, fogMul = 1.0;
 	// Preprocess Gamma 2.2
@@ -258,6 +294,14 @@ void main() {
 	vec3 ambientColor = vec3(0.155, 0.16, 0.165) * (luma(suncolor) * 0.3 + (1.0 - eyebrightness) * 0.02);
 	if (!issky) {
 		shade = shadow_map();
+		#ifdef CAUSTIC
+		if (((flag > 0.71f && flag < 0.79f) && !isEyeInWater) || isEyeInWater) {
+			float w = getwave(wpos.xyz + vec3(0.3, 0.0, 0.3) * (wpos.y + cameraPosition.y) + cameraPosition);
+			shade += pow(clamp(0.0, w * 0.7, 1.0), 1.5) * 0.5;
+			shade = clamp(shade, 0.0, 1.0);
+		}
+		#endif
+		if(is_plant) shade /= 1.0 + mix(0.0, 2.0, max(0.0, pow(dot(normalize(vpos.xyz), lightPosition), 16.0)));
 		mclight = texture(gaux2, texcoord).xy;
 
 		const vec3 torchColor = vec3(2.55, 0.95, 0.3) * 0.45;
@@ -290,6 +334,8 @@ void main() {
 		float denominator = 4 * max(dot(V, normal), 0.0) * max(dot(lightPosition, normal), 0.0) + 0.001;
 		vec3 brdf = no / denominator;
 
+		if(is_plant) shade /= 1.0 + mix(0.0, 2.0, max(0.0, pow(dot(halfwayDir, lightPosition), 16.0)));
+
 		vec3 kS = F;
     vec3 kD = vec3(1.0) - kS;
     kD *= 1.0 - specular.g;
@@ -313,7 +359,7 @@ void main() {
 		#ifdef GlobalIllumination
 		diffuse += blurGI(texture(gaux4, texcoord).rgb) * 0.5;
 		#endif
-		float simulatedGI = 0.2 + 2.1 * mclight.y * mclight.y;
+		float simulatedGI = 0.2 + 2.1 * mclight.y;
 		color = color * diffuse + color * ambientColor * simulatedGI;
 	} else {
 		//vec3 hsl = rgbToHsl(color);
