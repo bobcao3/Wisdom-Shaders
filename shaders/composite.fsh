@@ -249,7 +249,7 @@ void main() {
 	vec3 water_normal_tex = texture(composite, texcoord).rgb;
 	normal = normalDecode(normaltex.xy);
 	wnormal = mat3(gbufferModelViewInverse) * normal;
-	flag = max(normaltex.b, water_normal_tex.b);
+	flag = (normaltex.b < 0.11) ? normaltex.b : max(normaltex.b, water_normal_tex.b);
 	bool issky = (flag < 0.01);
 
 	float ao = 1.0;
