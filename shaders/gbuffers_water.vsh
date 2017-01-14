@@ -23,7 +23,7 @@ VSH {
 	vec4 position;
 	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
 		iswater = 0.78f;
-		position = gl_ModelViewMatrix * (gl_Vertex - vec4(0.0, 0.08, 0.0, 0.0));
+		position = gl_ModelViewMatrix * (gl_Vertex - vec4(0.0, 0.1, 0.0, 0.0));
 	}	else {
 		iswater = 0.95f;
 		position = gl_ModelViewMatrix * gl_Vertex;
