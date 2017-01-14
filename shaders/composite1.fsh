@@ -57,16 +57,16 @@ vec3 blurGI(vec3 c) {
 	lowp float d = 0.068 / cdepthN;
 	vec3 vpos = texture(gdepth, texcoord).rgb;
 
-	for (int i = -5; i < 0; i++) {
-		vec2 adj_coord = texcoord + vec2(0.0027, 0.0) * i * d;
+	for (int i = -4; i < 0; i++) {
+		vec2 adj_coord = texcoord + vec2(0.0035, 0.0) * i * d;
 		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(gaux4, adj_coord * 0.25).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
+		a += mix(texture(gaux4, adj_coord * 0.2).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
-	for (int i = 1; i < 6; i++) {
-		vec2 adj_coord = texcoord + vec2(-0.0027, 0.0) * i * d;
+	for (int i = 1; i < 5; i++) {
+		vec2 adj_coord = texcoord + vec2(-0.0035, 0.0) * i * d;
 		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(gaux4, adj_coord * 0.25).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
+		a += mix(texture(gaux4, adj_coord * 0.2).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	return a * 0.1629;
