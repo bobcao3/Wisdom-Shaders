@@ -71,7 +71,6 @@ VSH {
 	flag = 0.7;
 	if((blockId == 31.0 || blockId == 37.0 || blockId == 38.0) && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
 		float blockId = mc_Entity.x;
-		vec3 noise = texture2D(noisetex, position.xz / 256.0).rgb;
 		float maxStrength = 1.0 + rainStrength * 0.5;
 		float time = frameTimeCounter * 3.0;
 		float reset = cos(rand(position.xy) * 10.0 + time * 0.1);
@@ -79,7 +78,7 @@ VSH {
 		position.x += sin(rand(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
 		position.z += sin(rand(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
 
-		flag = 0.51;
+		flag = 0.50;
 	}	else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0) {
 		float maxStrength = 1.0 + rainStrength * 0.5;
 		float time = frameTimeCounter * 3.0;
@@ -88,7 +87,7 @@ VSH {
 		position.xyz += tangent * sin(rand(gl_Vertex.xz) * 5.0 + time) * 0.07 * reset * maxStrength;
 		position.xyz += binormal * sin(rand(gl_Vertex.yz) * 5.0 + time) * 0.07 * reset * maxStrength;
 
-		flag = 0.51;
+		flag = 0.50;
 	} else if (blockId == 83.0 || blockId == 39 || blockId ==40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115 || blockId == 141 || blockId == 142) {
 		flag = 0.51;
 	}
