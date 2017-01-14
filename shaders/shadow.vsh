@@ -16,7 +16,10 @@ out vec4 color;
 
 #define GlobalIllumination
 
+#define WAVING_SHADOW
+
 void main() {
+	#ifdef WAVING_SHADOW
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
 	if((blockId == 31.0 || blockId == 37.0 || blockId == 38.0) && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
@@ -30,6 +33,9 @@ void main() {
 	}
 	gl_Position = gl_ModelViewMatrix * position;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
+	#else
+	gl_Position = ftransform();
+	#endif
 
 	color = gl_Color;
 	#ifdef GlobalIllumination
