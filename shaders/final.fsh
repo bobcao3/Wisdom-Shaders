@@ -22,6 +22,7 @@ const int noiseTextureResolution = 80;
 
 in vec2 texcoord;
 
+uniform sampler2D depthtex0;
 uniform sampler2D Output;
 uniform sampler2D gcolor;
 uniform sampler2D gnormal;
@@ -32,11 +33,58 @@ uniform sampler2D gaux4;
 
 uniform float viewHeight;
 uniform float viewWidth;
+uniform float near;
+uniform float far;
+uniform float aspectRatio;
 
 const float gamma = 2.2;
 
 #define TONEMAP_METHOD whitePreservingLumaBasedReinhardToneMapping
 #define luma(color)	dot(color,vec3(0.2126, 0.7152, 0.0722))
+
+in float centerDepth;
+
+#define DOF_FADE_RANGE 0.15
+#define DOF_CLEAR_RADIUS 0.2
+#define DOF_NEARVIEWBLUR
+//#define DOF
+
+#define linearizeDepth(depth) (2.0 * near) / (far + near - depth * (far - near))
+
+#ifdef DOF
+vec3 dof(vec3 color, vec2 uv, float depth) {
+	float linearFragDepth = linearizeDepth(depth);
+	float linearCenterDepth = linearizeDepth(centerDepth);
+	float delta = linearFragDepth - linearCenterDepth;
+	#ifdef DOF_NEARVIEWBLUR
+	float fade = smoothstep(0.0, DOF_FADE_RANGE, clamp(abs(delta) - DOF_CLEAR_RADIUS, 0.0, DOF_FADE_RANGE));
+	#else
+	float fade = smoothstep(0.0, DOF_FADE_RANGE, clamp(delta - DOF_CLEAR_RADIUS, 0.0, DOF_FADE_RANGE));
+	#endif
+	#ifdef TILT_SHIFT
+	float vin_dist = distance(texcoord.st, vec2(0.5f));
+	vin_dist = clamp(vin_dist * 1.7 - 0.65, 0.0, 1.0); //各种凑魔数
+	vin_dist = smoothstep(0.0, 1.0, vin_dist);
+	fade = max(vin_dist, fade);
+	#endif
+	if(fade < 0.001) return color;
+	vec2 offset = vec2(1.0 * aspectRatio / viewWidth, 1.0 / viewHeight);
+	vec3 blurColor = vec3(0.0);
+	//0.12456 0.10381 0.12456
+	//0.10380 0.08651 0.10380
+	//0.12456 0.10381 0.12456
+	blurColor += texture(Output, uv + offset * vec2(-1.0, -1.0)).rgb * 0.12456;
+	blurColor += texture(Output, uv + offset * vec2(0.0, -1.0)).rgb * 0.10381;
+	blurColor += texture(Output, uv + offset * vec2(1.0, -1.0)).rgb * 0.12456;
+	blurColor += texture(Output, uv + offset * vec2(-1.0, 0.0)).rgb * 0.10381;
+	blurColor += texture(Output, uv).rgb * 0.08651;
+	blurColor += texture(Output, uv + offset * vec2(1.0, 0.0)).rgb * 0.10381;
+	blurColor += texture(Output, uv + offset * vec2(-1.0, 1.0)).rgb * 0.12456;
+	blurColor += texture(Output, uv + offset * vec2(0.0, 1.0)).rgb * 0.10381;
+	blurColor += texture(Output, uv + offset * vec2(1.0, 1.0)).rgb * 0.12456;
+	return mix(color, blurColor, fade);
+}
+#endif
 
 /*
 vec3 lumaBasedReinhardToneMapping(vec3 color) {
@@ -106,6 +154,9 @@ vec3 bloom() {
 
 void main() {
 	vec3 color = texture(Output, texcoord).rgb;
+	#ifdef DOF
+		color = dof(color, texcoord, texture(depthtex0, texcoord).r);
+	#endif
 
 	#ifdef BLOOM
 	color += bloom();
