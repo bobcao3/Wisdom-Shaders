@@ -110,14 +110,8 @@ float AO() {
 }
 #endif
 
-#define GlobalIllumination
-#ifdef GlobalIllumination
-
-uniform sampler2D shadowtex0;
-uniform sampler2D shadowcolor0;
-
 #define SHADOW_MAP_BIAS 0.9
-
+uniform sampler2D shadowtex0;
 vec3 wpos2shadowpos(in vec3 wpos) {
 	vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
 	shadowposition = shadowProjection * shadowposition;
@@ -128,6 +122,13 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 	shadowposition = shadowposition * 0.5f + 0.5f;
 	return shadowposition.xyz;
 }
+
+#define GlobalIllumination
+#ifdef GlobalIllumination
+
+uniform sampler2D shadowcolor0;
+
+
 /*
 vec3 shadowpos2wpos(in vec3 spos) {
 	vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
@@ -175,9 +176,9 @@ vec3 GI() {
 	vec3 normaltex = texture(gnormal, texc).rgb;
 	vec3 normal = mat3(gbufferModelViewInverse) * normalDecode(normaltex.xy);
 	float flag = normaltex.b;
-	bool skydiscard = true;//(flag > 0.01);
+	bool skydiscard = (flag > 0.01);
 
-//	if (skydiscard) {
+	if (skydiscard) {
 
 		vec3 owpos = (gbufferModelViewInverse * vec4(texture(gdepth, texc).xyz, 1.0)).xyz;
 		lowp vec3 flat_normal = normalize(cross(dFdx(owpos),dFdy(owpos)));
@@ -238,10 +239,44 @@ vec3 GI() {
 				return scolor.rgb * (6.5 - distance(swpos, owpos)) * 0.05 * (max(0.0, dot(normal, halfwayDir)) * 0.5 + 0.5) * suncolor;
 			}
 		}
-//	}
+	}
 	return vec3(0.0);
 }
 
+#endif
+
+#define CrespecularRays
+#ifdef CrespecularRays
+float VL() {
+	vec2 texc = texcoord * 2.0;
+	if (texc.x > 1.0 || texc.y > 1.0) return 0.0;
+
+	vec3 normaltex = texture(gnormal, texc).rgb;
+	vec3 normal = mat3(gbufferModelViewInverse) * normalDecode(normaltex.xy);
+	float flag = normaltex.b, total = 0.0;
+	bool skydiscard = (flag > 0.01);
+
+	if (skydiscard) {
+		vec3 owpos = (gbufferModelViewInverse * vec4(texture(gdepth, texc).xyz, 1.0)).xyz;
+		vec3 swpos = owpos;
+		vec3 dir = owpos / 32.0;
+		float prev = 0.0;
+
+		for (int i = 0; i < 31; i++) {
+			swpos -= dir;
+			float dither = rand(((texcoord + vec2(i)) * 0.1)) * 0.6;
+			vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
+			if (shadowpos.z + 0.0006 < texture(shadowtex0, shadowpos.xy).x) {
+				total += (prev + 1.0) * length(dir) * (1 + dither) * 0.5;
+				prev = 1.0;
+			}
+		}
+	}
+
+	total = min(total, 256.0);
+
+	return total / 256.0;
+}
 #endif
 
 void main() {
@@ -249,7 +284,7 @@ void main() {
 	vec3 water_normal_tex = texture(composite, texcoord).rgb;
 	normal = normalDecode(normaltex.xy);
 	wnormal = mat3(gbufferModelViewInverse) * normal;
-	flag = (normaltex.b < 0.11) ? normaltex.b : max(normaltex.b, water_normal_tex.b);
+	flag = (normaltex.b < 0.11 && normaltex.b > 0.01) ? normaltex.b : max(normaltex.b, water_normal_tex.b);
 	bool issky = (flag < 0.01);
 
 	float ao = 1.0;
@@ -264,9 +299,14 @@ void main() {
 	vec3 gir = GI();
 	#endif
 
+	float vl = 0.0;
+	#ifdef CrespecularRays
+	vl = VL();
+	#endif
+
 /* DRAWBUFFERS:237 */
 	gl_FragData[0] = vec4(normaltex.xy, water_normal_tex.xy);
-	gl_FragData[1] = vec4(flag, ao, 0.0, 0.0);
+	gl_FragData[1] = vec4(flag, ao, vl, 0.0);
 	#ifdef GlobalIllumination
 	gl_FragData[2] = vec4(gir, 1.0);
 	#endif

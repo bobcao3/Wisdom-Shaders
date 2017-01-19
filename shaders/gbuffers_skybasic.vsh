@@ -1,14 +1,11 @@
 #version 130
 #pragma optimize(on)
 
-out lowp vec4 color;
-
 #include "gbuffers.inc.vsh"
 
-VSH {
-	color = gl_Color;
+out vec3 color;
 
-	vec4 position = gl_ModelViewMatrix * gl_Vertex;
-	gl_Position = gl_ProjectionMatrix * position;
-	gl_FogFragCoord = length(position.xyz);
+VSH {
+	color = gl_Color.rgb * gl_Color.a;
+	gl_Position = ftransform();
 }

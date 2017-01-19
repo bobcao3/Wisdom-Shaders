@@ -22,12 +22,12 @@ uniform mat4 shadowProjection;
 uniform vec3 shadowLightPosition;
 vec3 lightPosition = normalize(shadowLightPosition);
 uniform vec3 cameraPosition;
-uniform vec3 skyColor;
 
 uniform float viewWidth;
 uniform float viewHeight;
 uniform float far;
 uniform float frameTimeCounter;
+uniform float rainStrength;
 
 uniform bool isEyeInWater;
 
@@ -36,6 +36,9 @@ uniform ivec2 eyeBrightnessSmooth;
 in vec2 texcoord;
 flat in vec3 suncolor;
 flat in float extShadow;
+
+flat in vec3 skycolor;
+flat in vec3 horizontColor;
 
 const float PI = 3.14159;
 const float hPI = PI / 2;
@@ -103,21 +106,27 @@ float luma(vec3 color) {
 #define SHADOW_MAP_BIAS 0.9
 float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos) {
 	vec2 pix_size = vec2(1.0) / (shadowMapResolution);
-	float res = 0.0;
 
-	ivec2 px0 = ivec2((texc + pix_size * vec2(0.1, 0.5)) * shadowMapResolution);
 	float bias = cdepthN * 0.005;
-	float texel = texelFetch(s, px0, 0).x;
-	res += float(texel + bias < spos);
-	ivec2 px1 = ivec2((texc + pix_size * vec2(0.5, -0.1)) * shadowMapResolution);
-	texel = texelFetch(s, px1, 0).x;
-	res += float(texel + bias < spos);
-	ivec2 px2 = ivec2((texc + pix_size * vec2(-0.1, -0.5)) * shadowMapResolution);
-	texel = texelFetch(s, px2, 0).x;
-	res += float(texel + bias < spos);
-	ivec2 px3 = ivec2((texc + pix_size * vec2(0.5, 0.1)) * shadowMapResolution);
-	texel = texelFetch(s, px3, 0).x;
-	res += float(texel + bias < spos);
+	vec2 texc_m = texc * shadowMapResolution;
+
+	vec2 px0 = vec2(texc + pix_size * vec2(0.5, 0.5));
+	float texel = texture(s, px0, 0).x;
+	float res1 = float(texel + bias < spos);
+
+	vec2 px1 = vec2(texc + pix_size * vec2(0.5, -0.5));
+	texel = texture(s, px1, 0).x;
+	float res2 = float(texel + bias < spos);
+
+	vec2 px2 = vec2(texc + pix_size * vec2(-0.5, -0.5));
+	texel = texture(s, px2, 0).x;
+	float res3 = float(texel + bias < spos);
+
+	vec2 px3 = vec2(texc + pix_size * vec2(-0.5, 0.5));
+	texel = texture(s, px3).x;
+	float res4 = float(texel + bias < spos);
+
+	float res = res1 + res2 + res3 + res4;
 
 	return res * 0.25;
 }
@@ -163,9 +172,9 @@ float shadow_map() {
 	if (angle <= 0.05f && !is_plant) {
 		shade = 1.0f;
 	} else {
-		vec4 shadowposition = shadowModelView * vec4(wpos + normal * 0.025f, 1.0f);
+		vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
 		shadowposition = shadowProjection * shadowposition;
-		float distb = sqrt(shadowposition.x * shadowposition.x + shadowposition.y * shadowposition.y);
+		float distb = length(shadowposition.xy);
 		float distortFactor = (1.0f - SHADOW_MAP_BIAS) + distb * SHADOW_MAP_BIAS;
 		shadowposition.xy /= distortFactor;
 		shadowposition /= shadowposition.w;
@@ -174,24 +183,23 @@ float shadow_map() {
 			for (int i = 0; i < 25; i++) {
 				float shadowDepth = texture(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0004f).x;
 				float bias = 0.0004 + cdepthN * 0.005;
-				shade += float(shadowDepth + bias < shadowposition.z);
+				shade += float(shadowDepth + 0.0001 / distortFactor < shadowposition.z);
 			}
 			shade /= 25.0f;
 		#else
 			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z);
 		#endif
+		if (!is_plant) {
+			float phong = 1.0 - (clamp(0.07f, angle, 1.0f) - 0.07f) * 1.07528f;
+			shade = max(shade, phong);
+		}
+
 		float edgeX = abs(shadowposition.x) - 0.9f;
 		float edgeY = abs(shadowposition.y) - 0.9f;
 		shade -= max(0.0f, edgeX * 10.0f);
 		shade -= max(0.0f, edgeY * 10.0f);
-
-		float phong = 1.0 - (clamp(0.07f, angle, 1.0f) - 0.07f) * 1.07528f;
-		if (is_plant) phong *= 0.2;
-		shade = max(shade, phong);
 	}
-	//shade -= clamp((cdepthN - 0.7f) * 5.0f, 0.0f, 1.0f);
-	shade = saturate(shade);
-	return max(shade, extShadow);
+	return max(saturate(shade), extShadow);
 }
 
 
@@ -280,6 +288,8 @@ vec3 blurGI(vec3 c) {
 }
 #endif
 
+#define CrespecularRays
+
 void main() {
 	vec4 normaltex = texture(gnormal, texcoord);
 	normal = normalize(normalDecode(normaltex.xy));
@@ -294,34 +304,41 @@ void main() {
 	color = pow(color, vec3(2.2f));
 	vec3 fogColor;
 
-	float eyebrightness = pow(float(eyeBrightnessSmooth.x) / 120.0, 2.0);
-	vec3 ambientColor = vec3(0.155, 0.16, 0.165) * (luma(suncolor) * 0.3 + (1.0 - eyebrightness) * 0.02);
+	float eyebrightness = pow(float(eyeBrightnessSmooth.y) / 120.0, 2.0);
+	vec3 ambientColor = vec3(0.155, 0.16, 0.165) * luma(horizontColor) * (1.0 - eyebrightness * 0.1) * 3.0;
 	if (!issky) {
 		shade = shadow_map();
 		#ifdef CAUSTIC
 		if (((flag > 0.71f && flag < 0.79f) && !isEyeInWater) || isEyeInWater) {
 			float w = getwave(wpos.xyz + vec3(0.3, 0.0, 0.3) * (wpos.y + cameraPosition.y) + cameraPosition);
-			shade += pow(clamp(0.0, w * 0.7, 1.0), 1.5) * 0.5;
+			shade += pow(clamp(0.0, w * 0.7, 1.0), 1.5) * 0.3;
 			shade = clamp(shade, 0.0, 1.0);
 		}
 		#endif
-		if(is_plant) shade /= 1.0 + mix(0.0, 2.0, max(0.0, pow(dot(normalize(vpos.xyz), lightPosition), 16.0)));
+		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, max(0.0, pow(dot(normalize(vpos.xyz), lightPosition), 16.0)));
 		mclight = texture(gaux2, texcoord).xy;
 
-		const vec3 torchColor = vec3(2.55, 0.95, 0.3) * 0.45;
+		const vec3 torchColor = vec3(2.15, 1.01, 0.48) * 0.45;
 
-		float light_distance = clamp(0.08, (1.0 - pow(mclight.x, 2.6)), 1.0);
+		float light_distance = clamp(0.08, (1.0 - pow(mclight.x, 6.6)), 1.0);
 		const float light_quadratic = 4.9f;
 		float max_light = 7.5 * mclight.x * mclight.x;
+		#ifdef PBR
+		vec4 specular = texture(gaux1, texcoord);
+		if (specular.b > 0.1 || pow(mclight.x, 6.0) > 0.9) {
+			light_distance = 0.04;
+			max_light = 13.5;
+		}
+		#endif
+
 		const float light_constant1 = 1.09f;
 		const float light_constant2 = 1.09f;
 		float attenuation = clamp(0.0, light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, max_light);
 
 		vec3 diffuse_torch = attenuation * torchColor;
-		vec3 diffuse_sun = (1.0 - shade) * suncolor;
+		vec3 diffuse_sun = (1.0 - shade) * suncolor * clamp(0.0, luma(skycolor) * 4.5, 1.0);
 
 		#ifdef PBR
-		vec4 specular = texture(gaux1, texcoord);
 		bool is_plant = (flag > 0.49 && flag < 0.53);
 		//if (flag < 0.6f || !is_plant) {
 		//	diffuse_sun *= 0.63 + GeometrySmith(normal, normalize(wpos - vec3(0.0, -1.67, 0.0)), shadowLightPosition, specular.r) * 0.37;
@@ -363,12 +380,21 @@ void main() {
 		#ifdef GlobalIllumination
 		diffuse += blurGI(texture(gaux4, texcoord).rgb) * 0.5;
 		#endif
-		float simulatedGI = 0.2 + 2.1 * mclight.y;
+		float simulatedGI = 0.1 + 1.7 * mclight.y;
 		color = color * diffuse + color * ambientColor * simulatedGI;
-	} else {
-		//vec3 hsl = rgbToHsl(color);
-		//hsl = vibrance(hsl, 0.73);
-		//color = hslToRgb(hsl);
+
+		#ifdef CrespecularRays
+		float vl = texture(composite, texcoord * 0.5).b;
+		vl += texture(composite, texcoord * 0.5, 1.0).b;
+		vl += texture(composite, texcoord * 0.5 + vec2(0.0005, 0.0)).b;
+		vl += texture(composite, texcoord * 0.5 + vec2(-0.0005, 0.0)).b;
+		vl += texture(composite, texcoord * 0.5 + vec2(0.0, 0.0005)).b;
+		vl += texture(composite, texcoord * 0.5 + vec2(0.0, -0.0005)).b;
+		vl /= 6.0;
+
+		color = mix(color, horizontColor, cdepth * 0.0001);
+		color += suncolor * vl * max(0.0, 1.0 - eyebrightness * 0.1 * luma(suncolor)) * max(0.0, dot(normalize(vpos.xyz), lightPosition));
+		#endif
 	}
 
 /* DRAWBUFFERS:35 */

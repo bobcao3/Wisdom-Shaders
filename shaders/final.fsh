@@ -74,13 +74,13 @@ vec3 dof(vec3 color, vec2 uv, float depth) {
 	//0.10380 0.08651 0.10380
 	//0.12456 0.10381 0.12456
 	blurColor += texture(Output, uv + offset * vec2(-1.0, -1.0)).rgb * 0.12456;
-	blurColor += texture(Output, uv + offset * vec2(0.0, -1.0)).rgb * 0.10381;
+	blurColor += texture(Output, uv + offset * vec2(0.0, -1.0), 1.0).rgb * 0.10381;
 	blurColor += texture(Output, uv + offset * vec2(1.0, -1.0)).rgb * 0.12456;
-	blurColor += texture(Output, uv + offset * vec2(-1.0, 0.0)).rgb * 0.10381;
-	blurColor += texture(Output, uv).rgb * 0.08651;
-	blurColor += texture(Output, uv + offset * vec2(1.0, 0.0)).rgb * 0.10381;
+	blurColor += texture(Output, uv + offset * vec2(-1.0, 0.0), 1.0).rgb * 0.10381;
+	blurColor += texture(Output, uv, 3.0).rgb * 0.08651;
+	blurColor += texture(Output, uv + offset * vec2(1.0, 0.0), 1.0).rgb * 0.10381;
 	blurColor += texture(Output, uv + offset * vec2(-1.0, 1.0)).rgb * 0.12456;
-	blurColor += texture(Output, uv + offset * vec2(0.0, 1.0)).rgb * 0.10381;
+	blurColor += texture(Output, uv + offset * vec2(0.0, 1.0), 1.0).rgb * 0.10381;
 	blurColor += texture(Output, uv + offset * vec2(1.0, 1.0)).rgb * 0.12456;
 	return mix(color, blurColor, fade);
 }
@@ -96,7 +96,7 @@ vec3 lumaBasedReinhardToneMapping(vec3 color) {
 }
 */
 vec3 whitePreservingLumaBasedReinhardToneMapping(in vec3 color) {
-	const float white = 1.73;
+	const float white = 1.63;
 	float l = luma(color);
 	float toneMappedLuma = l * (1. + l / (white * white)) / (1. + l);
 	color *= toneMappedLuma / l;
@@ -134,6 +134,13 @@ vec3 Uncharted2ToneMapping(vec3 color) {
 }
 */
 
+vec3 vignette(vec3 color) {
+	float dist = distance(texcoord.st, vec2(0.5f));
+	dist = clamp(dist * 1.7 - 0.65, 0.0, 1.0);
+	dist = smoothstep(0.0, 1.0, dist);
+	return color.rgb * (1.0 - dist);
+}
+
 #define BLOOM
 #ifdef BLOOM
 vec3 bloom() {
@@ -161,6 +168,7 @@ void main() {
 	#ifdef BLOOM
 	color += bloom();
 	#endif
+	color = vignette(color);
 	color = TONEMAP_METHOD(color);
 
 	gl_FragColor = vec4(color, 1.0f);

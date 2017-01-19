@@ -84,7 +84,7 @@ void main() {
 				tangent.x, binormal.x, normal.x,
 				tangent.y, binormal.y, normal.y,
 				tangent.z, binormal.z, normal.z);
-				gl_FragData[2] = vec4(normalEncode(normal2 * tbnMatrix), flag, 1.0);
+			gl_FragData[2] = vec4(normalEncode(normal2 * tbnMatrix), flag, 1.0);
 		} else {
 			gl_FragData[2] = vec4(normalEncode(normal), flag, 1.0);
 		}
