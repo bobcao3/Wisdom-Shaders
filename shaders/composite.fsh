@@ -13,7 +13,6 @@ uniform sampler2D composite;
 uniform sampler2D gaux2;
 uniform sampler2D gaux3;
 uniform sampler2D depthtex0;
-uniform sampler2D noisetex;
 uniform sampler2D shadowtex1;
 
 uniform mat4 gbufferProjectionInverse;
@@ -62,7 +61,21 @@ float dFar = 1.0 / far;
 float cdepthN = cdepth * dFar;
 
 #define luma(color) dot(color,vec3(0.2126, 0.7152, 0.0722))
-#define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
+
+float hash( vec2 p ) {
+	float h = dot(p,vec2(127.1,311.7));
+	return fract(sin(h)*43758.5453123);
+}
+
+float rand( in vec2 p ) {
+	vec2 i = floor( p );
+	vec2 f = fract( p );
+	vec2 u = f*f*(3.0-2.0*f);
+	return -1.0+2.0*mix( mix( hash( i + vec2(0.0,0.0) ),
+	hash( i + vec2(1.0,0.0) ), u.x),
+	mix( hash( i + vec2(0.0,1.0) ),
+	hash( i + vec2(1.0,1.0) ), u.x), u.y);
+}
 
 #define AO_Enabled
 #ifdef AO_Enabled
@@ -87,7 +100,7 @@ float AO() {
 	if (cdepthN < 0.7) {
 		for (int i = 0; i < Sample_Directions; i++) {
 			for (int j = 1; j < sampleDepth; j++) {
-				lowp float noise = clamp(0.0, abs(rand((texcoord + vec2(i, j)))), 1.0);
+				lowp float noise = clamp(0.001, abs(rand((texcoord + vec2(i, j)))), 1.0);
 				lowp float inc = (0.4 + noise * 0.6) * j * d;
 				lowp vec2 dir = mix(offset_table[i], offset_table[i + 1], noise * 0.4 + 0.6) * inc + texcoord;
 				if (dir.x < 0.0 || dir.x > 1.0 || dir.y < 0.0 || dir.y > 1.0) continue;
@@ -95,7 +108,7 @@ float AO() {
 				vec3 nVpos = texture(gdepth, dir).xyz;
 				lowp float NdC = distance(nVpos, vpos.xyz);
 				if (NdC >= 1.25) break;
-				else if (NdC > 0.001) {
+				else {
 					lowp float angle = clamp(0.0, dot(nVpos - vpos.xyz, normal) / NdC - 0.2, 0.7) * 0.5;
 					if (angle > maxAngle) {
 						maxAngle = angle;
@@ -173,23 +186,23 @@ vec3 GI() {
 	vec2 texc = texcoord * 5.0;
 	if (texc.x > 1.0 || texc.y > 1.0) return vec3(0.0);
 
-	vec3 normaltex = texture(gnormal, texc).rgb;
-	vec3 normal = mat3(gbufferModelViewInverse) * normalDecode(normaltex.xy);
-	float flag = normaltex.b;
-	bool skydiscard = (flag > 0.01);
+	vec3 ntex = texture(gnormal, texc).rgb;
+	vec3 normal = mat3(gbufferModelViewInverse) * normalDecode(ntex.xy);
+	bool skydiscard = (ntex.b > 0.01);
 
-	if (skydiscard) {
+	//if (skydiscard) {
 
 		vec3 owpos = (gbufferModelViewInverse * vec4(texture(gdepth, texc).xyz, 1.0)).xyz;
 		lowp vec3 flat_normal = normalize(cross(dFdx(owpos),dFdy(owpos)));
-		vec3 swpos = owpos + normal * 0.2;
-		vec3 trace_dir = -reflect(-worldLightPos, vec3(0.0, 1.0, 0.0)) * 0.2;
+		vec3 nswpos = owpos + normal * 0.2;
+		vec3 trace_dir = -reflect(-worldLightPos, vec3(rand(owpos.xy) * 0.01, 1.0, rand(owpos.zy) * 0.01)) * 0.2;
 		float NdotL = dot(normal, trace_dir * 5.0);
 		if (NdotL < 0.0) return vec3(0.0);
 
 		// Half voxel trace, 2 steps 1 voxel
 		for (int i = 0; i < 40; i++) {
-			swpos += trace_dir;
+			nswpos += trace_dir;
+			vec3 swpos = nswpos + rand(vec2(i, owpos.z)) * trace_dir * 0.4;
 			vec3 shadowpos = wpos2shadowpos(swpos);
 
 			// Detect bounce
@@ -230,16 +243,21 @@ vec3 GI() {
 
 				lowp vec3 scolor = texture(shadowcolor0, shadowpos.xy).rgb;
 				for (int i = 0; i < 25; i++) {
-					float randv = 0.041 * rand((shadowpos.xy + i * 0.1));
-					scolor += texture(shadowcolor0, shadowpos.xy + circle_offsets[i] * randv).rgb / 0.041 * randv;
+					for (int i = 0; i < 3; i++) {
+						float randv = 0.0011 * (i + 1) * rand((shadowpos.xy + i * 0.03));
+						vec2 shadow_uv = shadowpos.xy + circle_offsets[i] * randv;
+						float cover = float(abs(texture(shadowtex0, shadowpos.xy).x - shadowpos.z) < 0.001 * (i + 1));
+						scolor += cover * texture(shadowcolor0, shadow_uv).rgb;
+					}
 				}
 				scolor /= 26.0f;
+				scolor /= 4.0f;
 				scolor *= dot(trace_dir * 5.0, flat_normal);
 
 				return scolor.rgb * (6.5 - distance(swpos, owpos)) * 0.05 * (max(0.0, dot(normal, halfwayDir)) * 0.5 + 0.5) * suncolor;
 			}
 		}
-	}
+	//}
 	return vec3(0.0);
 }
 
@@ -253,8 +271,8 @@ float VL() {
 
 	vec3 normaltex = texture(gnormal, texc).rgb;
 	vec3 normal = mat3(gbufferModelViewInverse) * normalDecode(normaltex.xy);
-	float flag = normaltex.b, total = 0.0;
-	bool skydiscard = (flag > 0.01);
+	float total = 0.0;
+	bool skydiscard = (normaltex.b > 0.01);
 
 	if (skydiscard) {
 		vec3 owpos = (gbufferModelViewInverse * vec4(texture(gdepth, texc).xyz, 1.0)).xyz;
@@ -273,9 +291,9 @@ float VL() {
 		}
 	}
 
-	total = min(total, 256.0);
+	total = min(total, 512.0);
 
-	return total / 256.0;
+	return total / 512.0;
 }
 #endif
 
