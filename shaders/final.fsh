@@ -18,7 +18,6 @@ const int gaux1Format = RGBA8;
 const int gaux2Format = RGBA8;
 const int gaux3Format = RGBA32F;
 const int gaux4Format = RGBA8;
-const int noiseTextureResolution = 80;
 
 in vec2 texcoord;
 
@@ -86,6 +85,41 @@ vec3 dof(vec3 color, vec2 uv, float depth) {
 }
 #endif
 
+#define MOTION_BLUR
+
+#ifdef MOTION_BLUR
+uniform mat4 gbufferModelViewInverse;
+uniform vec3 previousCameraPosition;
+uniform mat4 gbufferPreviousModelView;
+uniform mat4 gbufferPreviousProjection;
+uniform vec3 cameraPosition;
+uniform mat4 gbufferProjectionInverse;
+
+#define MOTIONBLUR_MAX 0.08
+#define MOTIONBLUR_STRENGTH 0.5
+#define MOTIONBLUR_SAMPLE 12
+
+vec3 motionBlur(vec3 color, in vec2 uv, in vec4 viewPosition) {
+	vec4 worldPosition = gbufferModelViewInverse * viewPosition + vec4(cameraPosition, 0.0);
+	vec4 prevClipPosition = gbufferPreviousProjection * gbufferPreviousModelView * (worldPosition - vec4(previousCameraPosition, 0.0));
+	vec4 prevNdcPosition = prevClipPosition / prevClipPosition.w;
+	vec2 prevUv = (prevNdcPosition * 0.5 + 0.5).st;
+	vec2 delta = uv - prevUv;
+	float dist = length(delta);
+	delta = normalize(delta);
+	dist = min(dist, MOTIONBLUR_MAX);
+	int num_sams = int(dist / MOTIONBLUR_MAX * MOTIONBLUR_SAMPLE) + 1;
+	dist *= MOTIONBLUR_STRENGTH;
+	delta *= dist / float(MOTIONBLUR_SAMPLE);
+	for(int i = 1; i < num_sams; i++) {
+		uv += delta;
+		color += texture(Output, uv).rgb;
+	}
+	color /= float(num_sams);
+	return color;
+}
+#endif
+
 /*
 vec3 lumaBasedReinhardToneMapping(vec3 color) {
 	float l = luma(color);
@@ -96,7 +130,7 @@ vec3 lumaBasedReinhardToneMapping(vec3 color) {
 }
 */
 vec3 whitePreservingLumaBasedReinhardToneMapping(in vec3 color) {
-	const float white = 1.63;
+	const float white = 1.03;
 	float l = luma(color);
 	float toneMappedLuma = l * (1. + l / (white * white)) / (1. + l);
 	color *= toneMappedLuma / l;
@@ -168,6 +202,13 @@ void main() {
 	#ifdef BLOOM
 	color += bloom();
 	#endif
+
+	#ifdef MOTION_BLUR
+	vec4 viewpos = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, texture(depthtex0, texcoord).r * 2.0 - 1.0, 1.0f);
+	viewpos /= viewpos.w;
+	color = motionBlur(color, texcoord, viewpos);
+	#endif
+
 	color = vignette(color);
 	color = TONEMAP_METHOD(color);
 
