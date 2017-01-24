@@ -18,6 +18,8 @@ out float TimeNoon;
 out float TimeSunset;
 out float TimeMidnight;
 
+out vec3 fogcolor;
+
 out float extShadow;
 
 #define SUNRISE 23200

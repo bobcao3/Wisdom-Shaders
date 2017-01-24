@@ -30,7 +30,7 @@ uniform float viewHeight;
 uniform float far;
 uniform float near;
 uniform float frameTimeCounter;
-uniform float upVec;
+uniform vec3 upVec;
 uniform float wetness;
 uniform float rainStrength;
 
@@ -50,8 +50,6 @@ vec3 normalDecode(in vec2 enc) {
 
 const float PI = 3.14159;
 const float hPI = PI / 2;
-
-#define fogBaseDistance 128.0 // [64.0 128.0 256.0 512.0]
 
 float dFar = 1.0 / far;
 
@@ -112,30 +110,16 @@ float fast_shadow_map(in vec3 wpos) {
 	shadowposition = shadowposition * 0.5f + 0.5f;
 	float shadowDepth = texture(shadowtex0, shadowposition.st).r;
 	shade = float(shadowDepth + 0.0005f + frag.cdepthN * 0.05 < shadowposition.z);
-	/*
 	float edgeX = abs(shadowposition.x) - 0.9f;
 	float edgeY = abs(shadowposition.y) - 0.9f;
 	shade -= max(0.0f, edgeX * 10.0f);
 	shade -= max(0.0f, edgeY * 10.0f);
-	shade -= clamp((cdepthN - 0.7f) * 5.0f, 0.0f, 1.0f);
-	shade = clamp(shade, 0.0f, 1.0f);*/
+	shade -= clamp((frag.cdepthN - 0.7f) * 5.0f, 0.0f, 1.0f);
+	shade = clamp(shade, 0.0f, 1.0f);
 	return max(shade, extShadow);
 }
-/*
-lowp float getwave(in vec3 worldpos) {
-	vec3 wpos = worldpos + frameTimeCounter * vec3(0.0, 0.4, 0.3);
-	lowp float wave = 0.015 * sin(2 * PI * (frameTimeCounter*0.65 + worldpos.x /  1.0 + worldpos.z / 3.0)) - 0.02 * sin(2 * PI * (frameTimeCounter*0.4 - worldpos.x / 11.0 + worldpos.z /  5.0));
-	lowp float noise = texture(noisetex, (wpos.xz * 0.18) * 0.005).r;
-	noise = noise * 0.5 + texture(noisetex, (wpos.xz * 0.29) * 0.003).r;
-	noise = noise + 0.1 * texture(noisetex, (wpos.xz * 0.41) * 0.01).r;
-	wave += pow(noise, 2) * 0.5 - 0.5;
-	float fy = fract(worldpos.y + 0.001);
-	return clamp(wave, -fy, 1.0 - fy);
-}*/
 
-const vec3 SEA_WATER_COLOR = vec3(0.8,0.9,0.6);
-
-#define n(p) sin(texture2D(noisetex, fract(p)).x)
+const vec3 SEA_WATER_COLOR = vec3(0.7,0.9,0.6);
 
 float hash( vec2 p ) {
 	float h = dot(p,vec2(127.1,311.7));
@@ -152,11 +136,9 @@ float noise( in vec2 p ) {
 	hash( i + vec2(1.0,1.0) ), u.x), u.y);
 }
 
-#define SUPER_WATER
-#ifdef SUPER_WATER
 // sea
 const int ITER_GEOMETRY = 5;
-const float SEA_HEIGHT = 0.63;
+const float SEA_HEIGHT = 0.43;
 const float SEA_CHOPPY = 5.0;
 const float SEA_SPEED = 0.8;
 const float SEA_FREQ = 0.16;
@@ -169,7 +151,7 @@ float sea_octave(vec2 uv, float choppy) {
 	vec2 wv = 1.0-abs(sin(uv));
 	vec2 swv = abs(cos(uv));
 	wv = mix(wv,swv,wv);
-	return pow(1.0-pow(wv.x * wv.y,0.65),choppy);
+	return pow(1.0-pow(wv.x * wv.y,0.75),choppy);
 }
 
 float getwave(vec3 p) {
@@ -183,44 +165,22 @@ float getwave(vec3 p) {
 		d = sea_octave((uv+SEA_TIME)*freq,choppy);
 		d += sea_octave((uv-SEA_TIME)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= 0.22;
+		uv *= octave_m; freq *= 1.9; amp *= 0.18;
 		choppy = mix(choppy,1.0,0.2);
 	}
 	float depth_bias = clamp(0.22, distance(frag.wpos + cameraPosition, p) * 0.02, 1.0);
 	depth_bias = mix(depth_bias, 1.0, min(1.0, length(p - cameraPosition) * 0.01));
-	return (h - SEA_HEIGHT * 0.5) * depth_bias;
+	return (h - SEA_HEIGHT) * depth_bias;
 }
-
-#else
-float getwave(in vec3 pos){
-	float speed = 0.6;
-
-	float t = frameTimeCounter * speed;
-
-	vec3 p = pos / (128 + 32);
-	vec2 c = p.xz;
-
-	c.x -= t / 256;
-	vec2 c2 = c;
-
-	float wave2 = n(c2 * vec2(1.75, 1.50) + vec2(c2.y * 0.4, c2.x * 1.8));	c2.y /= 2; c2.x /= 2; c2.xy -= t / (128) * 0.35;
-	wave2 += n(c2 * vec2(1.25, 1.20) + vec2(c2.y * 0.3, c2.x * 0.3));
-	float wave = n(c * vec2(2.00, 1.00) + vec2(c.y * 0.2, c.x * 2.0));	c /= 6;	c.x -= t / 256;	c.y += t / (128 + 64) * 1.25;
-	wave += n(c * vec2(1.75, 1.50) + vec2(c.y * 0.4, c.x * 1.8));	c.y /= 4; c.x /= 2; c.xy -= t / (256 - 64) * 0.5;
-	wave += n(c * vec2(1.50, 2.00) + vec2(c.y * 0.8, c.x * 1.4));
-
-	wave += 3.0;
-	return wave * 0.08;// + big_wave * big_wave;
-}
-#endif
 
 float luma(in vec3 color) {
 	return dot(color,vec3(0.2126, 0.7152, 0.0722));
 }
 
 vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
-	vec3 w1 = vec3(0.05, getwave(wwpos + vec3(0.05, 0.0, 0.0)), 0.0);
-	vec3 w2 = vec3(0.0, getwave(wwpos + vec3(0.0, 0.0, 0.05)), 0.05);
+	float lod = max(length(wwpos - cameraPosition) / 256.0, 0.01);
+	vec3 w1 = vec3(lod, getwave(wwpos + vec3(lod, 0.0, 0.0)), 0.0);
+	vec3 w2 = vec3(0.0, getwave(wwpos + vec3(0.0, 0.0, lod)), lod);
 	#define w0 displacement
 	#define tangent w1 - w0
 	#define bitangent w2 - w0
@@ -265,31 +225,6 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
 
 #endif
 
-#define PLANE_REFLECTION
-#ifdef PLANE_REFLECTION
-
-#define BISEARCH(SEARCHPOINT, DIRVEC, SIGN) DIRVEC *= 0.5; SEARCHPOINT+= DIRVEC * SIGN; uv = getScreenCoordByViewCoord(SEARCHPOINT); sampleDepth = linearizeDepth(textureLod(depthtex0, uv, 0.0).x); testDepth = getLinearDepthOfViewCoord(SEARCHPOINT); SIGN = sign(sampleDepth - testDepth);
-
-float linearizeDepth(float depth) {
-	return (2.0 * near) / (far + near - depth * (far - near));
-}
-
-vec2 getScreenCoordByViewCoord(vec3 viewCoord) {
-	vec4 p = vec4(viewCoord, 1.0);
-	p = gbufferProjection * p;
-	p /= p.w;
-	if(p.z < -1 || p.z > 1)
-		return vec2(-1.0);
-	p = p * 0.5f + 0.5f;
-	return p.st;
-}
-
-float getLinearDepthOfViewCoord(vec3 viewCoord) {
-	vec4 p = vec4(viewCoord, 1.0);
-	p = gbufferProjection * p;
-	p /= p.w;
-	return linearizeDepth(p.z * 0.5 + 0.5);
-}
 
 vec3 lightPositionWorld = mat3(gbufferModelViewInverse) * lightPosition;
 
@@ -302,7 +237,7 @@ vec4 calcCloud(in vec3 wpos) {
 	float total;
 	vec2 ns = spos.xz + cameraPosition.xz + frameTimeCounter * vec2(18.0, 2.0);
 	ns.y *= 0.73;
-	ns *= 0.0005;
+	ns *= 0.0008;
 
 	// Shape
 	float f, l;
@@ -315,7 +250,7 @@ vec4 calcCloud(in vec3 wpos) {
 	f += abs(0.03100 * noise(ns * 4.0));
 	f += abs(0.03100 * noise(ns * 14.0));
 	f += 0.03100 * noise(ns * 8.0);
-	f += abs(0.01100 * noise(ns * 10.0));
+	f += abs(0.01100 * noise(ns * 10.0) * f);
 
 	total = f;
 
@@ -348,7 +283,7 @@ vec4 calcCloud(in vec3 wpos) {
 
 	vec3 cloud_color = skycolor + horizontColor;
 	cloud_color *= 1.0 - rainStrength * 0.8;
-	cloud_color += max(0.0, pow(dot(wpos, normalize(lightPositionWorld)), 7.0)) * suncolor;
+	cloud_color += pow(max(0.0, dot(wpos, normalize(lightPositionWorld))), 7.0) * suncolor;
 	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.9) * 10.0);
 
 	return vec4(cloud_color, total);
@@ -372,6 +307,32 @@ vec3 calcSkyColor(in vec3 wpos) {
 	sky = mix(sky, cloud.rgb, cloud.a);
 
 	return sky;
+}
+
+#define PLANE_REFLECTION
+#ifdef PLANE_REFLECTION
+
+#define BISEARCH(SEARCHPOINT, DIRVEC, SIGN) DIRVEC *= 0.5; SEARCHPOINT+= DIRVEC * SIGN; uv = getScreenCoordByViewCoord(SEARCHPOINT); sampleDepth = linearizeDepth(textureLod(depthtex0, uv, 0.0).x); testDepth = getLinearDepthOfViewCoord(SEARCHPOINT); SIGN = sign(sampleDepth - testDepth);
+
+float linearizeDepth(float depth) {
+	return (2.0 * near) / (far + near - depth * (far - near));
+}
+
+vec2 getScreenCoordByViewCoord(vec3 viewCoord) {
+	vec4 p = vec4(viewCoord, 1.0);
+	p = gbufferProjection * p;
+	p /= p.w;
+	if(p.z < -1 || p.z > 1)
+		return vec2(-1.0);
+	p = p * 0.5f + 0.5f;
+	return p.st;
+}
+
+float getLinearDepthOfViewCoord(vec3 viewCoord) {
+	vec4 p = vec4(viewCoord, 1.0);
+	p = gbufferProjection * p;
+	p /= p.w;
+	return linearizeDepth(p.z * 0.5 + 0.5);
 }
 
 vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
@@ -417,6 +378,42 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
 #define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
 
 #define ENHANCED_WATER
+#define WATER_PARALLAX
+#ifdef WATER_PARALLAX
+vec3 WaterParallax(vec3 wpos, vec3 viewDir) {
+	// number of depth layers
+	const float minLayers = 3;
+	const float maxLayers = 12;
+
+	float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
+	float layerDepth = 1.0 / numLayers;
+	float currentLayerDepth = 0.0;
+	vec2 P = viewDir.xy / viewDir.z * 0.5;
+	vec2 deltaTexCoords = P / numLayers;
+
+	vec3  currentTexCoords     = wpos;
+	float currentDepthMapValue = getwave(wpos + cameraPosition);
+
+	for (int i = 0; i < numLayers; i++) {
+		if (currentLayerDepth >= currentDepthMapValue) break;
+		currentTexCoords -= vec3(deltaTexCoords.x, 0.0, deltaTexCoords.y);
+		currentDepthMapValue = getwave(wpos + cameraPosition);
+		currentLayerDepth += layerDepth;
+	}
+
+	vec3 prevTexCoords = currentTexCoords + vec3(deltaTexCoords.x, 0.0, deltaTexCoords.y);
+
+	// get depth after and before collision for linear interpolation
+	float afterDepth  = currentDepthMapValue - currentLayerDepth;
+	float beforeDepth = getwave(wpos + cameraPosition) - currentLayerDepth + layerDepth;
+
+	// interpolation of texture coordinates
+	float weight = afterDepth / (afterDepth - beforeDepth);
+	vec3 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+
+	return finalTexCoords;
+}
+#endif
 // #define BLACK_AND_WHITE
 
 /* DRAWBUFFERS:3 */
@@ -424,8 +421,7 @@ void main() {
 	g.normaltex = texture(gnormal, texcoord);
 	g.mcdata = texture(gaux2, texcoord);
 	init_struct();
-	float shade = g.mcdata.b, fogMul = 1.0;
-	vec3 fogColor;
+	float shade = g.mcdata.b;
 
 	float is_shaded = pow(g.mcdata.g, 10);
 	float wetness2 = is_shaded * wetness;
@@ -451,14 +447,19 @@ void main() {
 		}
 		if (isEyeInWater || frag_mask.is_water) {
 			water_plain_normal = mat3(gbufferModelViewInverse) * normalDecode(g.normaltex.zw);
+
+			#ifdef WATER_PARALLAX
+			water_wpos = WaterParallax(water_wpos, water_vpos.xyz);
 			float wave = getwave(water_wpos + cameraPosition);
-			vec3 dri = normalize(water_wpos);
-			for (int i = 0; i < 8; i++) {
-				float expt_height = i * 0.1 * wave;
-				wave = getwave(water_wpos + cameraPosition + dri * (1.0 - water_plain_normal) * expt_height);
-				if (wave < expt_height) break;
-			}
 			water_wpos -= wave * normalize(water_wpos);
+			#else
+			float wave = getwave(water_wpos + cameraPosition);
+			vec2 p = water_vpos.xy / water_vpos.z * wave;
+			wave = getwave(water_wpos + cameraPosition - vec3(p.x, 0.0, p.y));
+			water_wpos -= wave * normalize(water_wpos);
+			vec2 wp = length(p) * normalize(water_wpos).xz;
+			water_wpos -= vec3(wp.x, 0.0, wp.y);
+			#endif
 
 			water_displacement = wave * water_plain_normal;
 			vec3 water_normal = water_plain_normal;
@@ -469,7 +470,7 @@ void main() {
 			}
 
 			vec3 vsnormal = normalize(mat3(gbufferModelView) * water_normal);
-			water_vpos = gbufferModelView * vec4(water_wpos, 1.0);
+			water_vpos = gbufferModelView * vec4(water_wpos + water_displacement, 1.0);
 			#ifdef ENHANCED_WATER
 			const float refindex = 0.7;
 			vec4 shifted_vpos = vec4(frag.vpos.xyz + normalize(refract(normalize(frag.vpos.xyz), vsnormal, refindex)), 1.0);
@@ -537,7 +538,7 @@ void main() {
 			specular.g = mix(specular.g, 0.1, wetness_distribution);
 
 			specular.r = clamp(0.00001, specular.r + wetness2 * 0.25, 0.7);
-			specular.r = mix(specular.r, 0.6, wetness_distribution);
+			specular.r = mix(specular.r, 0.3, wetness_distribution);
 
 			color *= (1.0 - 0.5 * wetness_distribution);
 		}
@@ -553,23 +554,26 @@ void main() {
 			float spec = max(dot(frag.normal, halfwayDir), 0.0) * stdNormal * specular.r;
 			//spec = clamp(0.0, spec, 1.0 - wetness2 * 0.5);
 
-			#ifdef PLANE_REFLECTION
 			#define refvpos frag.vpos.xyz
 			if (!isEyeInWater && specular.r > 0.01) {
 				vec3 vs_plain_normal = mat3(gbufferModelView) * water_plain_normal;
 				vec3 refvnormal = frag_mask.is_water ? mix(vs_plain_normal, frag.normal, 0.2) : frag.normal;
 				vec3 viewRefRay = reflect(normalize(refvpos), normalize(refvnormal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
 				float reflection_fresnel_mul = frag_mask.is_trans ? 3.0 : 1.5;
-				vec4 reflection = waterRayTarcing(refvpos + refvnormal * max(0.4, length(refvpos.xyz) / far), viewRefRay, color, specular.r);
+				vec3 ref_albedo = mix(color, vec3(1.0), 1.0 - (1.0 - specular.r) * (1.0 - specular.g));
 				float fresnel = 0.02 + 0.98 * pow(1.0 - dot(viewRefRay, refvnormal), reflection_fresnel_mul);
-				vec3 ref_albedo = mix(color, vec3(1.0), specular.r);
+				#ifdef PLANE_REFLECTION
+				vec4 reflection = waterRayTarcing(refvpos + refvnormal * max(0.4, length(refvpos.xyz) / far), viewRefRay, color, specular.r);
 				vec3 ref_color = reflection.rgb * ref_albedo * (reflection.a * specular.r);
+				#else
+				vec4 reflection = vec4(0.0);
+				vec3 ref_color = vec3(0.0);
+				#endif
 
 				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal) * 480.0;
 				ref_color += calcSkyColor(wref) * (1.0 - reflection.a) * specular.r * ref_albedo;
 				color = mix(color, ref_color, fresnel);
 			}
-			#endif
 			/*
 			specular.g = clamp(0.0001, specular.g, 0.9999);
 			vec3 V = normalize(vec3(wpos - vec3(0.0, 1.67, 0.0)));
@@ -600,7 +604,7 @@ void main() {
 
 			frag.cdepth = length(max(frag.wpos, water_wpos));
 
-			color = mix(color, vec3(luma(color)), min(0.4, frag.cdepth * 0.025 * rainStrength));
+			//color = mix(color, vec3(luma(color)), min(0.4, frag.cdepth * 0.025 * rainStrength));
 			color = mix(color, skycolor, min(0.6, frag.cdepth * 0.02 * rainStrength));
 		}
 	} else {
