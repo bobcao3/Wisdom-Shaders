@@ -9,7 +9,6 @@ uniform sampler2D gaux2;
 uniform sampler2D gaux3;
 uniform sampler2D depthtex0;
 uniform sampler2D shadowtex1;
-uniform sampler2D noisetex;
 
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelViewInverse;
@@ -34,6 +33,7 @@ uniform bool isEyeInWater;
 uniform ivec2 eyeBrightnessSmooth;
 
 in vec2 texcoord;
+flat in vec3 fogcolor;
 flat in vec3 suncolor;
 flat in float extShadow;
 
@@ -61,12 +61,14 @@ vec3 color = vec3(0.75);
 vec3 color = texture(gcolor, texcoord).rgb;
 #endif
 vec4 vpos = vec4(texture(gdepth, texcoord).xyz, 1.0);
+vec3 nvpos = normalize(vpos.xyz);
 vec3 wpos = (gbufferModelViewInverse * vpos).xyz;
 lowp vec3 wnormal;
 lowp vec3 normal;
 float cdepth = length(wpos);
 float dFar = 1.0 / far;
 float cdepthN = cdepth * dFar;
+float NdotL;
 
 const int shadowMapResolution = 1512; // [1024 1512 2048 4096]
 
@@ -135,22 +137,56 @@ bool is_plant;
 
 #define CAUSTIC
 #ifdef CAUSTIC
-#define n(p) sin(texture2D(noisetex, fract(p)).x * 2.0 * PI)
-float getwave(in vec3 pos){
-	float speed = 0.6;
+float hash( vec2 p ) {
+	float h = dot(p,vec2(127.1,311.7));
+	return fract(sin(h)*43758.5453123);
+}
 
-	float t = frameTimeCounter * speed;
+float noise( in vec2 p ) {
+	vec2 i = floor( p );
+	vec2 f = fract( p );
+	vec2 u = f*f*(3.0-2.0*f);
+	return -1.0+2.0*mix( mix( hash( i + vec2(0.0,0.0) ),
+	hash( i + vec2(1.0,0.0) ), u.x),
+	mix( hash( i + vec2(0.0,1.0) ),
+	hash( i + vec2(1.0,1.0) ), u.x), u.y);
+}
 
-	vec3 p = pos / (64 + 32);
-	vec2 c = p.xz;
+// sea
+const int ITER_GEOMETRY = 5;
+const float SEA_HEIGHT = 0.43;
+const float SEA_CHOPPY = 5.0;
+const float SEA_SPEED = 0.8;
+const float SEA_FREQ = 0.16;
+float SEA_TIME = 1.0 + frameTimeCounter * SEA_SPEED;
+mat2 octave_m = mat2(1.6,1.1,-1.2,1.6);
 
-	c.x -= t / 128;
 
-	float wave = n(c * vec2(2.00, 1.00) + vec2(c.y * 0.2, c.x * 2.0));	c /= 6;	c.x -= t / 256;	c.y += t / (128 + 64) * 1.25;
-	wave += n(c * vec2(1.75, 1.50) + vec2(c.y * 0.4, c.x * 1.8));	c.y /= 4; c.x /= 2; c.xy -= t / (256 - 64) * 0.5;
-	wave += n(c * vec2(1.50, 2.00) + vec2(c.y * 0.8, c.x * 1.4));
+float sea_octave(vec2 uv, float choppy) {
+	uv += noise(uv);
+	vec2 wv = 1.0-abs(sin(uv));
+	vec2 swv = abs(cos(uv));
+	wv = mix(wv,swv,wv);
+	return pow(1.0-pow(wv.x * wv.y,0.75),choppy);
+}
 
-	return wave * wave * 0.5;
+float getwave(vec3 p) {
+	float freq = SEA_FREQ;
+	float amp = SEA_HEIGHT;
+	float choppy = SEA_CHOPPY;
+	vec2 uv = p.xz ; uv.x *= 0.75;
+
+	float d, h = 0.0;
+	for(int i = 0; i < ITER_GEOMETRY; i++) {
+		d = sea_octave((uv+SEA_TIME)*freq,choppy);
+		d += sea_octave((uv-SEA_TIME)*freq,choppy);
+		h += d * amp;
+		uv *= octave_m; freq *= 1.9; amp *= 0.18;
+		choppy = mix(choppy,1.0,0.2);
+	}
+	float depth_bias = clamp(0.22, distance(wpos + cameraPosition, p) * 0.02, 1.0);
+	depth_bias = mix(depth_bias, 1.0, min(1.0, length(p - cameraPosition) * 0.01));
+	return h * depth_bias;
 }
 
 vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
@@ -163,13 +199,23 @@ vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
 }
 #endif
 
+#define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
+
+const lowp vec2 offset_table[6] = vec2 [] (
+	vec2( 0.0,    1.0 ),
+	vec2( 0.866,  0.5 ),
+	vec2( 0.866, -0.5 ),
+	vec2( 0.0,   -1.0 ),
+	vec2(-0.866, -0.5 ),
+	vec2(-0.866,  0.5 )
+);
+
 #define SHADOW_FILTER
 float shadow_map() {
 	if (cdepthN > 0.9f)
-		return 0.0f;
-	float angle = dot(lightPosition, normal);
+		return 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
 	float shade = 0.0;
-	if (angle <= 0.05f && !is_plant) {
+	if (NdotL <= 0.05f && !is_plant) {
 		shade = 1.0f;
 	} else {
 		vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
@@ -181,23 +227,40 @@ float shadow_map() {
 		shadowposition = shadowposition * 0.5f + 0.5f;
 		#ifdef SHADOW_FILTER
 			for (int i = 0; i < 25; i++) {
-				float shadowDepth = texture(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0004f).x;
-				float bias = 0.0004 + cdepthN * 0.005;
-				shade += float(shadowDepth + 0.0001 / distortFactor < shadowposition.z);
+				float shadowDepth = texture(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0008f).x;
+				shade += float(shadowDepth + 0.00005 / distortFactor < shadowposition.z);
 			}
 			shade /= 25.0f;
+			/*float shadowBaseDepth = texture(shadowtex1, shadowposition.st).x;
+			float minD = 200000.0; // infinite
+			if (shadowBaseDepth + 0.0001 / distortFactor < shadowposition.z) {
+				float variance = 0.01;
+				shade = 1.0;
+				for (int i = 0; i < 6; i++) {
+					for (int j = 0; j < 4; j++) {
+						float r = variance * (j + 1) / 5;
+						float shadowDepth = texture(shadowtex1, shadowposition.st + offset_table[i] * r).x;
+						if (minD > r && shadowDepth - 0.0001 / distortFactor > shadowposition.z) {
+							minD = r;
+						}
+					}
+				}
+				if (minD < 1.0) {
+					shade *= 1.0 -(shadowBaseDepth - shadowposition.z) * 64.0;//(variance - minD) / variance;
+				}
+			}*/
 		#else
 			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z);
 		#endif
-		if (!is_plant) {
-			float phong = 1.0 - (clamp(0.07f, angle, 1.0f) - 0.07f) * 1.07528f;
-			shade = max(shade, phong);
-		}
 
 		float edgeX = abs(shadowposition.x) - 0.9f;
 		float edgeY = abs(shadowposition.y) - 0.9f;
 		shade -= max(0.0f, edgeX * 10.0f);
 		shade -= max(0.0f, edgeY * 10.0f);
+		if (!is_plant) {
+			float phong = 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
+			shade = max(shade, phong);
+		}
 	}
 	return max(saturate(shade), extShadow);
 }
@@ -300,22 +363,23 @@ void main() {
 	is_plant = (flag > 0.48 && flag < 0.53);
 	vec2 mclight = vec2(0.0);
 	float shade = 0.0, fogMul = 1.0;
+	NdotL = dot(lightPosition, normal);
 	// Preprocess Gamma 2.2
 	color = pow(color, vec3(2.2f));
 	vec3 fogColor;
 
 	float eyebrightness = pow(float(eyeBrightnessSmooth.y) / 120.0, 2.0);
-	vec3 ambientColor = vec3(0.155, 0.16, 0.165) * luma(horizontColor) * (1.0 - eyebrightness * 0.1) * 3.0;
+	vec3 ambientColor = vec3(0.135, 0.14, 0.215) * luma(horizontColor) * (1.0 - eyebrightness * 0.1) * 3.0;
 	if (!issky) {
 		shade = shadow_map();
 		#ifdef CAUSTIC
 		if (((flag > 0.71f && flag < 0.79f) && !isEyeInWater) || isEyeInWater) {
 			float w = getwave(wpos.xyz + vec3(0.3, 0.0, 0.3) * (wpos.y + cameraPosition.y) + cameraPosition);
-			shade += pow(clamp(0.0, w * 0.7, 1.0), 1.5) * 0.3;
+			shade += pow(clamp(0.0, w * 2.0, 1.0), 1.5) * 0.3;
 			shade = clamp(shade, 0.0, 1.0);
 		}
 		#endif
-		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, max(0.0, pow(dot(normalize(vpos.xyz), lightPosition), 16.0)));
+		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, max(0.0, pow(dot(nvpos, lightPosition), 16.0)));
 		mclight = texture(gaux2, texcoord).xy;
 
 		const vec3 torchColor = vec3(2.15, 1.01, 0.48) * 0.45;
@@ -345,14 +409,14 @@ void main() {
 		//}
 
 		specular.r = clamp(0.01, specular.r, 0.99);
-		vec3 V = normalize(vpos.xyz);
+		vec3 V = nvpos;
 		vec3 F0 = vec3(0.02);
     F0 = mix(F0, color, specular.g);
     vec3 F = fresnelSchlickRoughness(max(dot(normal, V), 0.0), F0, specular.r);
 
 		vec3 halfwayDir = normalize(lightPosition - V);
 		vec3 no = GeometrySmith(normal, V, lightPosition, specular.r) * DistributionGGX(normal, halfwayDir, specular.r) * F;
-		float denominator = 4 * max(dot(V, normal), 0.0) * max(dot(lightPosition, normal), 0.0) + 0.001;
+		float denominator = 4 * max(dot(V, normal), 0.0) * max(NdotL, 0.0) + 0.001;
 		vec3 brdf = no / denominator;
 
 		if(is_plant) shade /= 1.0 + mix(0.0, 2.0, max(0.0, pow(dot(halfwayDir, lightPosition), 16.0)));
@@ -361,7 +425,7 @@ void main() {
     vec3 kD = vec3(1.0) - kS;
     kD *= 1.0 - specular.g;
 
-		diffuse_sun += (kD * color * PI + brdf) * max(0.0, dot(lightPosition, normal)) * (1.0 - shade);
+		diffuse_sun += (kD * color * PI + brdf) * max(0.0, NdotL) * (1.0 - shade);
 		//diffuse_sun += no / denominator * diffuse_sun * max(dot(worldLightPos, normal), 0.0);
 		// PBR specular, Red & Green reversed
 		// Spec is in composite1.fsh
@@ -383,6 +447,7 @@ void main() {
 		float simulatedGI = 0.1 + 1.7 * mclight.y;
 		color = color * diffuse + color * ambientColor * simulatedGI;
 
+		color = mix(color, fogcolor, pow(cdepth / 512.0, 2.0 - rainStrength));
 		#ifdef CrespecularRays
 		float vl = texture(composite, texcoord * 0.5).b;
 		vl += texture(composite, texcoord * 0.5, 1.0).b;
@@ -392,8 +457,7 @@ void main() {
 		vl += texture(composite, texcoord * 0.5 + vec2(0.0, -0.0005)).b;
 		vl /= 6.0;
 
-		color = mix(color, horizontColor, cdepth * 0.0001);
-		color += suncolor * vl * max(0.0, 1.0 - eyebrightness * 0.1 * luma(suncolor)) * max(0.0, dot(normalize(vpos.xyz), lightPosition));
+		color += suncolor * pow(vl, 0.5) * max(0.0, 1.0 - eyebrightness * 0.1 * luma(suncolor)) * pow(max(0.0, dot(nvpos, lightPosition)), 2.0);
 		#endif
 	}
 

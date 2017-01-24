@@ -18,6 +18,7 @@ flat out float TimeMidnight;
 flat out float extShadow;
 
 flat out vec3 skycolor;
+flat out vec3 fogcolor;
 flat out vec3 horizontColor;
 
 #define SUNRISE 23200
@@ -68,6 +69,14 @@ void main() {
 	vec3 horizontColor_rain_night = vec3(0.3, 0.7, 1.3) * 0.01 * TimeMidnight * rainStrength;
 
 	horizontColor = horizontColor_sunrise + horizontColor_noon + horizontColor_sunset + horizontColor_night + horizontColor_rain_night;
+
+	vec3 fogclr_sunrise = vec3(0.75, 0.9, 1.27) * 0.5 * TimeSunrise * (1.0 - rainStrength * 1.0);
+	vec3 fogclr_noon = vec3(0.6, 0.8, 1.27) * 0.5 * TimeNoon * (1.0 - rainStrength * 1.0);
+	vec3 fogclr_sunset = vec3(0.75, 0.9, 1.27) * 0.5 * TimeSunset * (1.0 - rainStrength * 1.0);
+	vec3 fogclr_midnight = vec3(0.2, 0.6, 1.3) * 0.01 * TimeMidnight * (1.0 - rainStrength * 1.0);
+	vec3 fogclr_rain_day = vec3(1.5, 1.9, 2.55) * 0.2 * (TimeSunrise + TimeNoon + TimeSunset) * rainStrength;
+	vec3 fogclr_rain_night = vec3(0.35, 0.7, 1.3) * 0.01  * TimeMidnight * rainStrength;
+	fogcolor = fogclr_sunrise + fogclr_noon + fogclr_sunset + fogclr_midnight + fogclr_rain_day + fogclr_rain_night;
 
 	//worldLightPos = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
 }
