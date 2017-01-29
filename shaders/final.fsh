@@ -10,6 +10,9 @@ const int RGB8 = 0, RGBA32F = 1, R11F_G11F_B10F = 2, RGBA16 = 3, RGBA8 = 4, RGB8
 #define mcData gaux2
 #define WaterWPos gaux3
 
+const float centerDepthHalflife = 2.5f;
+uniform float centerDepthSmooth;
+
 const int colortex0Format = RGBA8;
 const int colortex1Format = RGBA32F;
 const int gnormalFormat = RGBA16;
@@ -20,9 +23,6 @@ const int gaux3Format = RGBA32F;
 const int gaux4Format = RGBA8;
 
 in vec2 texcoord;
-
-const float centerDepthHalflife = 2.5f;
-uniform float centerDepthSmooth;
 
 uniform sampler2D depthtex0;
 uniform sampler2D Output;
@@ -41,20 +41,20 @@ uniform float aspectRatio;
 
 const float gamma = 2.2;
 
-#define TONEMAP_METHOD RomBinDaHouseToneMapping
+//#define TONEMAP_METHOD RomBinDaHouseToneMapping
 #define luma(color)	dot(color,vec3(0.2126, 0.7152, 0.0722))
 
 in float centerDepth;
 
-#define DOF_FADE_RANGE 0.15
-#define DOF_CLEAR_RADIUS 0.2
+#define DOF_FADE_RANGE 0.08
+#define DOF_CLEAR_RADIUS 0.1
 #define DOF_NEARVIEWBLUR
 //#define DOF
 
 #define linearizeDepth(depth) (2.0 * near) / (far + near - depth * (far - near))
 
 #ifdef DOF
-vec3 dof(vec3 color, vec2 uv, float depth) {
+vec3 dof(vec3 color, vec2 uv, float depth, in vec3 blurcolor) {
 	float linearFragDepth = linearizeDepth(depth);
 	float linearCenterDepth = linearizeDepth(centerDepth);
 	float delta = linearFragDepth - linearCenterDepth;
@@ -71,20 +71,7 @@ vec3 dof(vec3 color, vec2 uv, float depth) {
 	#endif
 	if(fade < 0.001) return color;
 	vec2 offset = vec2(1.0 * aspectRatio / viewWidth, 1.0 / viewHeight);
-	vec3 blurColor = vec3(0.0);
-	//0.12456 0.10381 0.12456
-	//0.10380 0.08651 0.10380
-	//0.12456 0.10381 0.12456
-	blurColor += texture(Output, uv + offset * vec2(-1.0, -1.0)).rgb * 0.12456;
-	blurColor += texture(Output, uv + offset * vec2(0.0, -1.0), 1.0).rgb * 0.10381;
-	blurColor += texture(Output, uv + offset * vec2(1.0, -1.0)).rgb * 0.12456;
-	blurColor += texture(Output, uv + offset * vec2(-1.0, 0.0), 1.0).rgb * 0.10381;
-	blurColor += texture(Output, uv, 3.0).rgb * 0.08651;
-	blurColor += texture(Output, uv + offset * vec2(1.0, 0.0), 1.0).rgb * 0.10381;
-	blurColor += texture(Output, uv + offset * vec2(-1.0, 1.0)).rgb * 0.12456;
-	blurColor += texture(Output, uv + offset * vec2(0.0, 1.0), 1.0).rgb * 0.10381;
-	blurColor += texture(Output, uv + offset * vec2(1.0, 1.0)).rgb * 0.12456;
-	return mix(color, blurColor, fade);
+	return mix(color, blurcolor, fade * 0.6);
 }
 #endif
 
@@ -140,14 +127,13 @@ vec3 whitePreservingLumaBasedReinhardToneMapping(in vec3 color) {
 	color = pow(color, vec3(1. / gamma));
 	return vec3(color);
 }
-*/
+
 vec3 RomBinDaHouseToneMapping(vec3 color) {
 	color = exp( -1.0 / ( 2.72*color + 0.15 ) );
 	color = pow(color, vec3(1. / gamma));
 	return color;
 }
 
-/*
 vec3 Uncharted2ToneMapping(vec3 color) {
 	const float A = 0.65;
 	const float B = 0.30;
@@ -174,43 +160,19 @@ vec3 vignette(vec3 color) {
 }
 
 #define BLOOM
-#ifdef BLOOM
 
-vec3 bloom(in vec2 tex) {
-	tex *= 0.5;
-	vec3 color = texture(gcolor, tex).rgb;
-	tex *= 0.5;
-	color += texture(gcolor, tex + vec2(0.0, 0.5) + vec2(0.003, 0.0)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.5) + vec2(0.0, 0.003)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.5) + vec2(-0.003, 0.0)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.5) + vec2(0.0, -0.003)).rgb * 0.25;
-	tex *= 0.5;
-	color += texture(gcolor, tex + vec2(0.0, 0.75) + vec2(0.001, 0.0)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.75) + vec2(0.0, 0.001)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.75) + vec2(-0.001, 0.0)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.75) + vec2(0.0, -0.001)).rgb * 0.25;
-	tex *= 0.5;
-	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.001, 0.0)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.0, 0.001)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(-0.001, 0.0)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.0, -0.001)).rgb * 0.25;
-	tex *= 0.5;
-	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.001, 0.0)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.0, 0.001)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(-0.001, 0.0)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.0, -0.001)).rgb * 0.25;
-/*	tex *= 0.5;
-	color += texture(gcolor, tex + vec2(0.0, 0.9375) + vec2(0.001, 0.0)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.9375) + vec2(0.0, 0.001)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.9375) + vec2(-0.001, 0.0)).rgb * 0.25;
-	color += texture(gcolor, tex + vec2(0.0, 0.9375) + vec2(0.0, -0.001)).rgb * 0.25;*/
+const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
+const float weight[9] = float[] (0.066812, 0.129101, 0.112504, 0.08782, 0.061406, 0.03846, 0.021577, 0.010843, 0.004881);
 
-	color *= 0.25;
-	color *= luma(color);
-
+vec3 blur() {
+	vec3 color = texture(gcolor, texcoord).rgb * weight[0];
+	vec2 direction = vec2(0.0, 0.0018) / viewWidth * viewHeight;
+	for(int i = 1; i < 9; i++) {
+		color += texture(gcolor, texcoord + direction * offset[i]).rgb * weight[i];
+		color += texture(gcolor, texcoord - direction * offset[i]).rgb * weight[i];
+	}
 	return color;
 }
-#endif
 
 #define FINAL_COLOR_ADJUST
 #ifdef FINAL_COLOR_ADJUST
@@ -315,13 +277,7 @@ void color_adjust(inout vec3 c) {
 
 void main() {
 	vec3 color = texture(Output, texcoord).rgb;
-	#ifdef DOF
-		color = dof(color, texcoord, centerDepthSmooth);
-	#endif
-
-	#ifdef BLOOM
-	color += bloom(texcoord) * 0.5;
-	#endif
+	vec3 blurcolor = blur();
 
 	#ifdef MOTION_BLUR
 	vec4 viewpos = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, texture(depthtex0, texcoord).r * 2.0 - 1.0, 1.0f);
@@ -329,7 +285,13 @@ void main() {
 	color = motionBlur(color, texcoord, viewpos);
 	#endif
 
-//	color = TONEMAP_METHOD(color);
+	#ifdef DOF
+	color = dof(color, texcoord, texture(depthtex0, texcoord).r, blurcolor);
+	#endif
+	#ifdef BLOOM
+	color += luma(blurcolor) * blurcolor * 0.3;
+	#endif
+
 	color = pow(color, vec3(1. / gamma));
 	#ifdef FINAL_COLOR_ADJUST
 	color = clamp(vec3(0.0), color, vec3(1.0));

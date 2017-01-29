@@ -6,53 +6,16 @@ uniform sampler2D composite;
 
 in vec2 texcoord;
 
+const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
+const float weight[9] = float[] (0.066812, 0.129101, 0.112504, 0.08782, 0.061406, 0.03846, 0.021577, 0.010843, 0.004881);
+
 vec3 bloom() {
-	if (texcoord.x < 0.5 && texcoord.y < 0.5) {
-		vec2 c = texcoord * 2.0;
-		vec3 color = texture(composite, c, 1.0).rgb;
-
-		return color;
-	} else if (texcoord.x < 0.25 && texcoord.y < 0.75 && texcoord.y > 0.5) {
-		vec2 c = (texcoord - vec2(0.0, 0.5)) * 4.0;
-		vec3 color = texture(composite, c, 1.0).rgb;
-		color += texture(composite, c + vec2(0.01, 0.0)).rgb;
-		color += texture(composite, c + vec2(0.0, 0.01)).rgb;
-		color += texture(composite, c + vec2(-0.01, 0.0)).rgb;
-		color += texture(composite, c + vec2(0.0, -0.01)).rgb;
-
-		return color * 0.2;
-	} else if (texcoord.x < 0.125 && texcoord.y < 0.875 && texcoord.y > 0.75) {
-		vec2 c = (texcoord - vec2(0.0, 0.75)) * 8.0;
-		vec3 color = texture(composite, c, 1.0).rgb;
-		color += texture(composite, c + vec2(0.005, 0.0), 1.0).rgb;
-		color += texture(composite, c + vec2(0.0, 0.005), 1.0).rgb;
-		color += texture(composite, c + vec2(-0.005, 0.0), 1.0).rgb;
-		color += texture(composite, c + vec2(0.0, -0.005), 1.0).rgb;
-
-		return color * 0.2;
-	} else if (texcoord.x < 0.0625 && texcoord.y < 0.9375 && texcoord.y > 0.875) {
-		vec2 c = (texcoord - vec2(0.0, 0.875)) * 16.0;
-		vec3 color = texture(composite, c, 1.0).rgb;
-		color += texture(composite, c + vec2(0.007, 0.0), 1.0).rgb;
-		color += texture(composite, c + vec2(0.0, 0.007), 1.0).rgb;
-		color += texture(composite, c + vec2(-0.007, 0.0), 1.0).rgb;
-		color += texture(composite, c + vec2(0.0, -0.007), 1.0).rgb;
-
-		return color * 0.2;
-	} else if (texcoord.x < 0.0313 && texcoord.y < 0.9688 && texcoord.y > 0.9375) {
-		vec2 c = (texcoord - vec2(0.0, 0.9375)) * 32.0;
-		vec3 color = texture(composite, c, 2.0).rgb;
-		color += texture(composite, c + vec2(0.01, 0.0), 1.0).rgb;
-		color += texture(composite, c + vec2(0.0, 0.01), 1.0).rgb;
-		color += texture(composite, c + vec2(-0.01, 0.0), 1.0).rgb;
-		color += texture(composite, c + vec2(0.0, -0.01), 1.0).rgb;
-		color += texture(composite, c + vec2(0.0075, 0.0), 1.0).rgb;
-		color += texture(composite, c + vec2(0.0, 0.0015), 1.0).rgb;
-		color += texture(composite, c + vec2(-0.0075, 0.0), 1.0).rgb;
-		color += texture(composite, c + vec2(0.0, -0.0075), 1.0).rgb;
-
-		return color * 0.11;
-	} else return vec3(0.0);
+	vec3 color = texture(composite, texcoord).rgb * weight[0];
+	for(int i = 1; i < 9; i++) {
+		color += texture(composite, texcoord + vec2(0.0018, .0) * offset[i]).rgb * weight[i];
+		color += texture(composite, texcoord - vec2(0.0018, .0) * offset[i]).rgb * weight[i];
+	}
+	return color;
 }
 
 //#define SSEDAA
