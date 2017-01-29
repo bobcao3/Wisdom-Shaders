@@ -447,7 +447,7 @@ void main() {
 		float simulatedGI = 0.1 + 1.7 * mclight.y;
 		color = color * diffuse + color * ambientColor * simulatedGI;
 
-		color = mix(fogcolor, color, clamp((512.0 - cdepth) / (512.0 - 64.0), 0.0, 1.0));
+		color = mix(fogcolor, color, clamp((512.0 - cdepth) / (512.0 - 32.0), 0.0, 1.0));
 		#ifdef CrespecularRays
 		float vl = texture(composite, texcoord * 0.5).b;
 		vl += texture(composite, texcoord * 0.5, 1.0).b;
