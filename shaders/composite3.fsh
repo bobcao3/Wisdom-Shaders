@@ -119,7 +119,7 @@ float fast_shadow_map(in vec3 wpos) {
 	return max(shade, extShadow);
 }
 
-const vec3 SEA_WATER_COLOR = vec3(0.7,0.9,0.6);
+const vec3 SEA_WATER_COLOR = vec3(0.6,0.83,0.96);
 
 float hash( vec2 p ) {
 	float h = dot(p,vec2(127.1,311.7));
@@ -289,19 +289,19 @@ vec4 calcCloud(in vec3 wpos) {
 	return vec4(cloud_color, total);
 }
 
-vec3 calcSkyColor(in vec3 wpos) {
+vec3 calcSkyColor(in vec3 wpos, float shade) {
 	float horizont = abs(wpos.y + cameraPosition.y - 0.5);
-	float skycolor_position = clamp(max(pow(max(1.0 - horizont/(35.0*100.0),0.01),8.0)-0.1,0.0), 0.35, 1.0);
-	float horizont_position = max(pow(max(1.0 - horizont/(7.5*100.0),0.01),8.0)-0.1,0.0);
+	float skycolor_position = clamp(max(pow(max(1.0 - horizont / (35.0 * 100.0),0.01),8.0)-0.1,0.0), 0.35, 1.0);
+	float horizont_position = max(pow(max(1.0 - horizont / (16.5*100.0) ,0.01),3.0)-0.1,0.0);
 
 	vec3 sky = skycolor * skycolor_position * vec3(1.5 , 2.3, 2.6);
 	sky = mix(sky, horizontColor * 0.6, horizont_position);
 
 	float sun_glow = max(0.0, dot(lightPositionWorld, normalize(wpos)));
-	sky += pow(sun_glow, 4.0) * 0.1 * suncolor * (1.0 - extShadow);
+	sky += pow(sun_glow, 4.0) * 0.2 * suncolor * (1.0 - extShadow) * (1.0 - shade);
 
 	// Sun.
-	sky += clamp(pow(sun_glow, 700.0), 0.0, 0.2) * suncolor.rgb * (1.0 - rainStrength * 0.6) * 10.0;
+	sky += clamp(pow(sun_glow, 650.0), 0.0, 0.2) * suncolor.rgb * (1.0 - rainStrength * 0.6) * 10.0 * (1.0 - shade) * (1.0 - extShadow);
 
 	vec4 cloud = calcCloud(normalize(wpos));
 	sky = mix(sky, cloud.rgb, cloud.a);
@@ -309,6 +309,7 @@ vec3 calcSkyColor(in vec3 wpos) {
 	return sky;
 }
 
+#define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
 #define PLANE_REFLECTION
 #ifdef PLANE_REFLECTION
 
@@ -344,7 +345,7 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
 	vec3 lastPoint = testPoint;
 	for(int i = 0; i < 40; i++) {
 		testPoint += direction * pow(float(i + 1), 1.46);
-		vec2 uv = getScreenCoordByViewCoord(testPoint);
+		vec2 uv = getScreenCoordByViewCoord(testPoint + direction * rand(vec2((texcoord.x + texcoord.y) * 0.5, i * 0.01)));
 		if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
 			hit = true;
 			break;
@@ -370,12 +371,19 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
 		}
 		lastPoint = testPoint;
 	}
-
+	if(!hit) {
+		vec2 uv = getScreenCoordByViewCoord(lastPoint);
+		float testDepth = getLinearDepthOfViewCoord(lastPoint);
+		float sampleDepth = texture(depthtex0, uv).x;
+		if(sampleDepth < 0.9 && testDepth - linearizeDepth(sampleDepth) < 1.0) {
+			hitColor = vec4(texture2DLod(composite, uv, 2.0).rgb, 1.0);
+			hitColor.a = clamp(1.0 - pow(distance(uv, vec2(0.5))*2.0, 2.0), 0.0, 1.0);
+		}
+	}
 	return hitColor;
 }
 #endif
 
-#define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
 
 #define ENHANCED_WATER
 #define WATER_PARALLAX
@@ -488,9 +496,9 @@ void main() {
 				shifted = texcoord;
 			}
 			frag.vpos = vec4(texture(gdepth, shifted).xyz, 1.0);
-			float dist_diff = isEyeInWater ? min(length(water_vpos.xyz), length(frag.vpos.xyz)) : abs(length(frag.vpos.xyz - water_vpos.xyz));
-			float dist_diff_N = pow(clamp(0.0, 8.0, dist_diff) / 8.0, 0.35);
-			float dist_diff_NL = pow(clamp(0.0, 64.0, dist_diff) / 64.0, 0.55);
+			float dist_diff = isEyeInWater ? min(length(water_vpos.xyz), length(frag.vpos.xyz)) : distance(frag.vpos.xyz, water_vpos.xyz);
+			float dist_diff_N = pow(clamp(0.0, 1.0, dist_diff / 8.0), 0.35);
+			float dist_diff_NL = pow(clamp(0.0, 1.0, dist_diff / 64.0), 0.55);
 
 			vec3 org_color = color;
 			color = texture(composite, shifted, 0.0).rgb;
@@ -571,7 +579,7 @@ void main() {
 				#endif
 
 				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal) * 480.0;
-				ref_color += calcSkyColor(wref) * (1.0 - reflection.a) * specular.r * ref_albedo;
+				ref_color += calcSkyColor(wref, shade) * (1.0 - reflection.a) * specular.r * ref_albedo;
 				color = mix(color, ref_color, fresnel);
 			}
 			/*
@@ -614,7 +622,7 @@ void main() {
 
 		frag.wpos = worldPosition.xyz;
 
-		color = calcSkyColor(frag.wpos);
+		color = calcSkyColor(frag.wpos, 0.0);
 	}
 
 	#ifdef BLACK_AND_WHITE

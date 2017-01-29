@@ -20,7 +20,7 @@ void main() {
 		gl_FragData[0] = vec4(0.2, 0.2, 0.4, 0.18);
 
 		#ifdef PBR
-		gl_FragData[2] = vec4(0.035, 0.99, 0.0, 1.0);
+		gl_FragData[2] = vec4(0.05, 0.99, 0.0, 1.0);
 		#else
 		gl_FragData[2] = vec4(0.8, 0.0, 0.0, 1.0);
 		#endif

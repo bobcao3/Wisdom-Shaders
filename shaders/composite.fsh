@@ -277,12 +277,12 @@ float VL() {
 	if (skydiscard) {
 		vec3 owpos = (gbufferModelViewInverse * vec4(texture(gdepth, texc).xyz, 1.0)).xyz;
 		vec3 swpos = owpos;
-		vec3 dir = owpos / 32.0;
+		vec3 dir = owpos / 48.0;
 		float prev = 0.0;
 
-		for (int i = 0; i < 31; i++) {
+		for (int i = 0; i < 47; i++) {
 			swpos -= dir;
-			float dither = rand(((texcoord + vec2(i)) * 0.1)) * 0.6;
+			float dither = rand((texcoord + vec2(i) * 0.1)) * 0.8;
 			vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
 			if (shadowpos.z + 0.0006 < texture(shadowtex0, shadowpos.xy).x) {
 				total += (prev + 1.0) * length(dir) * (1 + dither) * 0.5;

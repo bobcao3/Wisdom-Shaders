@@ -21,6 +21,9 @@ const int gaux4Format = RGBA8;
 
 in vec2 texcoord;
 
+const float centerDepthHalflife = 2.5f;
+uniform float centerDepthSmooth;
+
 uniform sampler2D depthtex0;
 uniform sampler2D Output;
 uniform sampler2D gcolor;
@@ -38,7 +41,7 @@ uniform float aspectRatio;
 
 const float gamma = 2.2;
 
-#define TONEMAP_METHOD whitePreservingLumaBasedReinhardToneMapping
+#define TONEMAP_METHOD RomBinDaHouseToneMapping
 #define luma(color)	dot(color,vec3(0.2126, 0.7152, 0.0722))
 
 in float centerDepth;
@@ -95,7 +98,7 @@ uniform mat4 gbufferPreviousProjection;
 uniform vec3 cameraPosition;
 uniform mat4 gbufferProjectionInverse;
 
-#define MOTIONBLUR_MAX 0.08
+#define MOTIONBLUR_MAX 0.1
 #define MOTIONBLUR_STRENGTH 0.5
 #define MOTIONBLUR_SAMPLE 12
 
@@ -105,7 +108,7 @@ vec3 motionBlur(vec3 color, in vec2 uv, in vec4 viewPosition) {
 	vec4 prevNdcPosition = prevClipPosition / prevClipPosition.w;
 	vec2 prevUv = (prevNdcPosition * 0.5 + 0.5).st;
 	vec2 delta = uv - prevUv;
-	float dist = length(delta);
+	float dist = length(delta) * 0.25;
 	delta = normalize(delta);
 	dist = min(dist, MOTIONBLUR_MAX);
 	int num_sams = int(dist / MOTIONBLUR_MAX * MOTIONBLUR_SAMPLE) + 1;
@@ -128,7 +131,7 @@ vec3 lumaBasedReinhardToneMapping(vec3 color) {
 	color = pow(color, vec3(1. / gamma));
 	return color;
 }
-*/
+
 vec3 whitePreservingLumaBasedReinhardToneMapping(in vec3 color) {
 	const float white = 1.03;
 	float l = luma(color);
@@ -137,19 +140,14 @@ vec3 whitePreservingLumaBasedReinhardToneMapping(in vec3 color) {
 	color = pow(color, vec3(1. / gamma));
 	return vec3(color);
 }
-/*
+*/
 vec3 RomBinDaHouseToneMapping(vec3 color) {
 	color = exp( -1.0 / ( 2.72*color + 0.15 ) );
 	color = pow(color, vec3(1. / gamma));
 	return color;
 }
 
-vec3 filmicToneMapping(vec3 color) {
-	color = max(vec3(0.), color - vec3(0.004));
-	color = (color * (6.2 * color + .5)) / (color * (6.2 * color + 1.7) + 0.06);
-	return color;
-}
-
+/*
 vec3 Uncharted2ToneMapping(vec3 color) {
 	const float A = 0.65;
 	const float B = 0.30;
@@ -170,37 +168,159 @@ vec3 Uncharted2ToneMapping(vec3 color) {
 
 vec3 vignette(vec3 color) {
 	float dist = distance(texcoord.st, vec2(0.5f));
-	dist = clamp(dist * 1.7 - 0.65, 0.0, 1.0);
+	dist = clamp(dist * 1.9 - 0.75, 0.0, 1.0);
 	dist = smoothstep(0.0, 1.0, dist);
 	return color.rgb * (1.0 - dist);
 }
 
 #define BLOOM
 #ifdef BLOOM
-vec3 bloom() {
-	vec3 bloom = vec3(0.0);//texture(gcolor, texcoord).rgb;
-	const float sbias = 1.0 / 4.0f;
-	for (int i = 1; i < 7; i++) {
-		float height_bias = viewWidth / viewWidth;
-		vec3 data = texture(gcolor, texcoord + vec2(0.0, 0.0061) * float(i) * height_bias).rgb;
-		float de = 1.0 / float(i);
-		bloom += data * de;
 
-		data = texture(gcolor, texcoord + vec2(0.0, -0.0061) * float(i) * height_bias).rgb;
-		bloom += data * de;
-	}
-	return bloom * clamp(0.0, luma(bloom), 5.0) * 0.105;
+vec3 bloom(in vec2 tex) {
+	tex *= 0.5;
+	vec3 color = texture(gcolor, tex).rgb;
+	tex *= 0.5;
+	color += texture(gcolor, tex + vec2(0.0, 0.5) + vec2(0.003, 0.0)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.5) + vec2(0.0, 0.003)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.5) + vec2(-0.003, 0.0)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.5) + vec2(0.0, -0.003)).rgb * 0.25;
+	tex *= 0.5;
+	color += texture(gcolor, tex + vec2(0.0, 0.75) + vec2(0.001, 0.0)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.75) + vec2(0.0, 0.001)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.75) + vec2(-0.001, 0.0)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.75) + vec2(0.0, -0.001)).rgb * 0.25;
+	tex *= 0.5;
+	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.001, 0.0)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.0, 0.001)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(-0.001, 0.0)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.0, -0.001)).rgb * 0.25;
+	tex *= 0.5;
+	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.001, 0.0)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.0, 0.001)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(-0.001, 0.0)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.875) + vec2(0.0, -0.001)).rgb * 0.25;
+/*	tex *= 0.5;
+	color += texture(gcolor, tex + vec2(0.0, 0.9375) + vec2(0.001, 0.0)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.9375) + vec2(0.0, 0.001)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.9375) + vec2(-0.001, 0.0)).rgb * 0.25;
+	color += texture(gcolor, tex + vec2(0.0, 0.9375) + vec2(0.0, -0.001)).rgb * 0.25;*/
+
+	color *= 0.25;
+	color *= luma(color);
+
+	return color;
 }
+#endif
+
+#define FINAL_COLOR_ADJUST
+#ifdef FINAL_COLOR_ADJUST
+vec3 rgbToHsl(vec3 rgbColor) {
+	rgbColor = clamp(rgbColor, vec3(0.0), vec3(1.0));
+	float h, s, l;
+	float r = rgbColor.r, g = rgbColor.g, b = rgbColor.b;
+	float minval = min(r, min(g, b));
+	float maxval = max(r, max(g, b));
+	float delta = maxval - minval;
+	l = ( maxval + minval ) / 2.0;
+	if (delta == 0.0) {
+		h = 0.0;
+		s = 0.0;
+	} else {
+		if ( l < 0.5 )
+		s = delta / ( maxval + minval );
+		else
+		s = delta / ( 2.0 - maxval - minval );
+
+		float deltaR = (((maxval - r) / 6.0) + (delta / 2.0)) / delta;
+		float deltaG = (((maxval - g) / 6.0) + (delta / 2.0)) / delta;
+		float deltaB = (((maxval - b) / 6.0) + (delta / 2.0)) / delta;
+
+		if(r == maxval)
+		h = deltaB - deltaG;
+		else if(g == maxval)
+		h = ( 1.0 / 3.0 ) + deltaR - deltaB;
+		else if(b == maxval)
+		h = ( 2.0 / 3.0 ) + deltaG - deltaR;
+
+		if ( h < 0.0 )
+		h += 1.0;
+		if ( h > 1.0 )
+		h -= 1.0;
+	}
+	return vec3(h, s, l);
+}
+
+float hueToRgb(float v1, float v2, float vH) {
+	vH += float(vH < 0.0);
+	vH -= float(vH > 1.0);
+	if ((6.0 * vH) < 1.0) return (v1 + (v2 - v1) * 6.0 * vH);
+	if ((2.0 * vH) < 1.0) return v2;
+	if ((3.0 * vH) < 2.0) return (v1 + ( v2 - v1 ) * ( ( 2.0 / 3.0 ) - vH ) * 6.0);
+	return v1;
+}
+
+vec3 hslToRgb(vec3 hslColor) {
+	hslColor = clamp(hslColor, vec3(0.0), vec3(1.0));
+	float r, g, b;
+	float h = hslColor.r, s = hslColor.g, l = hslColor.b;
+	if (s == 0.0) {
+		r = l;
+		g = l;
+		b = l;
+	} else {
+		float v1, v2;
+		if (l < 0.5)
+		v2 = l * (1.0 + s);
+		else
+		v2 = (l + s) - (s * l);
+
+		v1 = 2.0 * l - v2;
+
+		r = hueToRgb(v1, v2, h + (1.0 / 3.0));
+		g = hueToRgb(v1, v2, h);
+		b = hueToRgb(v1, v2, h - (1.0 / 3.0));
+	}
+	return vec3(r, g, b);
+}
+
+vec3 colorBalance(vec3 rgbColor, vec3 hslColor, vec3 s, vec3 m, vec3 h) {
+	s *= clamp((hslColor.bbb - 0.333) / -0.25 + 0.5, 0.0, 1.0) * 0.7;
+	m *= clamp((hslColor.bbb - 0.333) /  0.25 + 0.5, 0.0, 1.0) *
+	clamp((hslColor.bbb + 0.333 - 1.0) / -0.25 + 0.5, 0.0, 1.0) * 0.7;
+	h *= clamp((hslColor.bbb + 0.333 - 1.0) /  0.25 + 0.5, 0.0, 1.0) * 0.7;
+	vec3 newColor = rgbColor;
+	newColor += s;
+	newColor += m;
+	newColor += h;
+	newColor = clamp(newColor, vec3(0.0), vec3(1.0));
+	vec3 newHslColor = rgbToHsl(newColor);
+	newHslColor.b = hslColor.b;
+	newColor = hslToRgb(newHslColor);
+	return newColor;
+}
+
+vec3 vibrance(vec3 hslColor, vec3 rgb, float v) {
+	hslColor.g = pow(hslColor.g, v * clamp(0.0, 1.0 - rgb.r * 0.36 + rgb.b * 0.21 + rgb.g * 0.26, 1.0));
+	return hslColor;
+}
+
+void color_adjust(inout vec3 c) {
+	vec3 hC = rgbToHsl(c);
+	c = colorBalance(c, hC, vec3(0.03, 0.02, 0.09), vec3(0.08, 0.11, 0.13), vec3(-0.03, -0.01, 0.0));
+	hC = vibrance(hC, c, 0.95);
+	c = mix(c, hslToRgb(hC), clamp(0.0, c.r + c.b * 0.1 + c.g * 0.05, 1.0));
+}
+
 #endif
 
 void main() {
 	vec3 color = texture(Output, texcoord).rgb;
 	#ifdef DOF
-		color = dof(color, texcoord, texture(depthtex0, texcoord).r);
+		color = dof(color, texcoord, centerDepthSmooth);
 	#endif
 
 	#ifdef BLOOM
-	color += bloom();
+	color += bloom(texcoord) * 0.5;
 	#endif
 
 	#ifdef MOTION_BLUR
@@ -209,8 +329,13 @@ void main() {
 	color = motionBlur(color, texcoord, viewpos);
 	#endif
 
+//	color = TONEMAP_METHOD(color);
+	color = pow(color, vec3(1. / gamma));
+	#ifdef FINAL_COLOR_ADJUST
+	color = clamp(vec3(0.0), color, vec3(1.0));
+	color_adjust(color);
+	#endif
 	color = vignette(color);
-	color = TONEMAP_METHOD(color);
 
 	gl_FragColor = vec4(color, 1.0f);
 }

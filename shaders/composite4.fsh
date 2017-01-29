@@ -6,22 +6,54 @@ uniform sampler2D composite;
 
 in vec2 texcoord;
 
-#define BLOOM
-#ifdef BLOOM
 vec3 bloom() {
-	vec3 bloom = vec3(0.0);
-	const float sbias = 1.0 / 4.0f;
-	for (int i = 1; i < 7; i++) {
-		vec3 data = textureLod(composite, texcoord + vec2(0.0061, 0.0) * float(i), 2.0).rgb;
-		float de = 1.0 / float(i);
-		bloom += data * de;
+	if (texcoord.x < 0.5 && texcoord.y < 0.5) {
+		vec2 c = texcoord * 2.0;
+		vec3 color = texture(composite, c, 1.0).rgb;
 
-		data = textureLod(composite, texcoord + vec2(-0.0061, 0.0) * float(i), 2.0).rgb;
-		bloom += data * de;
-	}
-	return bloom * 0.05;
+		return color;
+	} else if (texcoord.x < 0.25 && texcoord.y < 0.75 && texcoord.y > 0.5) {
+		vec2 c = (texcoord - vec2(0.0, 0.5)) * 4.0;
+		vec3 color = texture(composite, c, 1.0).rgb;
+		color += texture(composite, c + vec2(0.01, 0.0)).rgb;
+		color += texture(composite, c + vec2(0.0, 0.01)).rgb;
+		color += texture(composite, c + vec2(-0.01, 0.0)).rgb;
+		color += texture(composite, c + vec2(0.0, -0.01)).rgb;
+
+		return color * 0.2;
+	} else if (texcoord.x < 0.125 && texcoord.y < 0.875 && texcoord.y > 0.75) {
+		vec2 c = (texcoord - vec2(0.0, 0.75)) * 8.0;
+		vec3 color = texture(composite, c, 1.0).rgb;
+		color += texture(composite, c + vec2(0.005, 0.0), 1.0).rgb;
+		color += texture(composite, c + vec2(0.0, 0.005), 1.0).rgb;
+		color += texture(composite, c + vec2(-0.005, 0.0), 1.0).rgb;
+		color += texture(composite, c + vec2(0.0, -0.005), 1.0).rgb;
+
+		return color * 0.2;
+	} else if (texcoord.x < 0.0625 && texcoord.y < 0.9375 && texcoord.y > 0.875) {
+		vec2 c = (texcoord - vec2(0.0, 0.875)) * 16.0;
+		vec3 color = texture(composite, c, 1.0).rgb;
+		color += texture(composite, c + vec2(0.007, 0.0), 1.0).rgb;
+		color += texture(composite, c + vec2(0.0, 0.007), 1.0).rgb;
+		color += texture(composite, c + vec2(-0.007, 0.0), 1.0).rgb;
+		color += texture(composite, c + vec2(0.0, -0.007), 1.0).rgb;
+
+		return color * 0.2;
+	} else if (texcoord.x < 0.0313 && texcoord.y < 0.9688 && texcoord.y > 0.9375) {
+		vec2 c = (texcoord - vec2(0.0, 0.9375)) * 32.0;
+		vec3 color = texture(composite, c, 2.0).rgb;
+		color += texture(composite, c + vec2(0.01, 0.0), 1.0).rgb;
+		color += texture(composite, c + vec2(0.0, 0.01), 1.0).rgb;
+		color += texture(composite, c + vec2(-0.01, 0.0), 1.0).rgb;
+		color += texture(composite, c + vec2(0.0, -0.01), 1.0).rgb;
+		color += texture(composite, c + vec2(0.0075, 0.0), 1.0).rgb;
+		color += texture(composite, c + vec2(0.0, 0.0015), 1.0).rgb;
+		color += texture(composite, c + vec2(-0.0075, 0.0), 1.0).rgb;
+		color += texture(composite, c + vec2(0.0, -0.0075), 1.0).rgb;
+
+		return color * 0.11;
+	} else return vec3(0.0);
 }
-#endif
 
 //#define SSEDAA
 #ifdef SSEDAA
@@ -100,9 +132,7 @@ vec4 EDAA() {
 
 /* DRAWBUFFERS:03 */
 void main() {
-	#ifdef BLOOM
 	gl_FragData[0] = vec4(bloom(), 1.0);
-	#endif
 
 	#ifdef SSEDAA
 	gl_FragData[1] = EDAA();

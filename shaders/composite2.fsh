@@ -25,6 +25,7 @@ uniform vec3 cameraPosition;
 uniform float viewWidth;
 uniform float viewHeight;
 uniform float far;
+uniform float near;
 uniform float frameTimeCounter;
 uniform float rainStrength;
 
@@ -51,6 +52,10 @@ vec3 normalDecode(vec2 enc) {
 	nn.z = l;
 	nn.xy *= sqrt(l);
 	return normalize(nn.xyz * 2.0 + vec3(0.0, 0.0, -1.0));
+}
+
+float linearizeDepth(float depth) {
+	return (2.0 * near) / (far + near - depth * (far - near));
 }
 
 float flag;
@@ -106,29 +111,35 @@ float luma(vec3 color) {
 }
 
 #define SHADOW_MAP_BIAS 0.9
-float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos) {
+float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos, out float avrdepth) {
 	vec2 pix_size = vec2(1.0) / (shadowMapResolution);
 
 	float bias = cdepthN * 0.005;
 	vec2 texc_m = texc * shadowMapResolution;
+	avrdepth -= avrdepth;
 
 	vec2 px0 = vec2(texc + pix_size * vec2(0.5, 0.5));
 	float texel = texture(s, px0, 0).x;
+	avrdepth += texel;
 	float res1 = float(texel + bias < spos);
 
 	vec2 px1 = vec2(texc + pix_size * vec2(0.5, -0.5));
+	avrdepth += texel;
 	texel = texture(s, px1, 0).x;
 	float res2 = float(texel + bias < spos);
 
 	vec2 px2 = vec2(texc + pix_size * vec2(-0.5, -0.5));
 	texel = texture(s, px2, 0).x;
+	avrdepth += texel;
 	float res3 = float(texel + bias < spos);
 
 	vec2 px3 = vec2(texc + pix_size * vec2(-0.5, 0.5));
 	texel = texture(s, px3).x;
+	avrdepth += texel;
 	float res4 = float(texel + bias < spos);
 
 	float res = res1 + res2 + res3 + res4;
+	avrdepth *= 0.25;
 
 	return res * 0.25;
 }
@@ -225,44 +236,33 @@ float shadow_map() {
 		shadowposition.xy /= distortFactor;
 		shadowposition /= shadowposition.w;
 		shadowposition = shadowposition * 0.5f + 0.5f;
+
+		float avrdepth;
 		#ifdef SHADOW_FILTER
+			avrdepth -= avrdepth;
 			for (int i = 0; i < 25; i++) {
 				float shadowDepth = texture(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0008f).x;
+				avrdepth += shadowDepth;
 				shade += float(shadowDepth + 0.00005 / distortFactor < shadowposition.z);
 			}
 			shade /= 25.0f;
-			/*float shadowBaseDepth = texture(shadowtex1, shadowposition.st).x;
-			float minD = 200000.0; // infinite
-			if (shadowBaseDepth + 0.0001 / distortFactor < shadowposition.z) {
-				float variance = 0.01;
-				shade = 1.0;
-				for (int i = 0; i < 6; i++) {
-					for (int j = 0; j < 4; j++) {
-						float r = variance * (j + 1) / 5;
-						float shadowDepth = texture(shadowtex1, shadowposition.st + offset_table[i] * r).x;
-						if (minD > r && shadowDepth - 0.0001 / distortFactor > shadowposition.z) {
-							minD = r;
-						}
-					}
-				}
-				if (minD < 1.0) {
-					shade *= 1.0 -(shadowBaseDepth - shadowposition.z) * 64.0;//(variance - minD) / variance;
-				}
-			}*/
+			avrdepth /= 25.0f;
 		#else
-			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z);
+			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z, avrdepth);
 		#endif
 
 		float edgeX = abs(shadowposition.x) - 0.9f;
 		float edgeY = abs(shadowposition.y) - 0.9f;
 		shade -= max(0.0f, edgeX * 10.0f);
 		shade -= max(0.0f, edgeY * 10.0f);
+		shade = max(0.0, shade);
 		if (!is_plant) {
 			float phong = 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
 			shade = max(shade, phong);
 		}
+		shade *= 0.5 + 0.5 * min(distance(shadowposition.z, avrdepth) * 512.0, 1.0);
 	}
-	return max(saturate(shade), extShadow);
+	return max(shade, extShadow);
 }
 
 
@@ -362,7 +362,7 @@ void main() {
 	bool issky = (flag < 0.01);
 	is_plant = (flag > 0.48 && flag < 0.53);
 	vec2 mclight = vec2(0.0);
-	float shade = 0.0, fogMul = 1.0;
+	float shade = 0.0;
 	NdotL = dot(lightPosition, normal);
 	// Preprocess Gamma 2.2
 	color = pow(color, vec3(2.2f));
@@ -447,7 +447,7 @@ void main() {
 		float simulatedGI = 0.1 + 1.7 * mclight.y;
 		color = color * diffuse + color * ambientColor * simulatedGI;
 
-		color = mix(color, fogcolor, pow(cdepth / 512.0, 2.0 - rainStrength));
+		color = mix(fogcolor, color, clamp((512.0 - cdepth) / (512.0 - 64.0), 0.0, 1.0));
 		#ifdef CrespecularRays
 		float vl = texture(composite, texcoord * 0.5).b;
 		vl += texture(composite, texcoord * 0.5, 1.0).b;
@@ -457,7 +457,10 @@ void main() {
 		vl += texture(composite, texcoord * 0.5 + vec2(0.0, -0.0005)).b;
 		vl /= 6.0;
 
-		color += suncolor * pow(vl, 0.5) * max(0.0, 1.0 - eyebrightness * 0.1 * luma(suncolor)) * pow(max(0.0, dot(nvpos, lightPosition)), 2.0);
+		vl = 1.0 - (1.0 / (1.0 + vl) - 0.5) * 2.0;
+		vl *= (1.0 - extShadow);
+
+		color = mix(color, suncolor, vl * max(0.0, 1.0 - eyebrightness * 0.1 * luma(suncolor)) * pow(max(0.0, dot(nvpos, lightPosition)), 2.0));
 		#endif
 	}
 

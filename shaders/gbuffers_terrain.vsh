@@ -101,7 +101,7 @@ VSH {
 		position.xyz += binormal * sin(noise(gl_Vertex.yz) * 5.0 + time) * 0.07 * reset * maxStrength;
 
 		flag = 0.50;
-	} else if (blockId == 83.0 || blockId == 39 || blockId ==40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115 || blockId == 141 || blockId == 142) {
+	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115 || blockId == 59 || blockId == 141 || blockId == 142) {
 		flag = 0.51;
 	}
 
