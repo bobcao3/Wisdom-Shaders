@@ -206,9 +206,7 @@ float getwave(vec3 p) {
 	return (h - SEA_HEIGHT) * depth_bias;
 }
 
-float luma(in vec3 color) {
-	return dot(color,vec3(0.2126, 0.7152, 0.0722));
-}
+#define luma(color) dot(color,vec3(0.2126, 0.7152, 0.0722))
 
 vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
 	float lod = max(length(wwpos - cameraPosition) / 256.0, 0.01);
@@ -224,28 +222,20 @@ vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
 
 #ifdef PBR
 
-float D_GGX_TR(in vec3 N, in vec3 H, in float a) {
+float DistributionGGX(vec3 N, vec3 H, float roughness) {
+	float a      = roughness*roughness;
 	float a2     = a*a;
 	float NdotH  = max(dot(N, H), 0.0);
-	float NdotH2 = NdotH*NdotH;
 
-	float nom    = a2;
-	float denom  = (NdotH2 * (a2 - 1.0) + 1.0);
-	denom        = PI * denom * denom;
+	float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
+	denom = PI * denom * denom;
 
-	return nom / denom;
+	return a2 / denom;
 }
 
-vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
-  return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
-}
+#define fresnelSchlickRoughness(cosTheta, F0, roughness) (F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0))
 
-float GeometrySchlickGGX(float NdotV, float k) {
-	float nom   = NdotV;
-	float denom = NdotV * (1.0 - k) + k;
-
-	return nom / denom;
-}
+#define GeometrySchlickGGX(NdotV, k) (NdotV / (NdotV * (1.0 - k) + k))
 
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
 	float NdotV = max(dot(N, V), 0.0);
@@ -587,7 +577,7 @@ void main() {
 			//  specular.b (PBR only) -> Light emmission (Self lighting)
 			#ifdef PBR
 			vec3 halfwayDir = normalize(lightPosition - normalize(frag.vpos.xyz));
-			float stdNormal = D_GGX_TR(frag.normal, halfwayDir, specular.g);
+			float stdNormal = DistributionGGX(frag.normal, halfwayDir, specular.g);
 			float spec = max(dot(frag.normal, halfwayDir), 0.0) * stdNormal * specular.r;
 			//spec = clamp(0.0, spec, 1.0 - wetness2 * 0.5);
 

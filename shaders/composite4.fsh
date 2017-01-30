@@ -24,7 +24,6 @@
 #version 130
 #pragma optimize(on)
 
-const bool compositeMipmapEnabled = true;
 uniform sampler2D composite;
 
 in vec2 texcoord;
@@ -32,12 +31,18 @@ in vec2 texcoord;
 const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
 const float weight[9] = float[] (0.066812, 0.129101, 0.112504, 0.08782, 0.061406, 0.03846, 0.021577, 0.010843, 0.004881);
 
+#define blurLoop(i) color += texture(composite, texcoord + vec2(0.0018, .0) * offset[i]).rgb * weight[i]; color += texture(composite, texcoord - vec2(0.0018, .0) * offset[i]).rgb * weight[i];
+
 vec3 bloom() {
 	vec3 color = texture(composite, texcoord).rgb * weight[0];
-	for(int i = 1; i < 9; i++) {
-		color += texture(composite, texcoord + vec2(0.0018, .0) * offset[i]).rgb * weight[i];
-		color += texture(composite, texcoord - vec2(0.0018, .0) * offset[i]).rgb * weight[i];
-	}
+	blurLoop(1)
+	blurLoop(2)
+	blurLoop(3)
+	blurLoop(4)
+	blurLoop(5)
+	blurLoop(6)
+	blurLoop(7)
+	blurLoop(8)
 	return color;
 }
 

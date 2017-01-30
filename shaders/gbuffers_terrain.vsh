@@ -61,12 +61,9 @@ out vec4 vtexcoordam;
 
 #include "gbuffers.inc.vsh"
 
-float hash( vec2 p ) {
-	float h = dot(p,vec2(127.1,311.7));
-	return fract(sin(h)*43758.5453123);
-}
+#define hash(p) fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123)
 
-float noise( in vec2 p ) {
+/*float noise( in vec2 p ) {
 	vec2 i = floor( p );
 	vec2 f = fract( p );
 	vec2 u = f*f*(3.0-2.0*f);
@@ -74,7 +71,7 @@ float noise( in vec2 p ) {
 	hash( i + vec2(1.0,0.0) ), u.x),
 	mix( hash( i + vec2(0.0,1.0) ),
 	hash( i + vec2(1.0,1.0) ), u.x), u.y);
-}
+}*/
 
 VSH {
 	color = gl_Color;
@@ -113,19 +110,19 @@ VSH {
 			float blockId = mc_Entity.x;
 			float maxStrength = 1.0 + rainStrength * 0.5;
 			float time = frameTimeCounter * 3.0;
-			float reset = cos(noise(position.xy) * 10.0 + time * 0.1);
+			float reset = cos(hash(position.xy) * 10.0 + time * 0.1);
 			reset = max( reset * reset, max(rainStrength, 0.1));
-			position.x += sin(noise(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
-			position.z += sin(noise(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
+			position.x += sin(hash(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
+			position.z += sin(hash(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
 		}
 		flag = 0.50;
 	} else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0) {
 		float maxStrength = 1.0 + rainStrength * 0.5;
 		float time = frameTimeCounter * 3.0;
-		float reset = cos(noise(position.xy) * 10.0 + time * 0.1);
+		float reset = cos(hash(position.xy) * 10.0 + time * 0.1);
 		reset = max( reset * reset, max(rainStrength, 0.1));
-		position.xyz += tangent * sin(noise(gl_Vertex.xz) * 5.0 + time) * 0.07 * reset * maxStrength;
-		position.xyz += binormal * sin(noise(gl_Vertex.yz) * 5.0 + time) * 0.07 * reset * maxStrength;
+		position.xyz += tangent * sin(hash(gl_Vertex.xz) * 5.0 + time) * 0.07 * reset * maxStrength;
+		position.xyz += binormal * sin(hash(gl_Vertex.yz) * 5.0 + time) * 0.07 * reset * maxStrength;
 
 		flag = 0.50;
 	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115 || blockId == 59 || blockId == 141 || blockId == 142) {

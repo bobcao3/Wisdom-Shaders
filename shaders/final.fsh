@@ -144,13 +144,19 @@ vec3 vignette(vec3 color) {
 const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
 const float weight[9] = float[] (0.066812, 0.129101, 0.112504, 0.08782, 0.061406, 0.03846, 0.021577, 0.010843, 0.004881);
 
+#define blurLoop(i) color += texture(gcolor, texcoord + direction * offset[i]).rgb * weight[i]; color += texture(gcolor, texcoord - direction * offset[i]).rgb * weight[i];
+
 vec3 blur() {
 	vec3 color = texture(gcolor, texcoord).rgb * weight[0];
 	vec2 direction = vec2(0.0, 0.0018) / viewHeight * viewWidth;
-	for(int i = 1; i < 9; i++) {
-		color += texture(gcolor, texcoord + direction * offset[i]).rgb * weight[i];
-		color += texture(gcolor, texcoord - direction * offset[i]).rgb * weight[i];
-	}
+	blurLoop(1)
+	blurLoop(2)
+	blurLoop(3)
+	blurLoop(4)
+	blurLoop(5)
+	blurLoop(6)
+	blurLoop(7)
+	blurLoop(8)
 	return color;
 }
 
@@ -238,15 +244,12 @@ vec3 colorBalance(vec3 rgbColor, vec3 hslColor, vec3 s, vec3 m, vec3 h) {
 	return newColor;
 }
 
-vec3 vibrance(vec3 hslColor, vec3 rgb, float v) {
-	hslColor.g = pow(hslColor.g, v * clamp(0.0, 1.0 - rgb.r * 0.36 + rgb.b * 0.21 + rgb.g * 0.26, 1.0));
-	return hslColor;
-}
+#define vibrance(hslColor, rgb, v) hslColor.g = pow(hslColor.g, v * clamp(0.0, 1.0 - rgb.r * 0.36 + rgb.b * 0.21 + rgb.g * 0.26, 1.0));
 
 void color_adjust(inout vec3 c) {
 	vec3 hC = rgbToHsl(c);
 	c = colorBalance(c, hC, vec3(0.03, 0.02, 0.09), vec3(0.08, 0.11, 0.13), vec3(-0.13, -0.11, -0.1));
-	hC = vibrance(hC, c, 0.95);
+	vibrance(hC, c, 0.95)
 	c = mix(c, hslToRgb(hC), clamp(0.0, c.r + c.b * 0.1 + c.g * 0.05, 1.0));
 }
 
