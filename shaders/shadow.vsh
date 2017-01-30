@@ -22,6 +22,8 @@
 // =============================================================================
 
 #version 130
+#extension GL_ARB_separate_shader_objects : enable
+
 #pragma optimize(on)
 
 #define SHADOW_MAP_BIAS 0.9
@@ -32,8 +34,8 @@ attribute vec4 mc_midTexCoord;
 uniform float rainStrength;
 uniform float frameTimeCounter;
 
-out vec2 texcoord;
-out vec4 color;
+layout(location = 0) out vec2 texcoord;
+layout(location = 1) out vec4 color;
 
 #define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
 

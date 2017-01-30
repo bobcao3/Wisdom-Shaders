@@ -24,7 +24,7 @@
 #version 130
 #pragma optimize(on)
 
-out highp vec2 texcoord;
+invariant out vec2 texcoord;
 
 void main() {
 	gl_Position = ftransform();

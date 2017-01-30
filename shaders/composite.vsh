@@ -32,9 +32,9 @@ uniform int worldTime;
 uniform float rainStrength;
 float wTimeF = float(worldTime);
 
-out vec2 texcoord;
-flat out vec3 worldLightPos;
-flat out vec3 suncolor;
+invariant out vec2 texcoord;
+invariant flat out vec3 worldLightPos;
+invariant flat out vec3 suncolor;
 
 flat out float TimeSunrise;
 flat out float TimeNoon;

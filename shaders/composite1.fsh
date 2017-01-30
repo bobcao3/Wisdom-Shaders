@@ -28,7 +28,7 @@ uniform sampler2D composite;
 uniform sampler2D gdepth;
 //uniform sampler2D gnormal;
 
-in vec2 texcoord;
+invariant in vec2 texcoord;
 
 uniform float far;
 

@@ -50,22 +50,27 @@ uniform float viewHeight;
 uniform float far;
 uniform float near;
 uniform float frameTimeCounter;
-uniform float rainStrength;
 
 uniform bool isEyeInWater;
 
 uniform ivec2 eyeBrightnessSmooth;
 
-in vec2 texcoord;
-flat in vec3 fogcolor;
-flat in vec3 suncolor;
-flat in float extShadow;
-
-flat in vec3 skycolor;
-flat in vec3 horizontColor;
-
 const float PI = 3.14159;
 const float hPI = PI / 2;
+
+invariant in vec2 texcoord;
+invariant flat in vec3 suncolor;
+/*
+invariant flat in float TimeSunrise;
+invariant flat in float TimeNoon;
+invariant flat in float TimeSunset;
+invariant flat in float TimeMidnight;*/
+invariant flat in float extShadow;
+
+invariant flat in vec3 skycolor;
+invariant flat in vec3 fogcolor;
+invariant flat in vec3 horizontColor;
+
 
 #define saturate(x) clamp(0.0,x,1.0)
 
@@ -134,35 +139,29 @@ float luma(vec3 color) {
 }
 
 #define SHADOW_MAP_BIAS 0.9
-float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos, out float avrdepth) {
+float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos) {
 	vec2 pix_size = vec2(1.0) / (shadowMapResolution);
 
 	float bias = cdepthN * 0.005;
 	vec2 texc_m = texc * shadowMapResolution;
-	avrdepth -= avrdepth;
 
 	vec2 px0 = vec2(texc + pix_size * vec2(0.5, 0.5));
 	float texel = texture(s, px0, 0).x;
-	avrdepth += texel;
 	float res1 = float(texel + bias < spos);
 
 	vec2 px1 = vec2(texc + pix_size * vec2(0.5, -0.5));
-	avrdepth += texel;
 	texel = texture(s, px1, 0).x;
 	float res2 = float(texel + bias < spos);
 
 	vec2 px2 = vec2(texc + pix_size * vec2(-0.5, -0.5));
 	texel = texture(s, px2, 0).x;
-	avrdepth += texel;
 	float res3 = float(texel + bias < spos);
 
 	vec2 px3 = vec2(texc + pix_size * vec2(-0.5, 0.5));
 	texel = texture(s, px3).x;
-	avrdepth += texel;
 	float res4 = float(texel + bias < spos);
 
 	float res = res1 + res2 + res3 + res4;
-	avrdepth *= 0.25;
 
 	return res * 0.25;
 }
@@ -260,18 +259,14 @@ float shadow_map() {
 		shadowposition /= shadowposition.w;
 		shadowposition = shadowposition * 0.5f + 0.5f;
 
-		float avrdepth;
 		#ifdef SHADOW_FILTER
-			avrdepth -= avrdepth;
 			for (int i = 0; i < 25; i++) {
 				float shadowDepth = texture(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0008f).x;
-				avrdepth += shadowDepth;
 				shade += float(shadowDepth + 0.00005 / distortFactor < shadowposition.z);
 			}
 			shade /= 25.0f;
-			avrdepth /= 25.0f;
 		#else
-			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z, avrdepth);
+			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z);
 		#endif
 
 		float edgeX = abs(shadowposition.x) - 0.9f;
@@ -283,7 +278,6 @@ float shadow_map() {
 			float phong = 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
 			shade = max(shade, phong);
 		}
-		shade *= 0.5 + 0.5 * min(distance(shadowposition.z, avrdepth) * 512.0, 1.0);
 	}
 	return max(shade, extShadow);
 }
@@ -434,8 +428,8 @@ void main() {
 		specular.r = clamp(0.01, specular.r, 0.99);
 		vec3 V = nvpos;
 		vec3 F0 = vec3(0.02);
-    F0 = mix(F0, color, specular.g);
-    vec3 F = fresnelSchlickRoughness(max(dot(normal, V), 0.0), F0, specular.r);
+		F0 = mix(F0, color, specular.g);
+		vec3 F = fresnelSchlickRoughness(max(dot(normal, V), 0.0), F0, specular.r);
 
 		vec3 halfwayDir = normalize(lightPosition - V);
 		vec3 no = GeometrySmith(normal, V, lightPosition, specular.r) * DistributionGGX(normal, halfwayDir, specular.r) * F;
@@ -445,8 +439,8 @@ void main() {
 		if(is_plant) shade /= 1.0 + mix(0.0, 2.0, max(0.0, pow(dot(halfwayDir, lightPosition), 16.0)));
 
 		vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - specular.g;
+		vec3 kD = vec3(1.0) - kS;
+		kD *= 1.0 - specular.g;
 
 		diffuse_sun += (kD * color * PI + brdf) * max(0.0, NdotL) * (1.0 - shade);
 		//diffuse_sun += no / denominator * diffuse_sun * max(dot(worldLightPos, normal), 0.0);
@@ -483,7 +477,7 @@ void main() {
 		vl = 1.0 - (1.0 / (1.0 + vl) - 0.5) * 2.0;
 		vl *= (1.0 - extShadow);
 
-		color = mix(color, suncolor, vl * max(0.0, 1.0 - eyebrightness * 0.1 * luma(suncolor)) * pow(max(0.0, dot(nvpos, lightPosition)), 2.0));
+		color = mix(color, suncolor, vl * max(0.0, 1.0 - eyebrightness * 0.1 * luma(suncolor)) * max(0.0, dot(nvpos, lightPosition)));
 		#endif
 	}
 

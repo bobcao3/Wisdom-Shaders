@@ -22,12 +22,15 @@
 // =============================================================================
 
 #version 130
+
+#extension GL_ARB_separate_shader_objects : enable
+
 #pragma optimize(on)
 
 uniform sampler2D texture;
 
-in vec2 texcoord;
-in vec4 color;
+layout(location = 0) in vec2 texcoord;
+layout(location = 1) in vec4 color;
 
 void main() {
 	vec4 c = texture2D(texture, texcoord) * color;

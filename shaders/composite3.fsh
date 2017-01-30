@@ -59,9 +59,20 @@ uniform float rainStrength;
 
 uniform bool isEyeInWater;
 
-in vec2 texcoord;
-in vec3 worldLightPos;
-in vec3 suncolor;
+invariant in vec2 texcoord;
+invariant flat in vec3 suncolor;
+/*
+invariant flat in float TimeSunrise;
+invariant flat in float TimeNoon;
+invariant flat in float TimeSunset;
+invariant flat in float TimeMidnight;*/
+invariant flat in float extShadow;
+
+invariant flat in vec3 skycolor;
+invariant flat in vec3 fogcolor;
+invariant flat in vec3 horizontColor;
+
+invariant flat in vec3 worldLightPos;
 
 vec3 normalDecode(in vec2 enc) {
 	vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
@@ -119,7 +130,6 @@ void init_struct() {
 }
 
 #define SHADOW_MAP_BIAS 0.9
-in float extShadow;
 float fast_shadow_map(in vec3 wpos) {
 	if (frag.cdepthN > 0.9f)
 		return 0.0f;
@@ -248,12 +258,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
 
 #endif
 
-
-vec3 lightPositionWorld = mat3(gbufferModelViewInverse) * lightPosition;
-
-in vec3 skycolor;
-in vec3 horizontColor;
-vec4 calcCloud(in vec3 wpos) {
+vec4 calcCloud(in vec3 wpos, inout vec3 sunLuma) {
 	if (wpos.y < 0.03) return vec4(0.0);
 
 	vec3 spos = wpos / wpos.y * 2850.0;
@@ -306,8 +311,11 @@ vec4 calcCloud(in vec3 wpos) {
 
 	vec3 cloud_color = skycolor + horizontColor;
 	cloud_color *= 1.0 - rainStrength * 0.8;
-	cloud_color += pow(max(0.0, dot(wpos, normalize(lightPositionWorld))), 7.0) * suncolor;
+	cloud_color += pow(max(0.0, dot(wpos, worldLightPos)), 9.0) * horizontColor * (1.0 - total);
 	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.9) * 10.0);
+
+	total = clamp(0.0, total, 1.0);
+	sunLuma += pow(max(0.0, dot(wpos, worldLightPos)), 3.0) * suncolor * total;
 
 	return vec4(cloud_color, total);
 }
@@ -320,13 +328,13 @@ vec3 calcSkyColor(in vec3 wpos, float shade) {
 	vec3 sky = skycolor * skycolor_position * vec3(1.5 , 2.3, 2.6);
 	sky = mix(sky, horizontColor * 0.6, horizont_position);
 
-	float sun_glow = max(0.0, dot(lightPositionWorld, normalize(wpos)));
-	sky += pow(sun_glow, 4.0) * 0.2 * suncolor * (1.0 - extShadow) * (1.0 - shade);
+	float sun_glow = max(0.0, dot(worldLightPos, normalize(wpos)));
+	sky += pow(sun_glow, 4.0) * 0.23 * suncolor * (1.0 - extShadow) * (1.0 - shade);
 
 	// Sun.
 	sky += clamp(pow(sun_glow, 650.0), 0.0, 0.2) * suncolor.rgb * (1.0 - rainStrength * 0.6) * 10.0 * (1.0 - shade) * (1.0 - extShadow);
 
-	vec4 cloud = calcCloud(normalize(wpos));
+	vec4 cloud = calcCloud(normalize(wpos), sky);
 	sky = mix(sky, cloud.rgb, cloud.a);
 
 	return sky;
@@ -570,8 +578,6 @@ void main() {
 
 			specular.r = clamp(0.00001, specular.r + wetness2 * 0.25, 0.7);
 			specular.r = mix(specular.r, 0.3, wetness_distribution);
-
-			color *= (1.0 - 0.5 * wetness_distribution);
 		}
 
 		if (!isEyeInWater){
@@ -652,5 +658,5 @@ void main() {
 	color = vec3(luma(color));
 	#endif
 
-	gl_FragData[0] = vec4(max(vec3(0.0), color), 1.0);
+	gl_FragData[0] = vec4(clamp(vec3(0.0), color, vec3(6.0)), 1.0);
 }

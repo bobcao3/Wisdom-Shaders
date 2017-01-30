@@ -22,6 +22,10 @@
 // =============================================================================
 
 #version 130
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shader_texture_lod : require
+
 #pragma optimize(on)
 
 const int shadowMapResolution = 1512; // [1024 1512 2048 4096]
@@ -58,10 +62,10 @@ uniform float frameTimeCounter;
 const float eyeBrightnessHalflife	 = 8.5f;
 uniform ivec2 eyeBrightnessSmooth;
 
-in vec2 texcoord;
-flat in vec3 worldLightPos;
-flat in vec3 suncolor;
-flat in float extShadow;
+invariant in vec2 texcoord;
+invariant flat in vec3 worldLightPos;
+invariant flat in vec3 suncolor;
+invariant flat in float extShadow;
 
 const float PI = 3.14159;
 const float hPI = PI / 2;
@@ -332,7 +336,7 @@ void main() {
 	if (!issky) {
 		#ifdef AO_Enabled
 		if (flag > 0.22 && (flag < 0.71f || flag > 0.79f))
-			ao = AO();
+			ao = clamp(0.0, AO(), 1.0);
 		#endif
 	}
 

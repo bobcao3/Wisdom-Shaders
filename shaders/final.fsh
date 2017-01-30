@@ -64,7 +64,6 @@ uniform float aspectRatio;
 
 const float gamma = 2.2;
 
-//#define TONEMAP_METHOD RomBinDaHouseToneMapping
 #define luma(color)	dot(color,vec3(0.2126, 0.7152, 0.0722))
 
 in float centerDepth;
@@ -133,48 +132,6 @@ vec3 motionBlur(vec3 color, in vec2 uv, in vec4 viewPosition) {
 }
 #endif
 
-/*
-vec3 lumaBasedReinhardToneMapping(vec3 color) {
-	float l = luma(color);
-	float toneMappedLuma = l / (1. + l);
-	color *= toneMappedLuma / l;
-	color = pow(color, vec3(1. / gamma));
-	return color;
-}
-
-vec3 whitePreservingLumaBasedReinhardToneMapping(in vec3 color) {
-	const float white = 1.03;
-	float l = luma(color);
-	float toneMappedLuma = l * (1. + l / (white * white)) / (1. + l);
-	color *= toneMappedLuma / l;
-	color = pow(color, vec3(1. / gamma));
-	return vec3(color);
-}
-
-vec3 RomBinDaHouseToneMapping(vec3 color) {
-	color = exp( -1.0 / ( 2.72*color + 0.15 ) );
-	color = pow(color, vec3(1. / gamma));
-	return color;
-}
-
-vec3 Uncharted2ToneMapping(vec3 color) {
-	const float A = 0.65;
-	const float B = 0.30;
-	const float C = 0.10;
-	const float D = 0.20;
-	const float E = 0.02;
-	const float F = 0.30;
-	const float W = 11.2;
-	const float exposure = 2.;
-	color *= exposure;
-	color = ((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - E / F;
-	float white = ((W * (A * W + C * B) + D * E) / (W * (A * W + B) + D * F)) - E / F;
-	color /= white;
-	color = pow(color, vec3(1. / gamma));
-	return color;
-}
-*/
-
 vec3 vignette(vec3 color) {
 	float dist = distance(texcoord.st, vec2(0.5f));
 	dist = clamp(dist * 1.9 - 0.75, 0.0, 1.0);
@@ -189,7 +146,7 @@ const float weight[9] = float[] (0.066812, 0.129101, 0.112504, 0.08782, 0.061406
 
 vec3 blur() {
 	vec3 color = texture(gcolor, texcoord).rgb * weight[0];
-	vec2 direction = vec2(0.0, 0.0018) / viewWidth * viewHeight;
+	vec2 direction = vec2(0.0, 0.0018) / viewHeight * viewWidth;
 	for(int i = 1; i < 9; i++) {
 		color += texture(gcolor, texcoord + direction * offset[i]).rgb * weight[i];
 		color += texture(gcolor, texcoord - direction * offset[i]).rgb * weight[i];
@@ -254,10 +211,7 @@ vec3 hslToRgb(vec3 hslColor) {
 		b = l;
 	} else {
 		float v1, v2;
-		if (l < 0.5)
-		v2 = l * (1.0 + s);
-		else
-		v2 = (l + s) - (s * l);
+		v2 = l < 0.5 ? l * (1.0 + s) : v2 = (l + s) - (s * l);
 
 		v1 = 2.0 * l - v2;
 
@@ -291,7 +245,7 @@ vec3 vibrance(vec3 hslColor, vec3 rgb, float v) {
 
 void color_adjust(inout vec3 c) {
 	vec3 hC = rgbToHsl(c);
-	c = colorBalance(c, hC, vec3(0.03, 0.02, 0.09), vec3(0.08, 0.11, 0.13), vec3(-0.03, -0.01, 0.0));
+	c = colorBalance(c, hC, vec3(0.03, 0.02, 0.09), vec3(0.08, 0.11, 0.13), vec3(-0.13, -0.11, -0.1));
 	hC = vibrance(hC, c, 0.95);
 	c = mix(c, hslToRgb(hC), clamp(0.0, c.r + c.b * 0.1 + c.g * 0.05, 1.0));
 }

@@ -22,6 +22,10 @@
 // =============================================================================
 
 #version 130
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shader_texture_lod : require
+
 #pragma optimize(on)
 
 #define SMOOTH_TEXTURE
@@ -34,17 +38,16 @@ uniform sampler2D specular;
 uniform sampler2D normals;
 #endif
 
-in lowp vec4 color;
-in lowp vec3 normal;
-in highp vec2 texcoord;
-in highp vec3 wpos;
-in lowp vec2 lmcoord;
-
-in float flag;
+layout(location = 0) in lowp vec4 color;
+layout(location = 1) in lowp vec3 normal;
+layout(location = 2) in highp vec2 texcoord;
+layout(location = 3) in highp vec3 wpos;
+layout(location = 4) in lowp vec2 lmcoord;
+layout(location = 5) in float flag;
 
 #ifdef NORMALS
-in vec3 tangent;
-in vec3 binormal;
+layout(location = 6) in vec3 tangent;
+layout(location = 7) in vec3 binormal;
 #endif
 
 #ifdef SMOOTH_TEXTURE
@@ -99,7 +102,7 @@ void main() {
 	gl_FragData[0] = texF(texture, texcoord_adj) * color;
 	gl_FragData[1] = vec4(wpos, 1.0);
 	#ifdef NORMALS
-		if (length(wpos) < 128.0) {
+		if (length(wpos) < 96.0) {
 			vec3 normal2 = texF(normals, texcoord_adj).xyz * 2.0 - 1.0;
 			const float bumpmult = 0.35;
 			normal2 = normal2 * vec3(bumpmult, bumpmult, bumpmult) + vec3(0.0f, 0.0f, 1.0f - bumpmult);
