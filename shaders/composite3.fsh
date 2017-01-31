@@ -61,11 +61,11 @@ uniform bool isEyeInWater;
 
 invariant in vec2 texcoord;
 invariant flat in vec3 suncolor;
-/*
+
 invariant flat in float TimeSunrise;
 invariant flat in float TimeNoon;
 invariant flat in float TimeSunset;
-invariant flat in float TimeMidnight;*/
+invariant flat in float TimeMidnight;
 invariant flat in float extShadow;
 
 invariant flat in vec3 skycolor;
@@ -319,10 +319,10 @@ vec3 calcSkyColor(in vec3 wpos, float shade) {
 	sky = mix(sky, horizontColor * 0.6, horizont_position);
 
 	float sun_glow = max(0.0, dot(worldLightPos, normalize(wpos)));
-	sky += pow(sun_glow, 4.0) * 0.23 * suncolor * (1.0 - extShadow) * (1.0 - shade);
+	sky += pow(sun_glow, 4.0) * 0.23 * suncolor * (1.0 - extShadow) * (1.0 - shade) * (1.0 + TimeMidnight * 10.0);
 
 	// Sun.
-	sky += clamp(pow(sun_glow, 650.0), 0.0, 0.2) * suncolor.rgb * (1.0 - rainStrength * 0.6) * 10.0 * (1.0 - shade) * (1.0 - extShadow);
+	sky += clamp(pow(sun_glow, 690.0), 0.0, 0.2) * suncolor.rgb * (1.0 - rainStrength * 0.6) * 10.0 * (1.0 - shade) * (1.0 - extShadow) * (1.0 + TimeMidnight * 17.0);
 
 	vec4 cloud = calcCloud(normalize(wpos), sky);
 	sky = mix(sky, cloud.rgb, cloud.a);
@@ -563,7 +563,8 @@ void main() {
 			wetness_distribution *= wetness_distribution * wetness2;
 			wetness_distribution *= wetness_distribution;
 			wetness_distribution = clamp(wetness_distribution, 0.0, 1.0);
-			specular.g = clamp(0.3, specular.g - wetness2 * 0.005, 0.9999);
+			if (specular.g < 0.000001f) specular.g = 0.3;
+			specular.g = clamp(0.003, specular.g - wetness2 * 0.005, 0.9999);
 			specular.g = mix(specular.g, 0.1, wetness_distribution);
 
 			specular.r = clamp(0.00001, specular.r + wetness2 * 0.25, 0.7);
