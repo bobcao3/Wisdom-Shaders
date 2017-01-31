@@ -309,8 +309,11 @@ vec4 calcCloud(in vec3 wpos, inout vec3 sunLuma) {
 
 vec3 calcSkyColor(in vec3 wpos, float shade) {
 	float horizont = abs(wpos.y + cameraPosition.y - 0.5);
+
+	if (horizont < -0.5) return vec3(0.0);
+
 	float skycolor_position = clamp(max(pow(max(1.0 - horizont / (35.0 * 100.0),0.01),8.0)-0.1,0.0), 0.35, 1.0);
-	float horizont_position = max(pow(max(1.0 - horizont / (16.5*100.0) ,0.01),3.0)-0.1,0.0);
+	float horizont_position = max(pow(max(1.0 - horizont / (16.5*100.0) ,0.01),3.0)-0.1, 0.0);
 
 	vec3 sky = skycolor * skycolor_position * vec3(1.5 , 2.3, 2.6);
 	sky = mix(sky, horizontColor * 0.6, horizont_position);
