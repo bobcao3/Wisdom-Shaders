@@ -143,7 +143,7 @@ const float circle_count = 25.0;
 float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos) {
 	vec2 pix_size = vec2(1.0) / (shadowMapResolution);
 
-	float bias = cdepthN * 0.005;
+	float bias = cdepthN * 0.002;
 	vec2 texc_m = texc * shadowMapResolution;
 
 	vec2 px0 = vec2(texc + pix_size * vec2(0.5, 0.5));
@@ -254,7 +254,7 @@ float shadow_map() {
 	if (NdotL <= 0.05f && !is_plant) {
 		shade = 1.0f;
 	} else {
-		vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
+		vec4 shadowposition = shadowModelView * vec4(wpos + wnormal * 0.01, 1.0f);
 		shadowposition = shadowProjection * shadowposition;
 		float distb = length(shadowposition.xy);
 		float distortFactor = (1.0f - SHADOW_MAP_BIAS) + distb * SHADOW_MAP_BIAS;
@@ -265,7 +265,7 @@ float shadow_map() {
 		#ifdef SHADOW_FILTER
 			for (int i = 0; i < 25; i++) {
 				float shadowDepth = texture(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0008f).x;
-				shade += float(shadowDepth + 0.00005 / distortFactor < shadowposition.z);
+				shade += float(shadowDepth + 0.00002 / distortFactor < shadowposition.z);
 			}
 			shade /= 25.0f;
 		#else
@@ -286,9 +286,6 @@ float shadow_map() {
 }
 
 
-#define PBR
-
-#ifdef PBR
 uniform sampler2D gaux1;
 
 #define GeometrySchlickGGX(NdotV, k) (NdotV / (NdotV * (1.0 - k) + k))
@@ -314,8 +311,6 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 }
 
 #define fresnelSchlickRoughness(cosTheta, F0, roughness) (F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0))
-
-#endif
 
 #define AO_Enabled
 #ifdef AO_Enabled
@@ -398,13 +393,11 @@ void main() {
 		float light_distance = clamp(0.08, (1.0 - pow(mclight.x, 6.6)), 1.0);
 		const float light_quadratic = 4.9f;
 		float max_light = 7.5 * mclight.x * mclight.x;
-		#ifdef PBR
 		vec4 specular = texture(gaux1, texcoord);
 		if (specular.b > 0.1 || pow(mclight.x, 6.0) > 0.9) {
 			light_distance = 0.04;
 			max_light = 13.5;
 		}
-		#endif
 
 		const float light_constant1 = 1.09f;
 		const float light_constant2 = 1.09f;
@@ -413,7 +406,6 @@ void main() {
 		vec3 diffuse_torch = attenuation * torchColor;
 		vec3 diffuse_sun = (1.0 - shade) * suncolor * clamp(0.0, luma(skycolor) * 4.5, 1.0);
 
-		#ifdef PBR
 		bool is_plant = (flag > 0.49 && flag < 0.53);
 		//if (flag < 0.6f || !is_plant) {
 		//	diffuse_sun *= 0.63 + GeometrySmith(normal, normalize(wpos - vec3(0.0, -1.67, 0.0)), shadowLightPosition, specular.r) * 0.37;
@@ -442,7 +434,6 @@ void main() {
 		// Spec is in composite1.fsh
 		diffuse_torch *= 1.0 - specular.r * 0.43;
 		//diffuse_torch *= 1.0 + specular.b;
-		#endif
 
 		vec3 diffuse = diffuse_sun + diffuse_torch;
 

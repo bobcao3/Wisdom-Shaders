@@ -221,10 +221,6 @@ vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
 	return normalize(cross(bitangent, tangent));
 }
 
-#define PBR
-
-#ifdef PBR
-
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
 	float a      = roughness*roughness;
 	float a2     = a*a;
@@ -248,8 +244,6 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
 
 	return ggx1 * ggx2;
 }
-
-#endif
 
 vec4 calcCloud(in vec3 wpos, inout vec3 sunLuma) {
 	if (wpos.y < 0.03) return vec4(0.0);
@@ -549,15 +543,10 @@ void main() {
 		frag.wpos.y -= 1.67f;
 		// Preprocess Specular
 		vec4 org_specular = texture(gaux1, texcoord);
-		#ifdef PBR
-			vec3 specular = vec3(0.0);
-			specular.r = min(org_specular.g, 0.9999);
-			specular.g = org_specular.r;
-			specular.b = org_specular.b;
-		#else
-			vec3 specular = org_specular.rgb;
-			specular.g = specular.g * (1.0 - specular.r);
-		#endif
+		vec3 specular = vec3(0.0);
+		specular.r = min(org_specular.g, 0.9999);
+		specular.g = org_specular.r;
+		specular.b = org_specular.b;
 
 		if (!frag_mask.is_water) {
 			vec3 cwpos = frag.wpos + cameraPosition;
@@ -579,7 +568,6 @@ void main() {
 			//  specular.g -> Roughness
 			//  specular.r -> Metalness (Reflectness)
 			//  specular.b (PBR only) -> Light emmission (Self lighting)
-			#ifdef PBR
 			vec3 halfwayDir = normalize(lightPosition - normalize(frag.vpos.xyz));
 			float stdNormal = DistributionGGX(frag.normal, halfwayDir, specular.g);
 			float spec = max(dot(frag.normal, halfwayDir), 0.0) * stdNormal * specular.r;
@@ -623,12 +611,6 @@ void main() {
 				sunref *= 0.5 * fresnel;
 			}
 			sunref *= (1.0 - extShadow) * (1.0 - wetness2 * 0.6);
-			#else
-			float shininess = 32.0f - 30.0f * specular.g;
-			vec3 halfwayDir = normalize(lightPosition - normalize(vpos.xyz));
-			// Sun reflect
-			vec3 sunref = 0.5 * suncolor * spec * (1.0 - shade);
-			#endif
 
 			color += min(vec3(1.5), sunref);
 			//color = reflection.rgb * reflection.a;
