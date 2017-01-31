@@ -23,7 +23,7 @@
 
 #version 130
 
-#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_separate_shader_objects : require
 #extension GL_ARB_shader_texture_lod : require
 
 #pragma optimize(on)

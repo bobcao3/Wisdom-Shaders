@@ -22,7 +22,7 @@
 // =============================================================================
 
 #version 130
-#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_separate_shader_objects : require
 
 #pragma optimize(on)
 
@@ -44,11 +44,15 @@ layout(location = 1) out vec4 color;
 #define WAVING_SHADOW
 
 void main() {
-	#ifdef WAVING_SHADOW
 	vec4 position = gl_Vertex;
+	float rand_ang = hash(position.xz) * 0.3 * 3.14159f;
+	position.x += sin(rand_ang) * 0.2;
+	position.z += cos(rand_ang) * 0.2;
+	#ifdef WAVING_SHADOW
 	float blockId = mc_Entity.x;
 	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
-		float blockId = mc_Entity.x;
+		float rand_ang = hash(position.xz) * 0.3 * 3.14159f;
+
 		float maxStrength = 1.0 + rainStrength * 0.5;
 		float time = frameTimeCounter * 3.0;
 		float reset = cos(hash(position.xy) * 10.0 + time * 0.1);
@@ -56,11 +60,9 @@ void main() {
 		position.x += sin(hash(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
 		position.z += sin(hash(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
 	}
+	#endif
 	gl_Position = gl_ModelViewMatrix * position;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
-	#else
-	gl_Position = ftransform();
-	#endif
 
 	color = gl_Color;
 	#ifdef GlobalIllumination

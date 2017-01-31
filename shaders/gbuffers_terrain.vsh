@@ -24,7 +24,7 @@
 //#version 440 compatibility
 #version 130
 
-#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_separate_shader_objects : require
 #extension GL_ARB_shader_texture_lod : require
 #pragma optimize(on)
 
@@ -106,6 +106,9 @@ VSH {
 	float blockId = mc_Entity.x;
 	flag = 0.7;
 	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0) {
+		float rand_ang = hash(position.xz) * 0.3 * 3.14159f;
+		position.x += sin(rand_ang) * 0.2;
+		position.z += cos(rand_ang) * 0.2;
 		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
 			float blockId = mc_Entity.x;
 			float maxStrength = 1.0 + rainStrength * 0.5;
@@ -115,6 +118,7 @@ VSH {
 			position.x += sin(hash(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
 			position.z += sin(hash(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
 		}
+
 		flag = 0.50;
 	} else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0) {
 		float maxStrength = 1.0 + rainStrength * 0.5;
