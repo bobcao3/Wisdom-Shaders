@@ -21,17 +21,14 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-
-#extension GL_ARB_separate_shader_objects : require
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 
 #pragma optimize(on)
 
 uniform sampler2D texture;
 
-layout(location = 0) in vec2 texcoord;
-layout(location = 1) in vec4 color;
+varying vec2 texcoord;
+varying vec4 color;
 
 void main() {
 	vec4 c = texture2D(texture, texcoord) * color;

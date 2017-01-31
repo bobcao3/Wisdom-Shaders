@@ -21,10 +21,8 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-
-#extension GL_ARB_separate_shader_objects : require
-#extension GL_ARB_shading_language_420pack : require
+#version 120
+#extension GL_ARB_shader_texture_lod : require
 
 #pragma optimize(on)
 
@@ -38,16 +36,16 @@ uniform sampler2D specular;
 uniform sampler2D normals;
 #endif
 
-layout(location = 0) in  vec4 color;
-layout(location = 1) in  vec3 normal;
-layout(location = 2) in  vec2 texcoord;
-layout(location = 3) in  vec3 wpos;
-layout(location = 4) in  vec2 lmcoord;
-layout(location = 5) in float flag;
+varying  vec4 color;
+varying  vec3 normal;
+varying  vec2 texcoord;
+varying  vec3 wpos;
+varying  vec2 lmcoord;
+varying float flag;
 
 #ifdef NORMALS
-layout(location = 6) in vec3 tangent;
-layout(location = 7) in vec3 binormal;
+varying vec3 tangent;
+varying vec3 binormal;
 #endif
 
 #ifdef SMOOTH_TEXTURE

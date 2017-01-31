@@ -21,9 +21,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_separate_shader_objects : require
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 
 #pragma optimize(on)
 
@@ -35,8 +33,8 @@ attribute vec4 mc_midTexCoord;
 uniform float rainStrength;
 uniform float frameTimeCounter;
 
-layout(location = 0) out vec2 texcoord;
-layout(location = 1) out vec4 color;
+varying vec2 texcoord;
+varying vec4 color;
 
 #define hash(p) fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123)
 

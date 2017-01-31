@@ -21,11 +21,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-//#version 440 compatibility
-#version 130
-
-#extension GL_ARB_separate_shader_objects : require
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 
 #pragma optimize(on)
 
@@ -38,16 +34,16 @@ uniform mat4 gbufferModelViewInverse;
 uniform float rainStrength;
 uniform float frameTimeCounter;
 
-layout(location = 0) out  vec4 color;
-layout(location = 1) out  vec3 normal;
-layout(location = 2) out  vec2 texcoord;
-layout(location = 3) out  vec3 wpos;
-layout(location = 4) out  vec2 lmcoord;
-layout(location = 5) out float flag;
+varying  vec4 color;
+varying  vec3 normal;
+varying  vec2 texcoord;
+varying  vec3 wpos;
+varying  vec2 lmcoord;
+varying float flag;
 
 #ifdef NORMALS
-layout(location = 6) out vec3 tangent;
-layout(location = 7) out vec3 binormal;
+varying vec3 tangent;
+varying vec3 binormal;
 #else
 vec3 tangent;
 vec3 binormal;

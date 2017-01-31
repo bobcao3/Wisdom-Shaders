@@ -21,8 +21,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 #pragma optimize(on)
 
 attribute vec4 mc_Entity;
@@ -36,10 +35,10 @@ uniform float frameTimeCounter;
 
 const float PI = 3.14159f;
 
-out vec3 wpos;
-flat out vec2 normal;
-flat out  float iswater;
-out vec2 texcoord;
+varying vec3 wpos;
+varying vec2 normal;
+varying float iswater;
+varying vec2 texcoord;
 
 #include "gbuffers.inc.vsh"
 

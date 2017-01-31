@@ -22,7 +22,6 @@
 // =============================================================================
 
 #version 130
-#extension GL_ARB_separate_shader_objects : require
 #extension GL_ARB_shading_language_420pack : require
 
 #pragma optimize(on)
@@ -34,7 +33,7 @@ uniform vec3 shadowLightPosition;
 
 #include "common_vars.inc.vsh"
 
-layout(location = 10) invariant flat out vec3 worldLightPos;
+invariant flat out vec3 worldLightPos;
 
 void main() {
 	calcCommon();

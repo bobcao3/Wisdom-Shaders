@@ -21,17 +21,16 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 #pragma optimize(on)
 
 uniform sampler2D texture;
 
-in  vec4 color;
-flat in vec2 normal;
-in  vec2 texcoord;
-in  vec3 wpos;
-in  vec2 lmcoord;
+varying vec4 color;
+varying vec2 normal;
+varying vec2 texcoord;
+varying vec3 wpos;
+varying vec2 lmcoord;
 
 /* DRAWBUFFERS:01245 */
 void main() {

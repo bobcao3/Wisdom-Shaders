@@ -21,17 +21,16 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 #pragma optimize(on)
 
 uniform mat4 gbufferModelViewInverse;
 
-out  vec4 color;
-flat out vec2 normal;
-out  vec2 texcoord;
-out  vec3 wpos;
-out  vec2 lmcoord;
+varying vec4 color;
+varying vec2 normal;
+varying vec2 texcoord;
+varying vec3 wpos;
+varying vec2 lmcoord;
 
 #include "gbuffers.inc.vsh"
 

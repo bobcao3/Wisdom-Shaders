@@ -22,11 +22,10 @@
 // =============================================================================
 
 #version 130
-#extension GL_ARB_shading_language_420pack : require
 #pragma optimize(on)
 
-in  vec4 color;
-flat in vec2 normal;
+varying vec4 color;
+varying vec2 normal;
 
 /* DRAWBUFFERS:024 */
 void main() {

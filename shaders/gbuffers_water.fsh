@@ -21,8 +21,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 #pragma optimize(on)
 
 uniform sampler2D texture;
@@ -30,11 +29,10 @@ uniform sampler2D noisetex;
 uniform float frameTimeCounter;
 uniform vec3 cameraPosition;
 
-//flat in vec2 normal;
-in vec3 wpos;
-flat in  float iswater;
-in vec2 texcoord;
-flat in vec2 normal;
+varying vec3 wpos;
+varying vec2 normal;
+varying float iswater;
+varying vec2 texcoord;
 
 #define PBR
 
