@@ -336,9 +336,7 @@ vec3 calcSkyColor(in vec3 wpos, float shade) {
 
 #define BISEARCH(SEARCHPOINT, DIRVEC, SIGN) DIRVEC *= 0.5; SEARCHPOINT+= DIRVEC * SIGN; uv = getScreenCoordByViewCoord(SEARCHPOINT); sampleDepth = linearizeDepth(textureLod(depthtex0, uv, 0.0).x); testDepth = getLinearDepthOfViewCoord(SEARCHPOINT); SIGN = sign(sampleDepth - testDepth);
 
-float linearizeDepth(float depth) {
-	return (2.0 * near) / (far + near - depth * (far - near));
-}
+#define linearizeDepth(depth) (2.0 * near) / (far + near - depth * (far - near))
 
 vec2 getScreenCoordByViewCoord(vec3 viewCoord) {
 	vec4 p = vec4(viewCoord, 1.0);
