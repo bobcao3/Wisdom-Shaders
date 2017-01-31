@@ -219,7 +219,7 @@ vec3 hslToRgb(vec3 hslColor) {
 		b = l;
 	} else {
 		float v1, v2;
-		v2 = l < 0.5 ? l * (1.0 + s) : v2 = (l + s) - (s * l);
+		v2 = l < 0.5 ? l * (1.0 + s) : (l + s) - (s * l);
 
 		v1 = 2.0 * l - v2;
 
