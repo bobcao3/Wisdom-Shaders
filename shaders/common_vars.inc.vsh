@@ -7,10 +7,10 @@ float wTimeF = float(worldTime);
 invariant out vec2 texcoord;
 invariant flat out vec3 suncolor;
 
-float TimeSunrise;
-float TimeNoon;
-float TimeSunset;
-float TimeMidnight;
+invariant flat out float TimeSunrise;
+invariant flat out float TimeNoon;
+invariant flat out float TimeSunset;
+invariant flat out float TimeMidnight;
 invariant flat out float extShadow;
 
 invariant flat out vec3 skycolor;
