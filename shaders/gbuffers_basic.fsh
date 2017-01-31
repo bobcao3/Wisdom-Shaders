@@ -21,7 +21,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
+#version 120
 #pragma optimize(on)
 
 varying vec4 color;

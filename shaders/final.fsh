@@ -21,8 +21,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 
 #pragma optimize(on)
 
@@ -47,7 +46,7 @@ const int gaux2Format = RGBA8;
 const int gaux3Format = RGBA32F;
 const int gaux4Format = RGBA8;
 
-in vec2 texcoord;
+varying vec2 texcoord;
 
 uniform sampler2D depthtex0;
 uniform sampler2D Output;
@@ -69,7 +68,7 @@ const float gamma = 2.2;
 
 #define luma(color)	dot(color,vec3(0.2126, 0.7152, 0.0722))
 
-in float centerDepth;
+varying float centerDepth;
 
 #define DOF_FADE_RANGE 0.08
 #define DOF_CLEAR_RADIUS 0.1
@@ -128,7 +127,7 @@ vec3 motionBlur(vec3 color, in vec2 uv, in vec4 viewPosition) {
 	delta *= dist / float(MOTIONBLUR_SAMPLE);
 	for(int i = 1; i < num_sams; i++) {
 		uv += delta;
-		color += texture(Output, uv).rgb;
+		color += texture2D(Output, uv).rgb;
 	}
 	color /= float(num_sams);
 	return color;
@@ -147,11 +146,11 @@ vec3 vignette(vec3 color) {
 const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
 const float weight[9] = float[] (0.066812, 0.129101, 0.112504, 0.08782, 0.061406, 0.03846, 0.021577, 0.010843, 0.004881);
 
-#define blurLoop(i) color += texture(gcolor, texcoord + direction * offset[i]).rgb * weight[i]; color += texture(gcolor, texcoord - direction * offset[i]).rgb * weight[i];
+#define blurLoop(i) color += texture2D(gcolor, texcoord + direction * offset[i]).rgb * weight[i]; color += texture2D(gcolor, texcoord - direction * offset[i]).rgb * weight[i];
 
 vec3 blur() {
-	vec3 color = texture(gcolor, texcoord).rgb * weight[0];
-	vec2 direction = vec2(0.0, 0.0018) / viewHeight * viewWidth;
+	vec3 color = texture2D(gcolor, texcoord).rgb * weight[0];
+	vec2 direction = vec2(0.0, 0.0021) / viewHeight * viewWidth;
 	blurLoop(1)
 	blurLoop(2)
 	blurLoop(3)
@@ -259,16 +258,16 @@ void color_adjust(inout vec3 c) {
 #endif
 
 void main() {
-	vec3 color = texture(Output, texcoord).rgb;
+	vec3 color = texture2D(Output, texcoord).rgb;
 	vec3 blurcolor = blur();
 
 	#ifdef MOTION_BLUR
-	vec4 viewpos = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, texture(depthtex0, texcoord).r * 2.0 - 1.0, 1.0f);
+	vec4 viewpos = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, texture2D(depthtex0, texcoord).r * 2.0 - 1.0, 1.0f);
 	viewpos /= viewpos.w;
 	color = motionBlur(color, texcoord, viewpos);
 	#endif
 
-	float depth = texture(depthtex0, texcoord).r;
+	float depth = texture2D(depthtex0, texcoord).r;
 	float ldepthN = linearizeDepth(depth);
 	float blurMin = 0.95f - rainStrength * 0.5;
 	float blurStrength1 = 1.0 / (1.0 - blurMin);

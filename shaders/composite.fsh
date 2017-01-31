@@ -170,7 +170,7 @@ vec3 wpos2shadowpos(in  vec3 wpos) {
 	return shadowposition.xyz;
 }
 
-#define GlobalIllumination
+//#define GlobalIllumination
 #ifdef GlobalIllumination
 
 uniform sampler2D shadowcolor0;

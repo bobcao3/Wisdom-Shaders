@@ -21,8 +21,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 
 #pragma optimize(on)
 
@@ -30,11 +29,11 @@ uniform sampler2D composite;
 uniform sampler2D gdepth;
 //uniform sampler2D gnormal;
 
-invariant in vec2 texcoord;
+invariant varying vec2 texcoord;
 
 uniform float far;
 
-vec3 vpos = texture(gdepth, texcoord).xyz;
+vec3 vpos = texture2D(gdepth, texcoord).xyz;
 float cdepth = length(vpos);
 float dFar = 1.0 / far;
 float cdepthN = cdepth * dFar;
@@ -53,45 +52,45 @@ vec3 cNormal;
 
 float blurAO(float c) {
 	float a = c;
-	// float rcdepth = texture(depthtex0, texcoord).r * 200.0f;
+	// float rcdepth = texture2D(depthtex0, texcoord).r * 200.0f;
 	 float d = 0.068 / cdepthN;
-	vec3 vpos = texture(gdepth, texcoord).rgb;
+	vec3 vpos = texture2D(gdepth, texcoord).rgb;
 
 	for (int i = -5; i < 0; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0015, 0.0) * i * d;
-		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(composite, adj_coord).g, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
+		a += mix(texture2D(composite, adj_coord).g, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	for (int i = 1; i < 6; i++) {
 		vec2 adj_coord = texcoord + vec2(-0.0015, 0.0) * i * d;
-		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(composite, adj_coord).g, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
+		a += mix(texture2D(composite, adj_coord).g, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	return a * 0.1629;
 }
 
-#define GlobalIllumination
+//#define GlobalIllumination
 
 #ifdef GlobalIllumination
 uniform sampler2D gaux4;
 vec3 blurGI(vec3 c) {
 	vec3 a = c;
-	// float rcdepth = texture(depthtex0, texcoord).r * 200.0f;
+	// float rcdepth = texture2D(depthtex0, texcoord).r * 200.0f;
 	 float d = 0.068 / cdepthN;
-	vec3 vpos = texture(gdepth, texcoord).rgb;
+	vec3 vpos = texture2D(gdepth, texcoord).rgb;
 
 	for (int i = -4; i < 0; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0035, 0.0) * i * d;
-		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(gaux4, adj_coord * 0.25).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
+		a += mix(texture2D(gaux4, adj_coord * 0.25).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	for (int i = 1; i < 5; i++) {
 		vec2 adj_coord = texcoord + vec2(-0.0035, 0.0) * i * d;
-		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(gaux4, adj_coord * 0.25).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
+		a += mix(texture2D(gaux4, adj_coord * 0.25).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	return a * 0.1629;
@@ -99,8 +98,8 @@ vec3 blurGI(vec3 c) {
 #endif
 
 void main() {
-	vec4 ctex = texture(composite, texcoord);
-	//cNormal = normalDecode(texture(gnormal, texcoord).rg);
+	vec4 ctex = texture2D(composite, texcoord);
+	//cNormal = normalDecode(texture2D(gnormal, texcoord).rg);
 
 	if (ctex.r > 0.21) {
 		ctex.g = blurAO(ctex.g);
@@ -109,6 +108,6 @@ void main() {
 /* DRAWBUFFERS:37 */
 	gl_FragData[0] = ctex;
 	#ifdef GlobalIllumination
-	gl_FragData[1] = vec4(blurGI(texture(gaux4, texcoord * 0.25).rgb), 1.0);
+	gl_FragData[1] = vec4(blurGI(texture2D(gaux4, texcoord * 0.25).rgb), 1.0);
 	#endif
 }
