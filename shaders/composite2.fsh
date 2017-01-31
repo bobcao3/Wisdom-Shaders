@@ -60,11 +60,11 @@ const float hPI = PI / 2;
 
 invariant in vec2 texcoord;
 invariant flat in vec3 suncolor;
-/*
+
 invariant flat in float TimeSunrise;
 invariant flat in float TimeNoon;
 invariant flat in float TimeSunset;
-invariant flat in float TimeMidnight;*/
+invariant flat in float TimeMidnight;
 invariant flat in float extShadow;
 
 invariant flat in vec3 skycolor;
@@ -246,7 +246,7 @@ const lowp vec2 offset_table[6] = vec2 [] (
 #define SHADOW_FILTER
 float shadow_map() {
 	if (cdepthN > 0.9f)
-		return 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
+		return is_plant ? 0.0 : 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
 	float shade = 0.0;
 	if (NdotL <= 0.05f && !is_plant) {
 		shade = 1.0f;
@@ -269,10 +269,10 @@ float shadow_map() {
 			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z);
 		#endif
 
-		float edgeX = abs(shadowposition.x) - 0.9f;
-		float edgeY = abs(shadowposition.y) - 0.9f;
-		shade -= max(0.0f, edgeX * 10.0f);
-		shade -= max(0.0f, edgeY * 10.0f);
+		float edgeX = abs(shadowposition.x) - 0.95f;
+		float edgeY = abs(shadowposition.y) - 0.95f;
+		shade -= max(0.0f, edgeX * 20.0f);
+		shade -= max(0.0f, edgeY * 20.0f);
 		shade = max(0.0, shade);
 		if (!is_plant) {
 			float phong = 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
