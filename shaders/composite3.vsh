@@ -31,9 +31,9 @@ uniform mat4 gbufferProjectionInverse;
 
 uniform vec3 shadowLightPosition;
 
-invariant flat out vec3 worldLightPos;
-
 #include "common_vars.inc.vsh"
+
+layout(location = 10) invariant flat out vec3 worldLightPos;
 
 void main() {
 	calcCommon();

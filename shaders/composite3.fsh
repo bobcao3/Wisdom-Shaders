@@ -61,20 +61,20 @@ uniform float rainStrength;
 
 uniform bool isEyeInWater;
 
-invariant in vec2 texcoord;
-invariant flat in vec3 suncolor;
+layout(location = 0) invariant in vec2 texcoord;
+layout(location = 1) invariant flat in vec3 suncolor;
 
-invariant flat in float TimeSunrise;
-invariant flat in float TimeNoon;
-invariant flat in float TimeSunset;
-invariant flat in float TimeMidnight;
-invariant flat in float extShadow;
+layout(location = 2) invariant flat in float TimeSunrise;
+layout(location = 3) invariant flat in float TimeNoon;
+layout(location = 4) invariant flat in float TimeSunset;
+layout(location = 5) invariant flat in float TimeMidnight;
+layout(location = 6) invariant flat in float extShadow;
 
-invariant flat in vec3 skycolor;
-invariant flat in vec3 fogcolor;
-invariant flat in vec3 horizontColor;
+layout(location = 7) invariant flat in vec3 skycolor;
+layout(location = 8) invariant flat in vec3 fogcolor;
+layout(location = 9) invariant flat in vec3 horizontColor;
 
-invariant flat in vec3 worldLightPos;
+layout(location = 10) invariant flat in vec3 worldLightPos;
 
 vec3 normalDecode(in vec2 enc) {
 	vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
