@@ -390,7 +390,7 @@ void main() {
 			shade = clamp(shade, 0.0, 1.0);
 		}
 		#endif
-		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, max(0.0, pow(dot(nvpos, lightPosition), 16.0)));
+		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, pow(max(0.0, dot(nvpos, lightPosition)), 16.0));
 		mclight = texture(gaux2, texcoord).xy;
 
 		const vec3 torchColor = vec3(2.15, 1.01, 0.48) * 0.45;
