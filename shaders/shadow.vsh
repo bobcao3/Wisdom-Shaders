@@ -46,21 +46,21 @@ layout(location = 1) out vec4 color;
 
 void main() {
 	vec4 position = gl_Vertex;
-	#ifdef WAVING_SHADOW
 	float blockId = mc_Entity.x;
 	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
 		float rand_ang = hash(position.xz) * 0.3 * 3.14159f;
 		position.x += sin(rand_ang) * 0.2;
 		position.z += cos(rand_ang) * 0.2;
 
+		#ifdef WAVING_SHADOW
 		float maxStrength = 1.0 + rainStrength * 0.5;
 		float time = frameTimeCounter * 3.0;
 		float reset = cos(hash(position.xy) * 10.0 + time * 0.1);
 		reset = max( reset * reset, max(rainStrength, 0.1));
 		position.x += sin(hash(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
 		position.z += sin(hash(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
+		#endif
 	}
-	#endif
 	gl_Position = gl_ModelViewMatrix * position;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
 
