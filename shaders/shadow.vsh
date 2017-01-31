@@ -23,6 +23,7 @@
 
 #version 130
 #extension GL_ARB_separate_shader_objects : require
+#extension GL_ARB_shading_language_420pack : require
 
 #pragma optimize(on)
 
@@ -45,13 +46,12 @@ layout(location = 1) out vec4 color;
 
 void main() {
 	vec4 position = gl_Vertex;
-	float rand_ang = hash(position.xz) * 0.3 * 3.14159f;
-	position.x += sin(rand_ang) * 0.2;
-	position.z += cos(rand_ang) * 0.2;
 	#ifdef WAVING_SHADOW
 	float blockId = mc_Entity.x;
 	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
 		float rand_ang = hash(position.xz) * 0.3 * 3.14159f;
+		position.x += sin(rand_ang) * 0.2;
+		position.z += cos(rand_ang) * 0.2;
 
 		float maxStrength = 1.0 + rainStrength * 0.5;
 		float time = frameTimeCounter * 3.0;

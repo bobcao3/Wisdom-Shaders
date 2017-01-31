@@ -22,6 +22,7 @@
 // =============================================================================
 
 #version 130
+#extension GL_ARB_shading_language_420pack : require
 #pragma optimize(on)
 
 attribute vec4 mc_Entity;
