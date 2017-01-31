@@ -23,6 +23,7 @@
 
 #version 130
 #extension GL_ARB_shading_language_420pack : require
+precision mediump float;
 #pragma optimize(on)
 
 uniform sampler2D composite;

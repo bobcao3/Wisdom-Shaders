@@ -24,7 +24,7 @@
 #version 130
 
 #extension GL_ARB_shading_language_420pack : require
-
+precision mediump float;
 #pragma optimize(on)
 
 const int shadowMapResolution = 1512; // [1024 1512 2048 4096]
@@ -78,8 +78,8 @@ vec3 normalDecode(vec2 enc) {
 }
 
 float flag;
-vec4 vpos = vec4(texture(gdepth, texcoord).xyz, 1.0);
-vec3 wpos = (gbufferModelViewInverse * vpos).xyz;
+highp vec4 vpos = vec4(texture(gdepth, texcoord).xyz, 1.0);
+highp vec3 wpos = (gbufferModelViewInverse * vpos).xyz;
 lowp vec3 normal;
 lowp vec3 wnormal;
 float cdepth = length(wpos);
@@ -151,8 +151,8 @@ float AO() {
 
 #define SHADOW_MAP_BIAS 0.9
 uniform sampler2D shadowtex0;
-vec3 wpos2shadowpos(in vec3 wpos) {
-	vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
+vec3 wpos2shadowpos(in highp vec3 wpos) {
+	highp vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
 	shadowposition = shadowProjection * shadowposition;
 	float distb = sqrt(shadowposition.x * shadowposition.x + shadowposition.y * shadowposition.y);
 	float distortFactor = (1.0f - SHADOW_MAP_BIAS) + distb * SHADOW_MAP_BIAS;

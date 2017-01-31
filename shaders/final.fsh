@@ -23,6 +23,7 @@
 
 #version 130
 #extension GL_ARB_shading_language_420pack : require
+precision mediump float;
 #pragma optimize(on)
 
 const int RGB8 = 0, RGBA32F = 1, R11F_G11F_B10F = 2, RGBA16 = 3, RGBA8 = 4, RGB8_SNORM = 5;
