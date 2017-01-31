@@ -24,7 +24,7 @@
 #version 130
 #pragma optimize(on)
 
-const int RGB8 = 0, RGBA32F = 1, R11F_G11F_B10F = 2, RGBA16 = 3, RGBA8 = 4, RGB8_SNORM = 5, RGB32UI = 6;
+const int RGB8 = 0, RGBA32F = 1, R11F_G11F_B10F = 2, RGBA16 = 3, RGBA8 = 4, RGB8_SNORM = 5;
 #define GAlbedo colortex0
 #define GWPos colortex1
 #define GNormals gnormal
@@ -61,6 +61,7 @@ uniform float viewWidth;
 uniform float near;
 uniform float far;
 uniform float aspectRatio;
+uniform float rainStrength;
 
 const float gamma = 2.2;
 
@@ -248,7 +249,7 @@ vec3 colorBalance(vec3 rgbColor, vec3 hslColor, vec3 s, vec3 m, vec3 h) {
 
 void color_adjust(inout vec3 c) {
 	vec3 hC = rgbToHsl(c);
-	c = colorBalance(c, hC, vec3(0.03, 0.02, 0.09), vec3(0.08, 0.11, 0.13), vec3(-0.13, -0.11, -0.1));
+	c = colorBalance(c, hC, vec3(0.03, 0.02, 0.09), vec3(0.08, 0.11, 0.13), vec3(-0.23, -0.21, -0.2));
 	vibrance(hC, c, 0.95)
 	c = mix(c, hslToRgb(hC), clamp(0.0, c.r + c.b * 0.1 + c.g * 0.05, 1.0));
 }
@@ -265,8 +266,15 @@ void main() {
 	color = motionBlur(color, texcoord, viewpos);
 	#endif
 
+	float depth = texture(depthtex0, texcoord).r;
+	float ldepthN = linearizeDepth(depth);
+	float blurMin = 0.95f - rainStrength * 0.5;
+	float blurStrength1 = 1.0 / (1.0 - blurMin);
+	float blurStrength2 = 0.7 + rainStrength * 0.3;
+	if (ldepthN > blurMin) color = mix(color, blurcolor, clamp(0.f, (ldepthN - blurMin) * blurStrength1, 1.f) * blurStrength2);
+
 	#ifdef DOF
-	color = dof(color, texcoord, texture(depthtex0, texcoord).r, blurcolor);
+	color = dof(color, texcoord, depth, blurcolor);
 	#endif
 	#ifdef BLOOM
 	color += luma(blurcolor) * blurcolor * 0.3;
