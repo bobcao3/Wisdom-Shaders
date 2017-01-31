@@ -24,7 +24,7 @@
 #version 130
 #extension GL_ARB_separate_shader_objects : require
 #extension GL_ARB_shading_language_420pack : require
-precision mediump float;
+
 #pragma optimize(on)
 
 const bool compositeMipmapEnabled = true;
@@ -101,9 +101,9 @@ struct Mask {
 
 struct Material {
 	vec4 vpos;
-	lowp vec3 normal;
+	 vec3 normal;
 	vec3 wpos;
-	lowp vec3 wnormal;
+	 vec3 wnormal;
 	float cdepth;
 	float cdepthN;
 };
@@ -556,7 +556,7 @@ void main() {
 			wetness_distribution *= wetness_distribution * wetness2;
 			wetness_distribution *= wetness_distribution;
 			wetness_distribution = clamp(wetness_distribution, 0.0, 1.0);
-			if (specular.g < 0.000001f) specular.g = 0.3;
+			if (specular.g < 0.000001f) specular.g = 0.4;
 			specular.g = clamp(0.003, specular.g - wetness2 * 0.005, 0.9999);
 			specular.g = mix(specular.g, 0.1, wetness_distribution);
 

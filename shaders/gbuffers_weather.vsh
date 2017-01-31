@@ -27,9 +27,9 @@
 
 uniform mat4 gbufferModelViewInverse;
 
-out lowp vec4 color;
+out  vec4 color;
 flat out vec2 normal;
-out highp vec2 texcoord;
+out  vec2 texcoord;
 
 #include "gbuffers.inc.vsh"
 

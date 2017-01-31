@@ -24,7 +24,7 @@
 #version 130
 #extension GL_ARB_separate_shader_objects : require
 #extension GL_ARB_shading_language_420pack : require
-precision mediump float;
+
 #pragma optimize(on)
 
 #define SHADOW_MAP_BIAS 0.9
@@ -68,7 +68,7 @@ void main() {
 	#ifdef GlobalIllumination
 	color.rgb *= max(0.0, dot(gl_Normal, vec3(0.0, 1.0, 0.0)));
 	#endif
-	lowp float distortFactor = (1.0 - SHADOW_MAP_BIAS) + length(gl_Position.xy) * SHADOW_MAP_BIAS;
+	 float distortFactor = (1.0 - SHADOW_MAP_BIAS) + length(gl_Position.xy) * SHADOW_MAP_BIAS;
 	gl_Position.xy /= distortFactor;
 	texcoord = gl_MultiTexCoord0.st;
 }

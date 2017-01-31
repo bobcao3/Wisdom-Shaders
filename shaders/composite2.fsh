@@ -24,7 +24,7 @@
 #version 130
 #extension GL_ARB_separate_shader_objects : require
 #extension GL_ARB_shading_language_420pack : require
-precision mediump float;
+
 #pragma optimize(on)
 
 uniform sampler2D gdepth;
@@ -99,8 +99,8 @@ vec3 color = texture(gcolor, texcoord).rgb;
 vec4 vpos = vec4(texture(gdepth, texcoord).xyz, 1.0);
 vec3 nvpos = normalize(vpos.xyz);
 vec3 wpos = (gbufferModelViewInverse * vpos).xyz;
-lowp vec3 wnormal;
-lowp vec3 normal;
+ vec3 wnormal;
+ vec3 normal;
 float cdepth = length(wpos);
 float dFar = 1.0 / far;
 float cdepthN = cdepth * dFar;
@@ -237,7 +237,7 @@ vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
 
 #define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
 
-const lowp vec2 offset_table[6] = vec2 [] (
+const  vec2 offset_table[6] = vec2 [] (
 	vec2( 0.0,    1.0 ),
 	vec2( 0.866,  0.5 ),
 	vec2( 0.866, -0.5 ),
@@ -316,7 +316,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 #ifdef AO_Enabled
 float blurAO(float c, vec3 cNormal) {
 	float a = c;
-	lowp float d = 0.068 / cdepthN;
+	 float d = 0.068 / cdepthN;
 
 	for (int i = -5; i < 0; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0, 0.0027) * i * d;
@@ -339,7 +339,7 @@ float blurAO(float c, vec3 cNormal) {
 uniform sampler2D gaux4;
 vec3 blurGI(vec3 c) {
 	vec3 a = c;
-	lowp float d = 0.068 / cdepthN;
+	 float d = 0.068 / cdepthN;
 
 	for (int i = -5; i < 0; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0, 0.0025) * i * d;

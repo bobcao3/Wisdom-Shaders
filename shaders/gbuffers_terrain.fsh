@@ -25,7 +25,7 @@
 
 #extension GL_ARB_separate_shader_objects : require
 #extension GL_ARB_shading_language_420pack : require
-precision mediump float;
+
 #pragma optimize(on)
 
 #define SMOOTH_TEXTURE
@@ -38,11 +38,11 @@ uniform sampler2D specular;
 uniform sampler2D normals;
 #endif
 
-layout(location = 0) in lowp vec4 color;
-layout(location = 1) in lowp vec3 normal;
-layout(location = 2) in highp vec2 texcoord;
-layout(location = 3) in highp vec3 wpos;
-layout(location = 4) in lowp vec2 lmcoord;
+layout(location = 0) in  vec4 color;
+layout(location = 1) in  vec3 normal;
+layout(location = 2) in  vec2 texcoord;
+layout(location = 3) in  vec3 wpos;
+layout(location = 4) in  vec2 lmcoord;
 layout(location = 5) in float flag;
 
 #ifdef NORMALS

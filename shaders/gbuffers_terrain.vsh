@@ -26,7 +26,7 @@
 
 #extension GL_ARB_separate_shader_objects : require
 #extension GL_ARB_shading_language_420pack : require
-precision mediump float;
+
 #pragma optimize(on)
 
 #define NORMALS
@@ -38,11 +38,11 @@ uniform mat4 gbufferModelViewInverse;
 uniform float rainStrength;
 uniform float frameTimeCounter;
 
-layout(location = 0) out lowp vec4 color;
-layout(location = 1) out lowp vec3 normal;
-layout(location = 2) out highp vec2 texcoord;
-layout(location = 3) out highp vec3 wpos;
-layout(location = 4) out lowp vec2 lmcoord;
+layout(location = 0) out  vec4 color;
+layout(location = 1) out  vec3 normal;
+layout(location = 2) out  vec2 texcoord;
+layout(location = 3) out  vec3 wpos;
+layout(location = 4) out  vec2 lmcoord;
 layout(location = 5) out float flag;
 
 #ifdef NORMALS

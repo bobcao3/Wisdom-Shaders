@@ -27,9 +27,9 @@
 
 uniform sampler2D texture;
 
-in lowp vec4 color;
+in  vec4 color;
 flat in vec2 normal;
-in highp vec2 texcoord;
+in  vec2 texcoord;
 
 /* DRAWBUFFERS:024 */
 void main() {

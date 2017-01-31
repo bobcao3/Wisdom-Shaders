@@ -25,7 +25,7 @@
 #extension GL_ARB_shading_language_420pack : require
 #pragma optimize(on)
 
-in lowp vec4 color;
+in  vec4 color;
 flat in vec2 normal;
 
 /* DRAWBUFFERS:024 */

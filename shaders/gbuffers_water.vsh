@@ -38,7 +38,7 @@ const float PI = 3.14159f;
 
 out vec3 wpos;
 flat out vec2 normal;
-flat out lowp float iswater;
+flat out  float iswater;
 out vec2 texcoord;
 
 #include "gbuffers.inc.vsh"

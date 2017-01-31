@@ -23,7 +23,7 @@
 
 #version 130
 #extension GL_ARB_shading_language_420pack : require
-precision mediump float;
+
 #pragma optimize(on)
 
 uniform sampler2D composite;
@@ -53,8 +53,8 @@ vec3 cNormal;
 
 float blurAO(float c) {
 	float a = c;
-	//lowp float rcdepth = texture(depthtex0, texcoord).r * 200.0f;
-	lowp float d = 0.068 / cdepthN;
+	// float rcdepth = texture(depthtex0, texcoord).r * 200.0f;
+	 float d = 0.068 / cdepthN;
 	vec3 vpos = texture(gdepth, texcoord).rgb;
 
 	for (int i = -5; i < 0; i++) {
@@ -78,20 +78,20 @@ float blurAO(float c) {
 uniform sampler2D gaux4;
 vec3 blurGI(vec3 c) {
 	vec3 a = c;
-	//lowp float rcdepth = texture(depthtex0, texcoord).r * 200.0f;
-	lowp float d = 0.068 / cdepthN;
+	// float rcdepth = texture(depthtex0, texcoord).r * 200.0f;
+	 float d = 0.068 / cdepthN;
 	vec3 vpos = texture(gdepth, texcoord).rgb;
 
 	for (int i = -4; i < 0; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0035, 0.0) * i * d;
 		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(gaux4, adj_coord * 0.2).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
+		a += mix(texture(gaux4, adj_coord * 0.25).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	for (int i = 1; i < 5; i++) {
 		vec2 adj_coord = texcoord + vec2(-0.0035, 0.0) * i * d;
 		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(gaux4, adj_coord * 0.2).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
+		a += mix(texture(gaux4, adj_coord * 0.25).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	return a * 0.1629;

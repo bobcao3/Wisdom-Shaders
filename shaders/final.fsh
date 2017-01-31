@@ -23,7 +23,7 @@
 
 #version 130
 #extension GL_ARB_shading_language_420pack : require
-precision mediump float;
+
 #pragma optimize(on)
 
 const int RGB8 = 0, RGBA32F = 1, R11F_G11F_B10F = 2, RGBA16 = 3, RGBA8 = 4, RGB8_SNORM = 5;
@@ -247,11 +247,11 @@ vec3 colorBalance(vec3 rgbColor, vec3 hslColor, vec3 s, vec3 m, vec3 h) {
 	return newColor;
 }
 
-#define vibrance(hslColor, rgb, v) hslColor.g = pow(hslColor.g, v * clamp(0.0, 1.0 - rgb.r * 0.36 + rgb.b * 0.21 + rgb.g * 0.26, 1.0));
+#define vibrance(hslColor, rgb, v) hslColor.g = pow(hslColor.g, v * clamp(0.0, 1.0 - rgb.r * 0.36 + rgb.b * 0.18 + rgb.g * 0.22, 1.0));
 
 void color_adjust(inout vec3 c) {
 	vec3 hC = rgbToHsl(c);
-	c = colorBalance(c, hC, vec3(0.03, 0.02, 0.09), vec3(0.08, 0.11, 0.13), vec3(-0.23, -0.21, -0.2));
+	c = colorBalance(c, hC, vec3(0.03, 0.02, 0.09), vec3(0.08, 0.11, 0.13), vec3(-0.18, -0.17, -0.15));
 	vibrance(hC, c, 0.95)
 	c = mix(c, hslToRgb(hC), clamp(0.0, c.r + c.b * 0.1 + c.g * 0.05, 1.0));
 }

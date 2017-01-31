@@ -22,9 +22,9 @@
 // =============================================================================
 
 #version 130
-
+#extension GL_ARB_separate_shader_objects : require
 #extension GL_ARB_shading_language_420pack : require
-precision mediump float;
+
 #pragma optimize(on)
 
 const int shadowMapResolution = 1512; // [1024 1512 2048 4096]
@@ -61,10 +61,20 @@ uniform float frameTimeCounter;
 const float eyeBrightnessHalflife	 = 8.5f;
 uniform ivec2 eyeBrightnessSmooth;
 
-invariant in vec2 texcoord;
-invariant flat in vec3 worldLightPos;
-invariant flat in vec3 suncolor;
-invariant flat in float extShadow;
+layout(location = 0) invariant in vec2 texcoord;
+layout(location = 1) invariant flat in vec3 suncolor;
+
+layout(location = 2) invariant flat in float TimeSunrise;
+layout(location = 3) invariant flat in float TimeNoon;
+layout(location = 4) invariant flat in float TimeSunset;
+layout(location = 5) invariant flat in float TimeMidnight;
+layout(location = 6) invariant flat in float extShadow;
+
+layout(location = 7) invariant flat in vec3 skycolor;
+layout(location = 8) invariant flat in vec3 fogcolor;
+layout(location = 9) invariant flat in vec3 horizontColor;
+
+layout(location = 10) invariant flat in vec3 worldLightPos;
 
 const float PI = 3.14159;
 const float hPI = PI / 2;
@@ -78,10 +88,10 @@ vec3 normalDecode(vec2 enc) {
 }
 
 float flag;
-highp vec4 vpos = vec4(texture(gdepth, texcoord).xyz, 1.0);
-highp vec3 wpos = (gbufferModelViewInverse * vpos).xyz;
-lowp vec3 normal;
-lowp vec3 wnormal;
+ vec4 vpos = vec4(texture(gdepth, texcoord).xyz, 1.0);
+ vec3 wpos = (gbufferModelViewInverse * vpos).xyz;
+ vec3 normal;
+ vec3 wnormal;
 float cdepth = length(wpos);
 float dFar = 1.0 / far;
 float cdepthN = cdepth * dFar;
@@ -107,7 +117,7 @@ float rand( in vec2 p ) {
 #ifdef AO_Enabled
 
 #define Sample_Directions 6
-const lowp vec2 offset_table[Sample_Directions + 1] = vec2 [] (
+const  vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 	vec2( 0.0,    1.0 ),
 	vec2( 0.866,  0.5 ),
 	vec2( 0.866, -0.5 ),
@@ -120,22 +130,21 @@ const lowp vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 
 float AO() {
 	float am = 0;
-	//lowp float rcdepth = texture(depthtex0, texcoord).r * 200.0f;
-	lowp float d = 0.0012 / cdepthN;
-	lowp float maxAngle = 0.0;
+	// float rcdepth = texture(depthtex0, texcoord).r * 200.0f;
+	 float d = 0.0012 / cdepthN;
+	 float maxAngle = 0.0;
 	if (cdepthN < 0.7) {
 		for (int i = 0; i < Sample_Directions; i++) {
 			for (int j = 1; j < sampleDepth; j++) {
-				lowp float noise = clamp(0.001, abs(rand((texcoord + vec2(i, j)))), 1.0);
-				lowp float inc = (0.4 + noise * 0.6) * j * d;
-				lowp vec2 dir = mix(offset_table[i], offset_table[i + 1], noise * 0.4 + 0.6) * inc + texcoord;
+				 float noise = clamp(0.001, abs(rand((texcoord + vec2(i, j)))), 1.0);
+				 float inc = (0.4 + noise * 0.6) * j * d;
+				 vec2 dir = mix(offset_table[i], offset_table[i + 1], noise * 0.4 + 0.6) * inc + texcoord;
 				if (dir.x < 0.0 || dir.x > 1.0 || dir.y < 0.0 || dir.y > 1.0) continue;
 
 				vec3 nVpos = texture(gdepth, dir).xyz;
-				lowp float NdC = distance(nVpos, vpos.xyz);
-				if (NdC >= 1.25) break;
-				else {
-					lowp float angle = clamp(0.0, dot(nVpos - vpos.xyz, normal) / NdC - 0.2, 0.7) * 0.5;
+				 float NdC = distance(nVpos, vpos.xyz);
+				if (NdC < 1.25) {
+					 float angle = clamp(0.0, dot(nVpos - vpos.xyz, normal) / NdC - 0.2, 0.7) * 0.5;
 					if (angle > maxAngle) {
 						maxAngle = angle;
 						float datt = sampleDepth * d;
@@ -151,8 +160,8 @@ float AO() {
 
 #define SHADOW_MAP_BIAS 0.9
 uniform sampler2D shadowtex0;
-vec3 wpos2shadowpos(in highp vec3 wpos) {
-	highp vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
+vec3 wpos2shadowpos(in  vec3 wpos) {
+	 vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
 	shadowposition = shadowProjection * shadowposition;
 	float distb = sqrt(shadowposition.x * shadowposition.x + shadowposition.y * shadowposition.y);
 	float distortFactor = (1.0f - SHADOW_MAP_BIAS) + distb * SHADOW_MAP_BIAS;
@@ -209,70 +218,49 @@ const vec2 circle_offsets[25] = vec2[25](
 );
 
 vec3 GI() {
-	vec2 texc = texcoord * 5.0;
+	vec2 texc = texcoord * 4.0;
 	if (texc.x > 1.0 || texc.y > 1.0) return vec3(0.0);
 
 	vec3 ntex = texture(gnormal, texc).rgb;
 	vec3 normal = mat3(gbufferModelViewInverse) * normalDecode(ntex.xy);
 	bool skydiscard = (ntex.b > 0.01);
 
+	vec3 accumulated = vec3(.0);
+
 	//if (skydiscard) {
 
 		vec3 owpos = (gbufferModelViewInverse * vec4(texture(gdepth, texc).xyz, 1.0)).xyz;
-		lowp vec3 flat_normal = normalize(cross(dFdx(owpos),dFdy(owpos)));
+		 vec3 flat_normal = normalize(cross(dFdx(owpos),dFdy(owpos)));
 		vec3 nswpos = owpos + normal * 0.2;
-		vec3 trace_dir = -reflect(-worldLightPos, vec3(rand(owpos.xy) * 0.01, 1.0, rand(owpos.zy) * 0.01)) * 0.2;
+		vec3 trace_dir = -reflect(-worldLightPos, vec3(rand(owpos.xy) * 0.04, 1.0, rand(owpos.zy) * 0.04));
+		//trace_dir = mix(trace_dir, flat_normal, max(0.0, -dot(trace_dir, normal)));
+		trace_dir = normalize(flat_normal) * 0.2;
 		float NdotL = dot(normal, trace_dir * 5.0);
 		if (NdotL < 0.0) return vec3(0.0);
 
 		// Half voxel trace, 2 steps 1 voxel
-		for (int i = 0; i < 40; i++) {
+		for (int i = 0; i < 10; i++) {
 			nswpos += trace_dir;
 			vec3 swpos = nswpos + rand(vec2(i, owpos.z)) * trace_dir * 0.4;
 			vec3 shadowpos = wpos2shadowpos(swpos);
-
+/*
 			// Detect bounce
 			float sample_depth = texture(shadowtex0, shadowpos.xy).x;
 			//return vec3(sample_depth,sample_depth,sample_depth);
 			float nd = shadowpos.z - sample_depth;
-			if (abs(nd) < 0.0006) {
-				vec3 bsearch_dir = trace_dir;
-
-				bsearch_dir *= (nd > 0.0) ? -0.6 : 0.6;
-				// Bisearch 1
-				swpos += bsearch_dir;
-				shadowpos = wpos2shadowpos(swpos);
-				nd = shadowpos.z - texture(shadowtex0, shadowpos.xy).x;
-				bsearch_dir *= (nd > 0.0) ? -0.6 : 0.6;
-				// Bisearch 2
-				swpos += bsearch_dir;
-				shadowpos = wpos2shadowpos(swpos);
-				nd = shadowpos.z - texture(shadowtex0, shadowpos.xy).x;
-				bsearch_dir *= (nd > 0.0) ? -0.6 : 0.6;
-				// Bisearch 3
-				swpos += bsearch_dir;
-				shadowpos = wpos2shadowpos(swpos);
-				nd = shadowpos.z - texture(shadowtex0, shadowpos.xy).x;
-				bsearch_dir *= (nd > 0.0) ? -0.6 : 0.6;
-				// Bisearch 4
-				swpos += bsearch_dir;
-				shadowpos = wpos2shadowpos(swpos);
-				nd = shadowpos.z - texture(shadowtex0, shadowpos.xy).x;
-				bsearch_dir *= (nd > 0.0) ? -0.6 : 0.6;
-				// Bisearch 5
-				swpos += bsearch_dir;
-				shadowpos = wpos2shadowpos(swpos);
-
+			if (nd < -0.0006) {
+				accumulated += suncolor * 0.001;
+			} else if (abs(nd) < 0.0006) {*/
 				// Calculate normal & light contribution
 				//vec3 snormal = normalize(cross(dFdx(shadowpos), dFdy(shadowpos)));
-				lowp vec3 halfwayDir = normalize(trace_dir * 3.0 - normalize(owpos));
+				 vec3 halfwayDir = normalize(trace_dir * 3.0 - normalize(owpos));
 
-				lowp vec3 scolor = texture(shadowcolor0, shadowpos.xy).rgb;
-				for (int i = 0; i < 25; i++) {
-					for (int i = 0; i < 3; i++) {
-						float randv = 0.0011 * (i + 1) * rand((shadowpos.xy + i * 0.03));
-						vec2 shadow_uv = shadowpos.xy + circle_offsets[i] * randv;
-						float cover = float(abs(texture(shadowtex0, shadowpos.xy).x - shadowpos.z) < 0.001 * (i + 1));
+				 vec3 scolor = texture(shadowcolor0, shadowpos.xy).rgb;
+				for (int j = 0; j < 25; j++) {
+					for (int k = 0; k < 3; k++) {
+						float randv = 0.0011 * (k + 1) * rand((shadowpos.xy + k * 0.03));
+						vec2 shadow_uv = shadowpos.xy + circle_offsets[j] * randv;
+						float cover = float(abs(texture(shadowtex0, shadowpos.xy).x - shadowpos.z) < 0.001 * (k + 1));
 						scolor += cover * texture(shadowcolor0, shadow_uv).rgb;
 					}
 				}
@@ -280,11 +268,12 @@ vec3 GI() {
 				scolor /= 4.0f;
 				scolor *= dot(trace_dir * 5.0, flat_normal);
 
-				return scolor.rgb * (6.5 - distance(swpos, owpos)) * 0.05 * (max(0.0, dot(normal, halfwayDir)) * 0.5 + 0.5) * suncolor;
-			}
+				accumulated += scolor.rgb * (6.5 - distance(swpos, owpos)) * 0.05 * (max(0.0, dot(normal, halfwayDir)) * 0.5 + 0.5) * suncolor;
+		/*		break;
+			};*/
 		}
 	//}
-	return vec3(0.0);
+	return accumulated;
 }
 
 #endif
