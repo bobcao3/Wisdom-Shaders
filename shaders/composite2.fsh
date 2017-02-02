@@ -318,13 +318,13 @@ float blurAO(float c, vec3 cNormal) {
 	 float d = 0.068 / cdepthN;
 
 	for (int i = -5; i < 0; i++) {
-		vec2 adj_coord = texcoord + vec2(0.0, 0.0027) * i * d;
+		vec2 adj_coord = texcoord + vec2(0.0, 0.0011) * i * d;
 		vec3 nvpos = texture(gdepth, adj_coord).rgb;
 		a += mix(texture(composite, adj_coord).g, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	for (int i = 1; i < 6; i++) {
-		vec2 adj_coord = texcoord + vec2(0.0, 0.0027) * i * d;
+		vec2 adj_coord = texcoord + vec2(0.0, 0.0011) * i * d;
 		vec3 nvpos = texture(gdepth, adj_coord).rgb;
 		a += mix(texture(composite, adj_coord).g, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
@@ -461,7 +461,7 @@ void main() {
 		vl = 1.0 - (1.0 / (1.0 + vl) - 0.5) * 2.0;
 		vl *= (1.0 - extShadow);
 
-		color = mix(color, suncolor, vl * max(0.0, 1.0 - eyebrightness * 0.1 * luma(suncolor)) * max(0.0, dot(nvpos, lightPosition)));
+		color = mix(color, suncolor, vl * max(0.0, 1.0 - eyebrightness * 0.1 * luma(suncolor)) * (1.0 - max(0.0, - dot(nvpos, lightPosition))));
 		#endif
 	}
 

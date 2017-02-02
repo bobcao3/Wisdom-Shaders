@@ -112,6 +112,26 @@ float rand( in vec2 p ) {
 	hash( i + vec2(1.0,1.0) ), u.x), u.y);
 }
 
+float find_closest(vec2 pos) {
+	const int ditherPattern[64] = int[64](
+		0, 32, 8, 40, 2, 34, 10, 42, /* 8x8 Bayer ordered dithering */
+		48, 16, 56, 24, 50, 18, 58, 26, /* pattern. Each input pixel */
+		12, 44, 4, 36, 14, 46, 6, 38, /* is scaled to the 0..63 range */
+		60, 28, 52, 20, 62, 30, 54, 22, /* before looking in this table */
+		3, 35, 11, 43, 1, 33, 9, 41, /* to determine the action. */
+		51, 19, 59, 27, 49, 17, 57, 25,
+		15, 47, 7, 39, 13, 45, 5, 37,
+		63, 31, 55, 23, 61, 29, 53, 21);
+
+	vec2 positon = vec2(0.0f);
+	positon.x = floor(mod(texcoord.s * viewWidth, 8.0f));
+	positon.y = floor(mod(texcoord.t * viewHeight, 8.0f));
+
+	int dither = ditherPattern[int(positon.x) + int(positon.y) * 8];
+
+	return float(dither) / 64.0f;
+}
+
 #define AO_Enabled
 #ifdef AO_Enabled
 
@@ -130,24 +150,27 @@ const  vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 float AO() {
 	float am = 0;
 	// float rcdepth = texture(depthtex0, texcoord).r * 200.0f;
-	 float d = 0.0012 / cdepthN;
-	 float maxAngle = 0.0;
+	float d = 0.0032 / cdepthN;
+	float maxAngle = 0.0;
 	if (cdepthN < 0.7) {
 		for (int i = 0; i < Sample_Directions; i++) {
 			for (int j = 1; j < sampleDepth; j++) {
-				 float noise = clamp(0.001, abs(rand((texcoord + vec2(i, j)))), 1.0);
-				 float inc = (0.4 + noise * 0.6) * j * d;
-				 vec2 dir = mix(offset_table[i], offset_table[i + 1], noise * 0.4 + 0.6) * inc + texcoord;
-				if (dir.x < 0.0 || dir.x > 1.0 || dir.y < 0.0 || dir.y > 1.0) continue;
-
-				vec3 nVpos = texture(gdepth, dir).xyz;
-				 float NdC = distance(nVpos, vpos.xyz);
-				if (NdC < 1.25) {
-					 float angle = clamp(0.0, dot(nVpos - vpos.xyz, normal) / NdC - 0.2, 0.7) * 0.5;
-					if (angle > maxAngle) {
-						maxAngle = angle;
-						float datt = sampleDepth * d;
-						am += angle * (datt - inc) / datt / j;
+				float noise = find_closest(texcoord + vec2(i, j) * 0.001);
+				float inc = (j - 1 + noise) * d;
+				float noise_angle = find_closest(texcoord - vec2(i, j) * 0.001);
+				vec2 dir = mix(offset_table[i], offset_table[i + 1], noise_angle) * inc + texcoord;
+				if (dir.x > 0.0 && dir.x < 1.0 && dir.y > 0.0 && dir.y < 1.0) {
+					vec3 nVpos = texture(gdepth, dir).xyz;
+					if (texture(gnormal, dir).b > 0.11) {
+						float NdC = distance(nVpos, vpos.xyz);
+						if (NdC < 1.25) {
+							float angle = clamp(0.0, dot(nVpos - vpos.xyz, normal) / NdC - 0.2, 0.7);
+							if (angle > maxAngle) {
+								maxAngle = angle;
+								float datt = sampleDepth * d;
+								am += angle * (datt - inc) / datt / j * 0.5;
+							}
+						}
 					}
 				}
 			}
@@ -296,7 +319,7 @@ float VL() {
 
 		for (int i = 0; i < 47; i++) {
 			swpos -= dir;
-			float dither = rand((texcoord + vec2(i) * 0.1)) * 0.8;
+			float dither = find_closest(texcoord + vec2(i) * 0.01);
 			vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
 			if (shadowpos.z + 0.0006 < texture(shadowtex0, shadowpos.xy).x) {
 				total += (prev + 1.0) * length(dir) * (1 + dither) * 0.5;

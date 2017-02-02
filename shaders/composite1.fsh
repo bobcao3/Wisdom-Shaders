@@ -57,13 +57,13 @@ float blurAO(float c) {
 	vec3 vpos = texture2D(gdepth, texcoord).rgb;
 
 	for (int i = -5; i < 0; i++) {
-		vec2 adj_coord = texcoord + vec2(0.0015, 0.0) * i * d;
+		vec2 adj_coord = texcoord + vec2(0.0011, 0.0) * i * d;
 		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
 		a += mix(texture2D(composite, adj_coord).g, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	for (int i = 1; i < 6; i++) {
-		vec2 adj_coord = texcoord + vec2(-0.0015, 0.0) * i * d;
+		vec2 adj_coord = texcoord + vec2(-0.0011, 0.0) * i * d;
 		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
 		a += mix(texture2D(composite, adj_coord).g, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
