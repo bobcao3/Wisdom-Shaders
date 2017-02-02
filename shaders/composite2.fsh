@@ -462,7 +462,7 @@ void main() {
 		vl += texture(composite, texcoord * 0.5 + vec2(0.0, -0.0005)).b;
 		vl /= 6.0;
 
-		vl = 1.0 - (1.0 / (1.0 + vl) - 0.5) * 2.0;
+		vl = (1.0 - (1.0 / (1.0 + vl) - 0.5) * 2.0) * 0.7;
 		vl *= (1.0 - extShadow);
 
 		color = mix(color, suncolor, vl * max(0.0, 0.73 - eyebrightness * 0.07 * luma(suncolor)) * (1.0 - max(0.0, - dot(nvpos, lightPosition))));
