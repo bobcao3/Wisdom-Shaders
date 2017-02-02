@@ -333,7 +333,7 @@ float blurAO(float c, vec3 cNormal) {
 }
 #endif
 
-//#define GlobalIllumination
+#define GlobalIllumination
 #ifdef GlobalIllumination
 uniform sampler2D gaux4;
 vec3 blurGI(vec3 c) {
@@ -442,9 +442,9 @@ void main() {
 		color *= ao;
 		#endif
 
-		#ifdef GlobalIllumination
-		diffuse += blurGI(texture(gaux4, texcoord).rgb) * 0.5;
-		#endif
+	//	#ifdef GlobalIllumination
+	//	diffuse += blurGI(texture(gaux4, texcoord).rgb) * 0.5;
+	//	#endif
 		float simulatedGI = 0.1 + 1.7 * mclight.y;
 		color = color * diffuse + color * ambientColor * simulatedGI;
 
@@ -462,7 +462,9 @@ void main() {
 		vl *= (1.0 - extShadow);
 
 		color = mix(color, suncolor, vl * max(0.0, 1.0 - eyebrightness * 0.1 * luma(suncolor)) * (1.0 - max(0.0, - dot(nvpos, lightPosition))));
+
 		#endif
+		color =blurGI(texture(gaux4, texcoord).rgb) * 0.5;
 	}
 
 /* DRAWBUFFERS:35 */

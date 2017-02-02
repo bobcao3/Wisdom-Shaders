@@ -64,7 +64,9 @@ void main() {
 
 	color = gl_Color;
 	#ifdef GlobalIllumination
-	color.rgb *= max(0.0, dot(gl_Normal, vec3(0.0, 1.0, 0.0)));
+	if (blockId != 31.0 && blockId != 37.0 && blockId != 38.0) {
+		color.rgb *= max(0.0, dot(gl_Normal, vec3(0.0, 1.0, 0.0)));
+	}
 	#endif
 	 float distortFactor = (1.0 - SHADOW_MAP_BIAS) + length(gl_Position.xy) * SHADOW_MAP_BIAS;
 	gl_Position.xy /= distortFactor;

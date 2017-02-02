@@ -29,7 +29,7 @@
 const int shadowMapResolution = 1512; // [1024 1512 2048 4096]
 const float shadowDistance = 128.0; // [64 90 128.0 160 256]
 const float sunPathRotation = -39.0;
-const float shadowIntervalSize = 4.0;
+const float shadowIntervalSize = 5.0;
 
 uniform sampler2D gdepth;
 uniform sampler2D gcolor;
@@ -150,7 +150,7 @@ const  vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 float AO() {
 	float am = 0;
 	// float rcdepth = texture(depthtex0, texcoord).r * 200.0f;
-	float d = 0.0032 / cdepthN;
+	float d = 0.0022 / cdepthN;
 	float maxAngle = 0.0;
 	if (cdepthN < 0.7) {
 		for (int i = 0; i < Sample_Directions; i++) {
@@ -193,7 +193,7 @@ vec3 wpos2shadowpos(in  vec3 wpos) {
 	return shadowposition.xyz;
 }
 
-//#define GlobalIllumination
+#define GlobalIllumination
 #ifdef GlobalIllumination
 
 uniform sampler2D shadowcolor0;
@@ -211,90 +211,52 @@ vec3 shadowpos2wpos(in vec3 spos) {
 	return shadowposition.xyz;
 }*/
 
-const vec2 circle_offsets[25] = vec2[25](
-	vec2(-0.48946f,-0.35868f),
-	vec2(-0.17172f, 0.62722f),
-	vec2(-0.47095f,-0.01774f),
-	vec2(-0.99106f, 0.03832f),
-	vec2(-0.21013f, 0.20347f),
-	vec2(-0.78895f,-0.56715f),
-	vec2(-0.10378f,-0.15832f),
-	vec2(-0.57284f, 0.3417f ),
-	vec2(-0.18633f, 0.5698f ),
-	vec2( 0.35618f, 0.00714f),
-	vec2( 0.28683f,-0.54632f),
-	vec2(-0.4641f ,-0.88041f),
-	vec2( 0.19694f, 0.6237f ),
-	vec2( 0.69991f, 0.6357f ),
-	vec2(-0.34625f, 0.89663f),
-	vec2( 0.1726f , 0.28329f),
-	vec2( 0.41492f, 0.8816f ),
-	vec2( 0.1369f ,-0.97162f),
-	vec2(-0.6272f , 0.67213f),
-	vec2(-0.8974f , 0.42719f),
-	vec2( 0.55519f, 0.32407f),
-	vec2( 0.94871f, 0.26051f),
-	vec2( 0.71401f,-0.3126f ),
-	vec2( 0.04403f, 0.93637f),
-	vec2( 0.62031f,-0.66735f)
-);
-
 vec3 GI() {
-	vec2 texc = texcoord * 4.0;
+	vec2 texc = texcoord * 2.0;
 	if (texc.x > 1.0 || texc.y > 1.0) return vec3(0.0);
 
 	vec3 ntex = texture(gnormal, texc).rgb;
 	vec3 normal = mat3(gbufferModelViewInverse) * normalDecode(ntex.xy);
-	bool skydiscard = (ntex.b > 0.01);
 
 	vec3 accumulated = vec3(.0);
 
-	//if (skydiscard) {
+	if (ntex.b > 0.11) {
 
 		vec3 owpos = (gbufferModelViewInverse * vec4(texture(gdepth, texc).xyz, 1.0)).xyz;
-		 vec3 flat_normal = normalize(cross(dFdx(owpos),dFdy(owpos)));
-		vec3 nswpos = owpos + normal * 0.2;
-		vec3 trace_dir = -reflect(-worldLightPos, vec3(rand(owpos.xy) * 0.04, 1.0, rand(owpos.zy) * 0.04));
-		//trace_dir = mix(trace_dir, flat_normal, max(0.0, -dot(trace_dir, normal)));
-		trace_dir = normalize(flat_normal) * 0.2;
-		float NdotL = dot(normal, trace_dir * 5.0);
-		if (NdotL < 0.0) return vec3(0.0);
+		vec3 flat_normal = normalize(cross(dFdx(owpos),dFdy(owpos)));
+		// Direction 1
+		vec3 swpos = owpos + flat_normal * 0.2;
+		vec3 trace_dir = -reflect(-worldLightPos, vec3(find_closest(texcoord + vec2(owpos.xy)) * 0.2, 1.0, find_closest(texcoord + vec2(owpos.zy)) * 0.2));
+		trace_dir = normalize(trace_dir) * 0.2;
+		float prev = 0;
 
-		// Half voxel trace, 2 steps 1 voxel
-		for (int i = 0; i < 10; i++) {
-			nswpos += trace_dir;
-			vec3 swpos = nswpos + rand(vec2(i, owpos.z)) * trace_dir * 0.4;
-			vec3 shadowpos = wpos2shadowpos(swpos);
-/*
-			// Detect bounce
-			float sample_depth = texture(shadowtex0, shadowpos.xy).x;
-			//return vec3(sample_depth,sample_depth,sample_depth);
-			float nd = shadowpos.z - sample_depth;
-			if (nd < -0.0006) {
-				accumulated += suncolor * 0.001;
-			} else if (abs(nd) < 0.0006) {*/
-				// Calculate normal & light contribution
-				//vec3 snormal = normalize(cross(dFdx(shadowpos), dFdy(shadowpos)));
-				 vec3 halfwayDir = normalize(trace_dir * 3.0 - normalize(owpos));
-
-				 vec3 scolor = texture(shadowcolor0, shadowpos.xy).rgb;
-				for (int j = 0; j < 25; j++) {
-					for (int k = 0; k < 3; k++) {
-						float randv = 0.0011 * (k + 1) * rand((shadowpos.xy + k * 0.03));
-						vec2 shadow_uv = shadowpos.xy + circle_offsets[j] * randv;
-						float cover = float(abs(texture(shadowtex0, shadowpos.xy).x - shadowpos.z) < 0.001 * (k + 1));
-						scolor += cover * texture(shadowcolor0, shadow_uv).rgb;
-					}
-				}
-				scolor /= 26.0f;
-				scolor /= 4.0f;
-				scolor *= dot(trace_dir * 5.0, flat_normal);
-
-				accumulated += scolor.rgb * (6.5 - distance(swpos, owpos)) * 0.05 * (max(0.0, dot(normal, halfwayDir)) * 0.5 + 0.5) * suncolor;
-		/*		break;
-			};*/
+		for (int i = 0; i < 15; i++) {
+			swpos += trace_dir;
+			float dither = find_closest(texcoord + vec2(i) * 0.01);
+			vec3 shadowpos = wpos2shadowpos(swpos + trace_dir * dither);
+			if (abs(shadowpos.z - texture(shadowtex0, shadowpos.xy).x) < 0.0004) {
+				vec3 color = texture(shadowcolor0, shadowpos.xz).rgb;
+				accumulated += (prev + 1.0) * length(trace_dir) * (1 + dither) * 0.005 * suncolor * color;
+				prev = 1.0;
+			}
 		}
-	//}
+		// Direction 2
+		swpos = owpos + flat_normal * 0.2;
+		trace_dir = -reflect(-worldLightPos, vec3(find_closest(texcoord + vec2(owpos.yx)) * 0.2, 1.0, find_closest(texcoord + vec2(owpos.zx)) * 0.2));
+		trace_dir = normalize(trace_dir) * 0.2;
+		prev = 0;
+
+		for (int i = 0; i < 15; i++) {
+			swpos += trace_dir;
+			float dither = find_closest(texcoord + vec2(i) * 0.01);
+			vec3 shadowpos = wpos2shadowpos(swpos + trace_dir * dither);
+			if (abs(shadowpos.z - texture(shadowtex0, shadowpos.xy).x) < 0.0004) {
+				vec3 color = texture(shadowcolor0, shadowpos.xz).rgb;
+				accumulated += (prev + 1.0) * length(trace_dir) * (1 + dither) * 0.005 * suncolor * color;
+				prev = 1.0;
+			}
+		}
+	}
 	return accumulated;
 }
 
