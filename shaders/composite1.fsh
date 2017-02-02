@@ -81,16 +81,16 @@ vec3 blurGI(vec3 c) {
 	 float d = 0.068 / cdepthN;
 	vec3 vpos = texture2D(gdepth, texcoord).rgb;
 
-	for (int i = -4; i < 0; i++) {
-		vec2 adj_coord = texcoord + vec2(0.0035, 0.0) * i * d;
+	for (int i = -7; i < 0; i++) {
+		vec2 adj_coord = texcoord + vec2(0.0016, 0.0) * i * d;
 		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
-		a += mix(texture2D(gaux4, adj_coord * 0.5).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
+		a += mix(texture2D(gaux4, adj_coord).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
-	for (int i = 1; i < 5; i++) {
-		vec2 adj_coord = texcoord + vec2(-0.0035, 0.0) * i * d;
+	for (int i = 1; i < 8; i++) {
+		vec2 adj_coord = texcoord + vec2(-0.0016, 0.0) * i * d;
 		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
-		a += mix(texture2D(gaux4, adj_coord * 0.5).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
+		a += mix(texture2D(gaux4, adj_coord).rgb, c, saturate(distance(nvpos, vpos))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	return a * 0.1629;
@@ -108,6 +108,6 @@ void main() {
 /* DRAWBUFFERS:37 */
 	gl_FragData[0] = ctex;
 	#ifdef GlobalIllumination
-	gl_FragData[1] = vec4(blurGI(texture2D(gaux4, texcoord * 0.5).rgb), 1.0);
+	gl_FragData[1] = vec4(blurGI(texture2D(gaux4, texcoord).rgb), 1.0);
 	#endif
 }

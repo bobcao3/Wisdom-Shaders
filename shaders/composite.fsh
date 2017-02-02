@@ -212,52 +212,73 @@ vec3 shadowpos2wpos(in vec3 spos) {
 }*/
 
 vec3 GI() {
-	vec2 texc = texcoord * 2.0;
+	vec2 texc = texcoord;
 	if (texc.x > 1.0 || texc.y > 1.0) return vec3(0.0);
 
 	vec3 ntex = texture(gnormal, texc).rgb;
 	vec3 normal = mat3(gbufferModelViewInverse) * normalDecode(ntex.xy);
 
-	vec3 accumulated = vec3(.0);
+	vec3 gi = vec3(.0);
 
-	if (ntex.b > 0.11) {
-
+	if (ntex.b > 0.11 && cdepthN < 0.6) {
 		vec3 owpos = (gbufferModelViewInverse * vec4(texture(gdepth, texc).xyz, 1.0)).xyz;
-		vec3 flat_normal = normalize(cross(dFdx(owpos),dFdy(owpos)));
-		// Direction 1
-		vec3 swpos = owpos + flat_normal * 0.2;
-		vec3 trace_dir = -reflect(-worldLightPos, vec3(find_closest(texcoord + vec2(owpos.xy)) * 0.2, 1.0, find_closest(texcoord + vec2(owpos.zy)) * 0.2));
-		trace_dir = normalize(trace_dir) * 0.2;
-		float prev = 0;
+		lowp vec3 flat_normal = normalize(cross(dFdx(owpos),dFdy(owpos)));
+		vec3 swpos = owpos + normal * 0.2;
+		vec3 rand_pos = (swpos + cameraPosition);
 
-		for (int i = 0; i < 15; i++) {
+		float randx = find_closest(rand_pos.xy / cdepthN) * 0.1;
+		float randy = find_closest(rand_pos.zy / cdepthN) * 0.1;
+		vec3 trace_dir = -reflect(-worldLightPos, normalize(vec3(randx, 1.0, randy))) * 0.2;
+		float NdotL = dot(normal, trace_dir * 5.0);
+		if (NdotL < 0.0) return vec3(0.0);
+
+		// Half voxel trace, 2 steps 1 voxel
+		for (int i = 0; i < 12; i++) {
 			swpos += trace_dir;
-			float dither = find_closest(texcoord + vec2(i) * 0.01);
-			vec3 shadowpos = wpos2shadowpos(swpos + trace_dir * dither);
-			if (abs(shadowpos.z - texture(shadowtex0, shadowpos.xy).x) < 0.0004) {
-				vec3 color = texture(shadowcolor0, shadowpos.xz).rgb;
-				accumulated += (prev + 1.0) * length(trace_dir) * (1 + dither) * 0.005 * suncolor * color;
-				prev = 1.0;
+			vec3 shadowpos = wpos2shadowpos(swpos + find_closest(rand_pos.xz + vec2(i) * 0.01));
+
+			// Detect bounce
+			float sample_depth = texture(shadowtex0, shadowpos.xy).x;
+			float nd = shadowpos.z - sample_depth;
+			if (abs(nd) < 0.0003) {
+				// Calculate normal & light contribution
+				//vec3 snormal = normalize(cross(dFdx(shadowpos), dFdy(shadowpos)));
+				lowp vec3 halfwayDir = normalize(trace_dir * 3.0 - normalize(owpos));
+
+				lowp vec3 scolor = texture(shadowcolor0, shadowpos.xy).rgb;
+				scolor *= dot(trace_dir * 5.0, flat_normal);
+
+				gi += scolor.rgb * (4.5 - distance(swpos, owpos)) * 0.05 * (max(0.0, dot(normal, halfwayDir)) * 0.5 + 0.5) * suncolor;
+				break;
 			}
 		}
-		// Direction 2
-		swpos = owpos + flat_normal * 0.2;
-		trace_dir = -reflect(-worldLightPos, vec3(find_closest(texcoord + vec2(owpos.yx)) * 0.2, 1.0, find_closest(texcoord + vec2(owpos.zx)) * 0.2));
-		trace_dir = normalize(trace_dir) * 0.2;
-		prev = 0;
 
-		for (int i = 0; i < 15; i++) {
+		randx = find_closest(rand_pos.xy / cdepthN) * 0.1;
+		randy = find_closest(rand_pos.zy / cdepthN) * 0.1;
+		trace_dir = -reflect(-worldLightPos, normalize(vec3(randx, 1.0, randy))) * 0.2;
+
+		// Half voxel trace, 2 steps 1 voxel
+		for (int i = 0; i < 12; i++) {
 			swpos += trace_dir;
-			float dither = find_closest(texcoord + vec2(i) * 0.01);
-			vec3 shadowpos = wpos2shadowpos(swpos + trace_dir * dither);
-			if (abs(shadowpos.z - texture(shadowtex0, shadowpos.xy).x) < 0.0004) {
-				vec3 color = texture(shadowcolor0, shadowpos.xz).rgb;
-				accumulated += (prev + 1.0) * length(trace_dir) * (1 + dither) * 0.005 * suncolor * color;
-				prev = 1.0;
+			vec3 shadowpos = wpos2shadowpos(swpos + find_closest(rand_pos.xz + vec2(i) * 0.005));
+
+			// Detect bounce
+			float sample_depth = texture(shadowtex0, shadowpos.xy).x;
+			float nd = shadowpos.z - sample_depth;
+			if (abs(nd) < 0.0003) {
+				// Calculate normal & light contribution
+				//vec3 snormal = normalize(cross(dFdx(shadowpos), dFdy(shadowpos)));
+				lowp vec3 halfwayDir = normalize(trace_dir * 3.0 - normalize(owpos));
+
+				lowp vec3 scolor = texture(shadowcolor0, shadowpos.xy).rgb;
+				scolor *= dot(trace_dir * 5.0, flat_normal);
+
+				gi += scolor.rgb * (4.5 - distance(swpos, owpos)) * 0.05 * (max(0.0, dot(normal, halfwayDir)) * 0.5 + 0.5) * suncolor;
+				break;
 			}
 		}
 	}
-	return accumulated;
+	return gi * 0.5 * (1.0 - (clamp(0.4, cdepthN, 0.6) - 0.4) * 5.0);
 }
 
 #endif

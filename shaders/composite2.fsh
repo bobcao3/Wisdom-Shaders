@@ -340,14 +340,14 @@ vec3 blurGI(vec3 c) {
 	vec3 a = c;
 	 float d = 0.068 / cdepthN;
 
-	for (int i = -5; i < 0; i++) {
-		vec2 adj_coord = texcoord + vec2(0.0, 0.0025) * i * d;
+	for (int i = -7; i < 0; i++) {
+		vec2 adj_coord = texcoord + vec2(0.0, 0.0016) * i * d;
 		vec3 nvpos = texture(gdepth, adj_coord).rgb;
 		a += mix(texture(gaux4, adj_coord).rgb, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
-	for (int i = 1; i < 6; i++) {
-		vec2 adj_coord = texcoord + vec2(0.0, 0.0025) * i * d;
+	for (int i = 1; i < 8; i++) {
+		vec2 adj_coord = texcoord + vec2(0.0, 0.0016) * i * d;
 		vec3 nvpos = texture(gdepth, adj_coord).rgb;
 		a += mix(texture(gaux4, adj_coord).rgb, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
@@ -442,9 +442,13 @@ void main() {
 		color *= ao;
 		#endif
 
-	//	#ifdef GlobalIllumination
-	//	diffuse += blurGI(texture(gaux4, texcoord).rgb) * 0.5;
-	//	#endif
+		#ifdef GlobalIllumination
+		vec3 gi = blurGI(texture(gaux4, texcoord).rgb) * 10.0;
+		#ifdef AO_Enabled
+		gi *= 0.2 + ao * 0.8;
+		#endif
+		diffuse += gi;
+		#endif
 		float simulatedGI = 0.1 + 1.7 * mclight.y;
 		color = color * diffuse + color * ambientColor * simulatedGI;
 
@@ -464,7 +468,6 @@ void main() {
 		color = mix(color, suncolor, vl * max(0.0, 1.0 - eyebrightness * 0.1 * luma(suncolor)) * (1.0 - max(0.0, - dot(nvpos, lightPosition))));
 
 		#endif
-		color =blurGI(texture(gaux4, texcoord).rgb) * 0.5;
 	}
 
 /* DRAWBUFFERS:35 */
