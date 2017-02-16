@@ -30,13 +30,19 @@ uniform sampler2D composite;
 
 in vec2 texcoord;
 
-const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
-const float weight[9] = float[] (0.066812, 0.129101, 0.112504, 0.08782, 0.061406, 0.03846, 0.021577, 0.010843, 0.004881);
+#define BLOOM
+#ifdef BLOOM
+const bool compositeMipmapEnabled = true;
 
-#define blurLoop(i) color += texture(composite, texcoord + vec2(0.0021, .0) * offset[i]).rgb * weight[i]; color += texture(composite, texcoord - vec2(0.0021, .0) * offset[i]).rgb * weight[i];
+#define luma(color)	dot(color,vec3(0.2126, 0.7152, 0.0722))
+const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
+const float weight[9] = float[] (0.4210103, 0.191235, 0.06098, 0.0238563, 0.0093547, 0.0030827, 0.000801, 0.000163, 0.000078);
+
+#define blurLoop(i) a = texture(composite, texcoord + vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * luma(a) * weight[i]; a = texture(composite, texcoord - vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * luma(a) * weight[i];
 
 vec3 bloom() {
 	vec3 color = texture(composite, texcoord).rgb * weight[0];
+	vec3 a;
 	blurLoop(1)
 	blurLoop(2)
 	blurLoop(3)
@@ -47,6 +53,8 @@ vec3 bloom() {
 	blurLoop(8)
 	return color;
 }
+
+#endif
 
 //#define SSEDAA
 #ifdef SSEDAA
@@ -125,7 +133,9 @@ vec4 EDAA() {
 
 /* DRAWBUFFERS:03 */
 void main() {
+	#ifdef BLOOM
 	gl_FragData[0] = vec4(bloom(), 1.0);
+	#endif
 
 	#ifdef SSEDAA
 	gl_FragData[1] = EDAA();

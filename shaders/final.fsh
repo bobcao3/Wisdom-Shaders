@@ -144,13 +144,13 @@ vec3 vignette(vec3 color) {
 #define BLOOM
 
 const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
-const float weight[9] = float[] (0.066812, 0.129101, 0.112504, 0.08782, 0.061406, 0.03846, 0.021577, 0.010843, 0.004881);
+const float weight[9] = float[] (0.4210103, 0.191235, 0.06098, 0.0238563, 0.0093547, 0.0030827, 0.000801, 0.000163, 0.000078);
 
 #define blurLoop(i) color += texture2D(gcolor, texcoord + direction * offset[i]).rgb * weight[i]; color += texture2D(gcolor, texcoord - direction * offset[i]).rgb * weight[i];
 
-vec3 blur() {
+vec3 bloom() {
 	vec3 color = texture2D(gcolor, texcoord).rgb * weight[0];
-	vec2 direction = vec2(0.0, 0.0021) / viewHeight * viewWidth;
+	vec2 direction = vec2(0.0, 0.0019) / viewHeight * viewWidth;
 	blurLoop(1)
 	blurLoop(2)
 	blurLoop(3)
@@ -160,6 +160,19 @@ vec3 blur() {
 	blurLoop(7)
 	blurLoop(8)
 	return color;
+}
+
+vec3 blur() {
+	vec3 c = texture2D(composite, texcoord + vec2(-0.0021, 0.0021)).rgb * 0.077847;
+	c += texture2D(composite, texcoord + vec2(0.0, 0.0021)).rgb * 0.123317;
+	c += texture2D(composite, texcoord + vec2(0.0021, 0.0021)).rgb * 0.077847;
+	c += texture2D(composite, texcoord + vec2(-0.0021, 0.0)).rgb * 0.123317;
+	c += texture2D(composite, texcoord).rgb * 0.195346;
+	c += texture2D(composite, texcoord + vec2(0.0021, 0.0)).rgb * 0.123317;
+	c += texture2D(composite, texcoord + vec2(-0.0021, -0.0021)).rgb * 0.077847;
+	c += texture2D(composite, texcoord + vec2(0.0, -0.0021)).rgb * 0.123317;
+	c += texture2D(composite, texcoord + vec2(0.0021, -0.0021)).rgb * 0.077847;
+	return c;
 }
 
 #define FINAL_COLOR_ADJUST
@@ -271,14 +284,13 @@ void main() {
 	float ldepthN = linearizeDepth(depth);
 	float blurMin = 0.95f - rainStrength * 0.5;
 	float blurStrength1 = 1.0 / (1.0 - blurMin);
-	float blurStrength2 = 0.7 + rainStrength * 0.3;
-	if (ldepthN > blurMin) color = mix(color, blurcolor, clamp(0.f, (ldepthN - blurMin) * blurStrength1, 1.f) * blurStrength2);
+	if (ldepthN > blurMin) color = mix(color, blurcolor, clamp(0.f, (ldepthN - blurMin) * blurStrength1, 1.f));
 
 	#ifdef DOF
 	color = dof(color, texcoord, depth, blurcolor);
 	#endif
 	#ifdef BLOOM
-	color += luma(blurcolor) * blurcolor * 0.3;
+	color += bloom();
 	#endif
 
 	color = pow(color, vec3(1. / gamma));
