@@ -19,8 +19,8 @@ invariant flat out vec3 horizontColor;
 
 #define SUNRISE 23500
 #define SUNSET 12000
-#define FADE_START 520
-#define FADE_END 250
+#define FADE_START 620
+#define FADE_END 450
 
 void calcCommon() {
 	TimeSunrise  = ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0) + (1.0 - (clamp(wTimeF, 0.0, 2000.0)/2000.0));
