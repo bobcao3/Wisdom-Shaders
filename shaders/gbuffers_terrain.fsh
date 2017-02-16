@@ -53,7 +53,7 @@ varying vec3 binormal;
 uniform ivec2 atlasSize;
 
 vec4 texSmooth(in sampler2D s, in vec2 texc) {
-	float lod = length(dFdx(wpos) + dFdy(wpos)) * 8.0;
+	float lod = length(dFdx(wpos) + dFdy(wpos)) * 4.0;
 
 	vec2 pix_size = vec2(1.0) / (vec2(atlasSize) * 24.0);
 
