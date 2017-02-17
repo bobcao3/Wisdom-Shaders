@@ -35,5 +35,9 @@ invariant varying vec3 worldLightPos;
 
 void main() {
 	calcCommon();
+
+	gl_Position = ftransform();
+	texcoord = gl_MultiTexCoord0.st;
+
 	worldLightPos = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
 }

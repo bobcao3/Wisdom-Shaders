@@ -19,8 +19,8 @@ invariant varying vec3 horizontColor;
 
 #define SUNRISE 23500
 #define SUNSET 12000
-#define FADE_START 620
-#define FADE_END 450
+#define FADE_START 520
+#define FADE_END 350
 
 void calcCommon() {
 	TimeSunrise  = ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0) + (1.0 - (clamp(wTimeF, 0.0, 2000.0)/2000.0));
@@ -35,9 +35,6 @@ void calcCommon() {
 
 	suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
 	suncolor *= 1.0 - rainStrength * 0.83;
-
-	gl_Position = ftransform();
-	texcoord = gl_MultiTexCoord0.st;
 
 	extShadow = (clamp((wTimeF-12000.0)/300.0,0.0,1.0)-clamp((wTimeF-13000.0)/300.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 

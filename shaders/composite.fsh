@@ -29,7 +29,7 @@ const int shadowMapResolution = 1512; // [1024 1512 2048 4096]
 const float shadowDistance = 128.0; // [64 90 128.0 160 256]
 const float sunPathRotation = -39.0;
 const float shadowIntervalSize = 5.0;
-const float ambientOcclusionLevel = 0.0f; // [0.0f 1.0f]
+const float ambientOcclusionLevel = 0.5f; // [0.5f 1.0f]
 
 uniform sampler2D gdepth;
 uniform sampler2D gcolor;

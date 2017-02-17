@@ -29,4 +29,8 @@
 
 void main() {
 	calcCommon();
+
+	gl_Position = ftransform();
+	texcoord = gl_MultiTexCoord0.st;
+
 }
