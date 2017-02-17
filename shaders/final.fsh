@@ -159,7 +159,7 @@ vec3 bloom() {
 	blurLoop(6)
 	blurLoop(7)
 	blurLoop(8)
-	return color;
+	return color * luma(color);
 }
 
 vec3 blur() {

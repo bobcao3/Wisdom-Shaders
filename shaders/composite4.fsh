@@ -38,7 +38,7 @@ const bool compositeMipmapEnabled = true;
 const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
 const float weight[9] = float[] (0.4210103, 0.191235, 0.06098, 0.0238563, 0.0093547, 0.0030827, 0.000801, 0.000163, 0.000078);
 
-#define blurLoop(i) a = texture2DLod(composite, texcoord + vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * luma(a) * weight[i]; a = texture2DLod(composite, texcoord - vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * luma(a) * weight[i];
+#define blurLoop(i) a = texture2DLod(composite, texcoord + vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * weight[i]; a = texture2DLod(composite, texcoord - vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * weight[i];
 
 vec3 bloom() {
 	vec3 color = texture2D(composite, texcoord).rgb * weight[0];
