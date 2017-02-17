@@ -309,19 +309,19 @@ vec3 calcSkyColor(in vec3 wpos, float shade) {
 
 	if (horizont < -0.5) return vec3(0.0);
 
-	float skycolor_position = clamp(max(pow(max(1.0 - horizont / (35.0 * 100.0),0.01),8.0)-0.1,0.0), 0.35, 1.0);
-	float horizont_position = max(pow(max(1.0 - horizont / (16.5*100.0) ,0.01),1.3)-0.1, 0.0);
+	float skycolor_position = clamp(max(pow(max(1.0 - horizont / (45.0 * 100.0),0.01),8.0)-0.1,0.0), 0.35, 1.0);
+	float horizont_position = max(pow(max(1.0 - horizont / (22.5*100.0) ,0.01),1.3)-0.1, 0.0);
 
 	vec3 sky = skycolor * skycolor_position * vec3(1.5 , 2.3, 2.6);
-	vec3 hcol = mix(horizontColor, suncolor * luma(horizontColor), pow(1.0 - worldLightPos.y, 0.9)) * (0.5 + 0.5 * pow(1.0 - worldLightPos.y, 0.9));
+	vec3 hcol = mix(horizontColor, suncolor * luma(horizontColor), pow(1.0 - worldLightPos.y, 0.9) * (1.0 - max(0.0, -dot(worldLightPos, normalize(wpos))))) * (0.5 + 0.5 * pow(1.0 - worldLightPos.y, 0.9));
 	sky = mix(sky, hcol, horizont_position * pow(1.0 - worldLightPos.y, 0.3));
 
 	float sun_glow = max(0.0, dot(worldLightPos, normalize(wpos)));
-	sky += pow(sun_glow, 4.0 + 8.0 * pow(worldLightPos.y, 0.5)) * 0.13 * suncolor * (1.0 - extShadow) * (1.0 - shade) * (1.0 + TimeMidnight * 10.0);
+	sky += pow(sun_glow, 4.0 + 24.0 * pow(worldLightPos.y, 0.5)) * 0.13 * suncolor * (1.0 - extShadow) * (1.0 - shade) * (1.0 + TimeMidnight * 10.0);
 
 	// Sun.
 	vec3 sunl = mix(suncolor.rgb, hcol, pow(1.0 - worldLightPos.y, 0.3));
-	sky += clamp(pow(sun_glow, 690.0), 0.0, 0.2) * sunl * (1.0 - rainStrength * 0.6) * (1.0 - extShadow) * (1.0 + TimeMidnight * 17.0) * pow(1.0 - worldLightPos.y, 0.3) * 2.0;
+	sky += clamp(pow(sun_glow, 690.0), 0.0, 0.2) * sunl * (1.0 - rainStrength * 0.6) * (1.0 - extShadow) * (1.0 + TimeMidnight * 17.0) * pow(1.0 - worldLightPos.y, 0.3) * 4.0;
 
 	//vec4 cloud = calcCloud(normalize(wpos), sky);
 	//sky = mix(sky, cloud.rgb, cloud.a);
