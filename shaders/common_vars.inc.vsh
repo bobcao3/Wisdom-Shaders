@@ -4,18 +4,18 @@ float rainStrength = pow(clamp(wetness, 0.0f, 1.0f), 2.0);
 
 float wTimeF = float(worldTime);
 
-invariant out vec2 texcoord;
-invariant flat out vec3 suncolor;
+invariant varying vec2 texcoord;
+invariant varying vec3 suncolor;
 
-invariant flat out float TimeSunrise;
-invariant flat out float TimeNoon;
-invariant flat out float TimeSunset;
-invariant flat out float TimeMidnight;
-invariant flat out float extShadow;
+invariant varying float TimeSunrise;
+invariant varying float TimeNoon;
+invariant varying float TimeSunset;
+invariant varying float TimeMidnight;
+invariant varying float extShadow;
 
-invariant flat out vec3 skycolor;
-invariant flat out vec3 fogcolor;
-invariant flat out vec3 horizontColor;
+invariant varying vec3 skycolor;
+invariant varying vec3 fogcolor;
+invariant varying vec3 horizontColor;
 
 #define SUNRISE 23500
 #define SUNSET 12000

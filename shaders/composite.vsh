@@ -21,9 +21,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
-
+#version 120
 #pragma optimize(on)
 
 uniform mat4 gbufferModelViewInverse;
@@ -33,7 +31,7 @@ uniform vec3 shadowLightPosition;
 
 #include "common_vars.inc.vsh"
 
-invariant flat out vec3 worldLightPos;
+invariant varying vec3 worldLightPos;
 
 void main() {
 	calcCommon();

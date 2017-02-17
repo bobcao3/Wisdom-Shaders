@@ -21,8 +21,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 
 #pragma optimize(on)
 

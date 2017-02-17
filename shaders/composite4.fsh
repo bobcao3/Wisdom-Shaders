@@ -21,14 +21,14 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
+#version 120
+#extension GL_ARB_shader_texture_lod : require
 
 #pragma optimize(on)
 
 uniform sampler2D composite;
 
-in vec2 texcoord;
+varying vec2 texcoord;
 
 #define BLOOM
 #ifdef BLOOM
@@ -38,10 +38,10 @@ const bool compositeMipmapEnabled = true;
 const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
 const float weight[9] = float[] (0.4210103, 0.191235, 0.06098, 0.0238563, 0.0093547, 0.0030827, 0.000801, 0.000163, 0.000078);
 
-#define blurLoop(i) a = texture(composite, texcoord + vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * luma(a) * weight[i]; a = texture(composite, texcoord - vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * luma(a) * weight[i];
+#define blurLoop(i) a = texture2DLod(composite, texcoord + vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * luma(a) * weight[i]; a = texture2DLod(composite, texcoord - vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * luma(a) * weight[i];
 
 vec3 bloom() {
-	vec3 color = texture(composite, texcoord).rgb * weight[0];
+	vec3 color = texture2D(composite, texcoord).rgb * weight[0];
 	vec3 a;
 	blurLoop(1)
 	blurLoop(2)
@@ -140,6 +140,6 @@ void main() {
 	#ifdef SSEDAA
 	gl_FragData[1] = EDAA();
 	#else
-	gl_FragData[1] = texture(composite, texcoord);
+	gl_FragData[1] = texture2D(composite, texcoord);
 	#endif
 }

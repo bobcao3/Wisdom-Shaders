@@ -21,8 +21,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 
 #pragma optimize(on)
 
@@ -61,20 +60,20 @@ uniform float frameTimeCounter;
 const float eyeBrightnessHalflife	 = 8.5f;
 uniform ivec2 eyeBrightnessSmooth;
 
-invariant in vec2 texcoord;
-invariant flat in vec3 suncolor;
+invariant varying vec2 texcoord;
+invariant varying vec3 suncolor;
 
-invariant flat in float TimeSunrise;
-invariant flat in float TimeNoon;
-invariant flat in float TimeSunset;
-invariant flat in float TimeMidnight;
-invariant flat in float extShadow;
+invariant varying float TimeSunrise;
+invariant varying float TimeNoon;
+invariant varying float TimeSunset;
+invariant varying float TimeMidnight;
+invariant varying float extShadow;
 
-invariant flat in vec3 skycolor;
-invariant flat in vec3 fogcolor;
-invariant flat in vec3 horizontColor;
+invariant varying vec3 skycolor;
+invariant varying vec3 fogcolor;
+invariant varying vec3 horizontColor;
 
-invariant flat in vec3 worldLightPos;
+invariant varying vec3 worldLightPos;
 
 const float PI = 3.14159;
 const float hPI = PI / 2;
@@ -88,7 +87,7 @@ vec3 normalDecode(vec2 enc) {
 }
 
 float flag;
- vec4 vpos = vec4(texture(gdepth, texcoord).xyz, 1.0);
+ vec4 vpos = vec4(texture2D(gdepth, texcoord).xyz, 1.0);
  vec3 wpos = (gbufferModelViewInverse * vpos).xyz;
  vec3 normal;
  vec3 wnormal;
@@ -150,7 +149,7 @@ const  vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 
 float AO() {
 	float am = 0;
-	// float rcdepth = texture(depthtex0, texcoord).r * 200.0f;
+	// float rcdepth = texture2D(depthtex0, texcoord).r * 200.0f;
 	float d = 0.0022 / cdepthN;
 	float maxAngle = 0.0;
 	if (cdepthN < 0.7) {
@@ -161,8 +160,8 @@ float AO() {
 				float noise_angle = find_closest(texcoord - vec2(i, j) * 0.001);
 				vec2 dir = mix(offset_table[i], offset_table[i + 1], noise_angle) * inc + texcoord;
 				if (dir.x > 0.0 && dir.x < 1.0 && dir.y > 0.0 && dir.y < 1.0) {
-					vec3 nVpos = texture(gdepth, dir).xyz;
-					if (texture(gnormal, dir).b > 0.11) {
+					vec3 nVpos = texture2D(gdepth, dir).xyz;
+					if (texture2D(gnormal, dir).b > 0.11) {
 						float NdC = distance(nVpos, vpos.xyz);
 						if (NdC < 1.25) {
 							float angle = clamp(0.0, dot(nVpos - vpos.xyz, normal) / NdC - 0.2, 0.7);
@@ -216,14 +215,14 @@ vec3 GI() {
 	vec2 texc = texcoord;
 	if (texc.x > 1.0 || texc.y > 1.0) return vec3(0.0);
 
-	vec3 ntex = texture(gnormal, texc).rgb;
+	vec3 ntex = texture2D(gnormal, texc).rgb;
 	vec3 normal = mat3(gbufferModelViewInverse) * normalDecode(ntex.xy);
 
 	vec3 gi = vec3(.0);
 
 	if (ntex.b > 0.11 && cdepthN < 0.6) {
-		vec3 owpos = (gbufferModelViewInverse * vec4(texture(gdepth, texc).xyz, 1.0)).xyz;
-		lowp vec3 flat_normal = normalize(cross(dFdx(owpos),dFdy(owpos)));
+		vec3 owpos = (gbufferModelViewInverse * vec4(texture2D(gdepth, texc).xyz, 1.0)).xyz;
+		vec3 flat_normal = normalize(cross(dFdx(owpos),dFdy(owpos)));
 		vec3 swpos = owpos + normal * 0.2;
 		vec3 rand_pos = (swpos + cameraPosition);
 
@@ -239,14 +238,14 @@ vec3 GI() {
 			vec3 shadowpos = wpos2shadowpos(swpos + find_closest(rand_pos.xz + vec2(i) * 0.01));
 
 			// Detect bounce
-			float sample_depth = texture(shadowtex0, shadowpos.xy).x;
+			float sample_depth = texture2D(shadowtex0, shadowpos.xy).x;
 			float nd = shadowpos.z - sample_depth;
 			if (abs(nd) < 0.0003) {
 				// Calculate normal & light contribution
 				//vec3 snormal = normalize(cross(dFdx(shadowpos), dFdy(shadowpos)));
-				lowp vec3 halfwayDir = normalize(trace_dir * 3.0 - normalize(owpos));
+				vec3 halfwayDir = normalize(trace_dir * 3.0 - normalize(owpos));
 
-				lowp vec3 scolor = texture(shadowcolor0, shadowpos.xy).rgb;
+				vec3 scolor = texture2D(shadowcolor0, shadowpos.xy).rgb;
 				scolor *= dot(trace_dir * 5.0, flat_normal);
 
 				gi += scolor.rgb * (4.5 - distance(swpos, owpos)) * 0.05 * (max(0.0, dot(normal, halfwayDir)) * 0.5 + 0.5) * suncolor;
@@ -264,14 +263,14 @@ vec3 GI() {
 			vec3 shadowpos = wpos2shadowpos(swpos + find_closest(rand_pos.xz + vec2(i) * 0.005));
 
 			// Detect bounce
-			float sample_depth = texture(shadowtex0, shadowpos.xy).x;
+			float sample_depth = texture2D(shadowtex0, shadowpos.xy).x;
 			float nd = shadowpos.z - sample_depth;
 			if (abs(nd) < 0.0003) {
 				// Calculate normal & light contribution
 				//vec3 snormal = normalize(cross(dFdx(shadowpos), dFdy(shadowpos)));
-				lowp vec3 halfwayDir = normalize(trace_dir * 3.0 - normalize(owpos));
+				vec3 halfwayDir = normalize(trace_dir * 3.0 - normalize(owpos));
 
-				lowp vec3 scolor = texture(shadowcolor0, shadowpos.xy).rgb;
+				vec3 scolor = texture2D(shadowcolor0, shadowpos.xy).rgb;
 				scolor *= dot(trace_dir * 5.0, flat_normal);
 
 				gi += scolor.rgb * (4.5 - distance(swpos, owpos)) * 0.05 * (max(0.0, dot(normal, halfwayDir)) * 0.5 + 0.5) * suncolor;
@@ -290,13 +289,13 @@ float VL() {
 	vec2 texc = texcoord * 2.0;
 	if (texc.x > 1.0 || texc.y > 1.0) return 0.0;
 
-	vec3 normaltex = texture(gnormal, texc).rgb;
+	vec3 normaltex = texture2D(gnormal, texc).rgb;
 	vec3 normal = mat3(gbufferModelViewInverse) * normalDecode(normaltex.xy);
 	float total = 0.0;
 	bool skydiscard = (normaltex.b > 0.01);
 
 	if (skydiscard) {
-		vec3 owpos = (gbufferModelViewInverse * vec4(texture(gdepth, texc).xyz, 1.0)).xyz;
+		vec3 owpos = (gbufferModelViewInverse * vec4(texture2D(gdepth, texc).xyz, 1.0)).xyz;
 		vec3 swpos = owpos;
 		vec3 dir = owpos / 48.0;
 		float prev = 0.0;
@@ -305,7 +304,7 @@ float VL() {
 			swpos -= dir;
 			float dither = find_closest(texcoord + vec2(i) * 0.01);
 			vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
-			if (shadowpos.z + 0.0006 < texture(shadowtex0, shadowpos.xy).x) {
+			if (shadowpos.z + 0.0006 < texture2D(shadowtex0, shadowpos.xy).x) {
 				total += (prev + 1.0) * length(dir) * (1 + dither) * 0.5;
 				prev = 1.0;
 			}
@@ -319,8 +318,8 @@ float VL() {
 #endif
 
 void main() {
-	vec3 normaltex = texture(gnormal, texcoord).rgb;
-	vec3 water_normal_tex = texture(composite, texcoord).rgb;
+	vec3 normaltex = texture2D(gnormal, texcoord).rgb;
+	vec3 water_normal_tex = texture2D(composite, texcoord).rgb;
 	normal = normalDecode(normaltex.xy);
 	wnormal = mat3(gbufferModelViewInverse) * normal;
 	flag = (normaltex.b < 0.11 && normaltex.b > 0.01) ? normaltex.b : max(normaltex.b, water_normal_tex.b);

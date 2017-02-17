@@ -21,8 +21,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
+#version 120
 
 #pragma optimize(on)
 
@@ -60,18 +59,18 @@ uniform ivec2 eyeBrightnessSmooth;
 const float PI = 3.14159;
 const float hPI = PI / 2;
 
-invariant in vec2 texcoord;
-invariant flat in vec3 suncolor;
+invariant varying vec2 texcoord;
+invariant varying vec3 suncolor;
 
-invariant flat in float TimeSunrise;
-invariant flat in float TimeNoon;
-invariant flat in float TimeSunset;
-invariant flat in float TimeMidnight;
-invariant flat in float extShadow;
+invariant varying float TimeSunrise;
+invariant varying float TimeNoon;
+invariant varying float TimeSunset;
+invariant varying float TimeMidnight;
+invariant varying float extShadow;
 
-invariant flat in vec3 skycolor;
-invariant flat in vec3 fogcolor;
-invariant flat in vec3 horizontColor;
+invariant varying vec3 skycolor;
+invariant varying vec3 fogcolor;
+invariant varying vec3 horizontColor;
 
 
 #define saturate(x) clamp(0.0,x,1.0)
@@ -93,9 +92,9 @@ float flag;
 #ifdef WHITE_WORLD
 vec3 color = vec3(0.75);
 #else
-vec3 color = texture(gcolor, texcoord).rgb;
+vec3 color = texture2D(gcolor, texcoord).rgb;
 #endif
-vec4 vpos = vec4(texture(gdepth, texcoord).xyz, 1.0);
+vec4 vpos = vec4(texture2D(gdepth, texcoord).xyz, 1.0);
 vec3 nvpos = normalize(vpos.xyz);
 vec3 wpos = (gbufferModelViewInverse * vpos).xyz;
  vec3 wnormal;
@@ -146,19 +145,19 @@ float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos) {
 	vec2 texc_m = texc * shadowMapResolution;
 
 	vec2 px0 = vec2(texc + pix_size * vec2(0.5, 0.5));
-	float texel = texture(s, px0, 0).x;
+	float texel = texture2D(s, px0, 0).x;
 	float res1 = float(texel + bias < spos);
 
 	vec2 px1 = vec2(texc + pix_size * vec2(0.5, -0.5));
-	texel = texture(s, px1, 0).x;
+	texel = texture2D(s, px1).x;
 	float res2 = float(texel + bias < spos);
 
 	vec2 px2 = vec2(texc + pix_size * vec2(-0.5, -0.5));
-	texel = texture(s, px2, 0).x;
+	texel = texture2D(s, px2).x;
 	float res3 = float(texel + bias < spos);
 
 	vec2 px3 = vec2(texc + pix_size * vec2(-0.5, 0.5));
-	texel = texture(s, px3).x;
+	texel = texture2D(s, px3).x;
 	float res4 = float(texel + bias < spos);
 
 	float res = res1 + res2 + res3 + res4;
@@ -263,7 +262,7 @@ float shadow_map() {
 
 		#ifdef SHADOW_FILTER
 			for (int i = 0; i < 25; i++) {
-				float shadowDepth = texture(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0008f).x;
+				float shadowDepth = texture2D(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0008f).x;
 				shade += float(shadowDepth + 0.00002 / distortFactor < shadowposition.z);
 			}
 			shade /= 25.0f;
@@ -319,14 +318,14 @@ float blurAO(float c, vec3 cNormal) {
 
 	for (int i = -5; i < 0; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0, 0.0011) * i * d;
-		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(composite, adj_coord).g, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
+		a += mix(texture2D(composite, adj_coord).g, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	for (int i = 1; i < 6; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0, 0.0011) * i * d;
-		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(composite, adj_coord).g, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
+		a += mix(texture2D(composite, adj_coord).g, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	return saturate(a * 0.1629 - 0.3) / 0.7;
@@ -342,14 +341,14 @@ vec3 blurGI(vec3 c) {
 
 	for (int i = -7; i < 0; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0, 0.0016) * i * d;
-		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(gaux4, adj_coord).rgb, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
+		a += mix(texture2D(gaux4, adj_coord).rgb, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	for (int i = 1; i < 8; i++) {
 		vec2 adj_coord = texcoord + vec2(0.0, 0.0016) * i * d;
-		vec3 nvpos = texture(gdepth, adj_coord).rgb;
-		a += mix(texture(gaux4, adj_coord).rgb, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
+		vec3 nvpos = texture2D(gdepth, adj_coord).rgb;
+		a += mix(texture2D(gaux4, adj_coord).rgb, c, saturate(distance(nvpos, vpos.xyz))) * 0.2 * (6.0 - abs(float(i)));
 	}
 
 	return a;
@@ -359,10 +358,10 @@ vec3 blurGI(vec3 c) {
 #define CrespecularRays
 
 void main() {
-	vec4 normaltex = texture(gnormal, texcoord);
+	vec4 normaltex = texture2D(gnormal, texcoord);
 	normal = normalize(normalDecode(normaltex.xy));
 	wnormal = mat3(gbufferModelViewInverse) * normal;
-	vec4 compositetex = texture(composite, texcoord);
+	vec4 compositetex = texture2D(composite, texcoord);
 	flag = compositetex.r;
 	bool issky = (flag < 0.01);
 	is_plant = (flag > 0.48 && flag < 0.53);
@@ -385,14 +384,14 @@ void main() {
 		}
 		#endif
 		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, pow(max(0.0, dot(nvpos, lightPosition)), 16.0));
-		mclight = texture(gaux2, texcoord).xy;
+		mclight = texture2D(gaux2, texcoord).xy;
 
 		const vec3 torchColor = vec3(2.15, 1.01, 0.48) * 0.45;
 
 		float light_distance = clamp(0.08, (1.0 - pow(mclight.x, 6.6)), 1.0);
 		const float light_quadratic = 4.9f;
 		float max_light = 7.5 * mclight.x * mclight.x;
-		vec4 specular = texture(gaux1, texcoord);
+		vec4 specular = texture2D(gaux1, texcoord);
 		if (specular.b > 0.1 || pow(mclight.x, 6.0) > 0.9) {
 			light_distance = 0.04;
 			max_light = 13.5;
@@ -443,7 +442,7 @@ void main() {
 		#endif
 
 		#ifdef GlobalIllumination
-		vec3 gi = blurGI(texture(gaux4, texcoord).rgb) * 10.0;
+		vec3 gi = blurGI(texture2D(gaux4, texcoord).rgb) * 10.0;
 		#ifdef AO_Enabled
 		gi *= 0.2 + ao * 0.8;
 		#endif
@@ -454,12 +453,12 @@ void main() {
 
 		color = mix(fogcolor, color, clamp((512.0 - cdepth) / (512.0 - 32.0), 0.0, 1.0));
 		#ifdef CrespecularRays
-		float vl = texture(composite, texcoord * 0.5).b;
-		vl += texture(composite, texcoord * 0.5, 1.0).b;
-		vl += texture(composite, texcoord * 0.5 + vec2(0.0005, 0.0)).b;
-		vl += texture(composite, texcoord * 0.5 + vec2(-0.0005, 0.0)).b;
-		vl += texture(composite, texcoord * 0.5 + vec2(0.0, 0.0005)).b;
-		vl += texture(composite, texcoord * 0.5 + vec2(0.0, -0.0005)).b;
+		float vl = texture2D(composite, texcoord * 0.5).b;
+		vl += texture2D(composite, texcoord * 0.5, 1.0).b;
+		vl += texture2D(composite, texcoord * 0.5 + vec2(0.0005, 0.0)).b;
+		vl += texture2D(composite, texcoord * 0.5 + vec2(-0.0005, 0.0)).b;
+		vl += texture2D(composite, texcoord * 0.5 + vec2(0.0, 0.0005)).b;
+		vl += texture2D(composite, texcoord * 0.5 + vec2(0.0, -0.0005)).b;
 		vl /= 6.0;
 
 		vl = (1.0 - (1.0 / (1.0 + vl) - 0.5) * 2.0) * 0.7;

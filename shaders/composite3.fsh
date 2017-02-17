@@ -21,9 +21,8 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-#version 130
-#extension GL_ARB_shading_language_420pack : require
-
+#version 120
+#extension GL_ARB_shader_texture_lod : require
 #pragma optimize(on)
 
 const bool compositeMipmapEnabled = true;
@@ -61,20 +60,20 @@ uniform float rainStrength;
 
 uniform bool isEyeInWater;
 
-invariant in vec2 texcoord;
-invariant flat in vec3 suncolor;
+invariant varying vec2 texcoord;
+invariant varying vec3 suncolor;
 
-invariant flat in float TimeSunrise;
-invariant flat in float TimeNoon;
-invariant flat in float TimeSunset;
-invariant flat in float TimeMidnight;
-invariant flat in float extShadow;
+invariant varying float TimeSunrise;
+invariant varying float TimeNoon;
+invariant varying float TimeSunset;
+invariant varying float TimeMidnight;
+invariant varying float extShadow;
 
-invariant flat in vec3 skycolor;
-invariant flat in vec3 fogcolor;
-invariant flat in vec3 horizontColor;
+invariant varying vec3 skycolor;
+invariant varying vec3 fogcolor;
+invariant varying vec3 horizontColor;
 
-invariant flat in vec3 worldLightPos;
+invariant varying vec3 worldLightPos;
 
 vec3 normalDecode(in vec2 enc) {
 	vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
@@ -115,10 +114,10 @@ struct Global {
 Material frag;
 Mask frag_mask;
 
-vec3 color = texture(composite, texcoord).rgb;
+vec3 color = texture2D(composite, texcoord).rgb;
 
 void init_struct() {
-	frag.vpos = vec4(texture(gdepth, texcoord).xyz, 1.0);
+	frag.vpos = vec4(texture2D(gdepth, texcoord).xyz, 1.0);
 	frag.wpos = (gbufferModelViewInverse * frag.vpos).xyz;
 	frag.normal = normalDecode(g.normaltex.xy);
 	frag.wnormal = mat3(gbufferModelViewInverse) * frag.normal;
@@ -143,7 +142,7 @@ float fast_shadow_map(in vec3 wpos) {
 	shadowposition.xy /= distortFactor;
 	shadowposition /= shadowposition.w;
 	shadowposition = shadowposition * 0.5f + 0.5f;
-	float shadowDepth = texture(shadowtex0, shadowposition.st).r;
+	float shadowDepth = texture2D(shadowtex0, shadowposition.st).r;
 	shade = float(shadowDepth + 0.0005f + frag.cdepthN * 0.05 < shadowposition.z);
 	float edgeX = abs(shadowposition.x) - 0.9f;
 	float edgeY = abs(shadowposition.y) - 0.9f;
@@ -334,7 +333,7 @@ vec3 calcSkyColor(in vec3 wpos, float shade) {
 #define PLANE_REFLECTION
 #ifdef PLANE_REFLECTION
 
-#define BISEARCH(SEARCHPOINT, DIRVEC, SIGN) DIRVEC *= 0.5; SEARCHPOINT+= DIRVEC * SIGN; uv = getScreenCoordByViewCoord(SEARCHPOINT); sampleDepth = linearizeDepth(textureLod(depthtex0, uv, 0.0).x); testDepth = getLinearDepthOfViewCoord(SEARCHPOINT); SIGN = sign(sampleDepth - testDepth);
+#define BISEARCH(SEARCHPOINT, DIRVEC, SIGN) DIRVEC *= 0.5; SEARCHPOINT+= DIRVEC * SIGN; uv = getScreenCoordByViewCoord(SEARCHPOINT); sampleDepth = linearizeDepth(texture2DLod(depthtex0, uv, 0.0).x); testDepth = getLinearDepthOfViewCoord(SEARCHPOINT); SIGN = sign(sampleDepth - testDepth);
 
 #define linearizeDepth(depth) (2.0 * near) / (far + near - depth * (far - near))
 
@@ -369,7 +368,7 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
 			hit = true;
 			break;
 		}
-		float sampleDepth = textureLod(depthtex0, uv, 0.0).x;
+		float sampleDepth = texture2DLod(depthtex0, uv, 0.0).x;
 		sampleDepth = linearizeDepth(sampleDepth);
 		float testDepth = getLinearDepthOfViewCoord(testPoint);
 		if(sampleDepth < testDepth && testDepth - sampleDepth < (1.0 / 2048.0) * (1.0 + testDepth * 200.0 + float(i))){
@@ -381,9 +380,9 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
 			BISEARCH(finalPoint, direction, _sign);
 			BISEARCH(finalPoint, direction, _sign);
 			uv = getScreenCoordByViewCoord(finalPoint);
-			hitColor = vec4(textureLod(composite, uv, 3.0 - metal * 3.0).rgb, 0.0);
+			hitColor = vec4(texture2DLod(composite, uv, 3.0 - metal * 3.0).rgb, 0.0);
 			hitColor.a = clamp(1.0 - pow(distance(uv, vec2(0.5))*2.0, 4.0), 0.0, 1.0);
-			float newflag = texture(gaux2, uv).a;
+			float newflag = texture2D(gaux2, uv).a;
 			hitColor.a *= 1.0 - float(newflag > 0.71f && newflag < 0.79f);
 			hit = true;
 			break;
@@ -393,7 +392,7 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
 	if(!hit) {
 		vec2 uv = getScreenCoordByViewCoord(lastPoint);
 		float testDepth = getLinearDepthOfViewCoord(lastPoint);
-		float sampleDepth = texture(depthtex0, uv).x;
+		float sampleDepth = texture2D(depthtex0, uv).x;
 		if(sampleDepth < 0.9 && testDepth - linearizeDepth(sampleDepth) < 1.0) {
 			hitColor = vec4(texture2DLod(composite, uv, 2.0).rgb, 1.0);
 			hitColor.a = clamp(1.0 - pow(distance(uv, vec2(0.5))*2.0, 2.0), 0.0, 1.0);
@@ -445,8 +444,8 @@ vec3 WaterParallax(vec3 wpos, vec3 viewDir) {
 
 /* DRAWBUFFERS:3 */
 void main() {
-	g.normaltex = texture(gnormal, texcoord);
-	g.mcdata = texture(gaux2, texcoord);
+	g.normaltex = texture2D(gnormal, texcoord);
+	g.mcdata = texture2D(gaux2, texcoord);
 	init_struct();
 	float shade = g.mcdata.b;
 
@@ -456,12 +455,12 @@ void main() {
 	vec3 ambientColor = vec3(0.155, 0.16, 0.165) * (luma(suncolor) * 0.3);
 
 	/*
-	float fragdepth = texture(depthtex0, texcoord).r;
+	float fragdepth = texture2D(depthtex0, texcoord).r;
 	vec4 fragvec = gbufferProjectionInverse * vec4(texcoord, fragdepth, 1.0);
 	fragvec /= fragvec.w;*/
 
 	if (frag_mask.is_valid) {
-		vec4 water_vpos = vec4(texture(gaux3, texcoord).xyz, 1.0);
+		vec4 water_vpos = vec4(texture2D(gaux3, texcoord).xyz, 1.0);
 		vec4 ovpos = water_vpos;
 		vec3 water_wpos = (gbufferModelViewInverse * water_vpos).xyz;
 		vec3 water_plain_normal;
@@ -509,21 +508,21 @@ void main() {
 			vec2 shifted = texcoord + water_normal.xz;
 			#endif
 
-			float shifted_flag = texture(gaux2, shifted).a;
+			float shifted_flag = texture2D(gaux2, shifted).a;
 
 			if (shifted_flag < 0.71f || shifted_flag > 0.92f) {
 				shifted = texcoord;
 			}
-			frag.vpos = vec4(texture(gdepth, shifted).xyz, 1.0);
+			frag.vpos = vec4(texture2D(gdepth, shifted).xyz, 1.0);
 			float dist_diff = isEyeInWater ? min(length(water_vpos.xyz), length(frag.vpos.xyz)) : distance(frag.vpos.xyz, water_vpos.xyz);
-			float dist_diff_N = pow(clamp(0.0, 1.0, dist_diff / 8.0), 0.35);
+			float dist_diff_N = pow(clamp(0.0, abs(dist_diff) / 8.0, 1.0), 0.35);
 			float dist_diff_NL = pow(clamp(0.0, 1.0, dist_diff / 64.0), 0.55);
 
 			vec3 org_color = color;
-			color = texture(composite, shifted, 0.0).rgb;
-			color = mix(color, texture(composite, shifted, 1.0).rgb, dist_diff_N * 0.8);
-			color = mix(color, texture(composite, shifted, 2.0).rgb, dist_diff_N * 0.6);
-			color = mix(color, texture(composite, shifted, 3.0).rgb, dist_diff_N * 0.4);
+			color = texture2DLod(composite, shifted, 0.0).rgb;
+			color = mix(color, texture2DLod(composite, shifted, 1.0).rgb, dist_diff_N * 0.8);
+			color = mix(color, texture2DLod(composite, shifted, 2.0).rgb, dist_diff_N * 0.6);
+			color = mix(color, texture2DLod(composite, shifted, 3.0).rgb, dist_diff_N * 0.4);
 
 			color = mix(color, org_color, pow(length(shifted - vec2(0.5)) / 1.414f, 2.0));
 			if (shifted.x > 1.0 || shifted.x < 0.0 || shifted.y > 1.0 || shifted.y < 0.0) {
@@ -543,7 +542,7 @@ void main() {
 
 		frag.wpos.y -= 1.67f;
 		// Preprocess Specular
-		vec4 org_specular = texture(gaux1, texcoord);
+		vec4 org_specular = texture2D(gaux1, texcoord);
 		vec3 specular = vec3(0.0);
 		specular.r = min(org_specular.g, 0.9999);
 		specular.g = org_specular.r;
@@ -551,8 +550,8 @@ void main() {
 
 		if (!frag_mask.is_water) {
 			vec3 cwpos = frag.wpos + cameraPosition;
-			float wetness_distribution = texture(noisetex, cwpos.xz * 0.01).r + texture(noisetex, cwpos.yz  * 0.01).r;
-			wetness_distribution = wetness_distribution * 0.5 + 0.8 * (texture(noisetex, cwpos.zx * 0.002).r + texture(noisetex, cwpos.yx  * 0.002).r);
+			float wetness_distribution = texture2D(noisetex, cwpos.xz * 0.01).r + texture2D(noisetex, cwpos.yz  * 0.01).r;
+			wetness_distribution = wetness_distribution * 0.5 + 0.8 * (texture2D(noisetex, cwpos.zx * 0.002).r + texture2D(noisetex, cwpos.yx  * 0.002).r);
 			wetness_distribution *= wetness_distribution * wetness2;
 			wetness_distribution *= wetness_distribution;
 			wetness_distribution = clamp(wetness_distribution, 0.0, 1.0);
