@@ -284,7 +284,17 @@ vec3 GI() {
 #endif
 
 #define CrespecularRays
+#define HIGH_QUALITY_Crespecular
 #ifdef CrespecularRays
+
+#ifdef HIGH_QUALITY_Crespecular
+#define step 48.0
+#define loop 47
+#else
+#define step 8.0
+#define loop 7
+#endif
+
 float VL() {
 	vec2 texc = texcoord * 2.0;
 	if (texc.x > 1.0 || texc.y > 1.0) return 0.0;
@@ -297,10 +307,10 @@ float VL() {
 	if (skydiscard) {
 		vec3 owpos = (gbufferModelViewInverse * vec4(texture2D(gdepth, texc).xyz, 1.0)).xyz;
 		vec3 swpos = owpos;
-		vec3 dir = owpos / 48.0;
+		vec3 dir = owpos / step;
 		float prev = 0.0;
 
-		for (int i = 0; i < 47; i++) {
+		for (int i = 0; i < loop; i++) {
 			swpos -= dir;
 			float dither = find_closest(texcoord + vec2(i) * 0.01);
 			vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
