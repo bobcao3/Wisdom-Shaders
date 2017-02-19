@@ -31,7 +31,7 @@ void calcCommon() {
 	vec3 suncolor_sunrise = vec3(2.52, 1.4, 0.4) * TimeSunrise;
 	vec3 suncolor_noon = vec3(2.72, 2.35, 2.1) * TimeNoon;
 	vec3 suncolor_sunset = vec3(2.52, 1.3, 0.8) * TimeSunset;
-	vec3 suncolor_midnight = vec3(0.14, 0.5, 0.9) * 0.04 * TimeMidnight;
+	vec3 suncolor_midnight = vec3(0.14, 0.5, 0.9) * 0.08 * TimeMidnight;
 
 	suncolor = suncolor_sunrise + suncolor_noon + suncolor_sunset + suncolor_midnight;
 	suncolor *= 1.0 - rainStrength * 0.83;
