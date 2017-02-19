@@ -445,11 +445,6 @@ void main() {
 	// * (max(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0) * 0.5 + 0.5);
 	vec3 ambientColor = vec3(0.155, 0.16, 0.165) * (luma(suncolor) * 0.3);
 
-	/*
-	float fragdepth = texture2D(depthtex0, texcoord).r;
-	vec4 fragvec = gbufferProjectionInverse * vec4(texcoord, fragdepth, 1.0);
-	fragvec /= fragvec.w;*/
-
 	if (frag_mask.is_valid) {
 		vec4 water_vpos = vec4(texture2D(gaux3, texcoord).xyz, 1.0);
 		vec4 ovpos = water_vpos;
@@ -562,32 +557,29 @@ void main() {
 			vec3 halfwayDir = normalize(lightPosition - normalize(frag.vpos.xyz));
 			//spec = clamp(0.0, spec, 1.0 - wetness2 * 0.5);
 
+			vec3 ref_color = vec3(0.0);
+			vec3 viewRefRay = vec3(0.0);
 			#define refvpos frag.vpos.xyz
 			if (!isEyeInWater && specular.r > 0.01) {
 				vec3 vs_plain_normal = mat3(gbufferModelView) * water_plain_normal;
 				vec3 refvnormal = frag_mask.is_water ? mix(vs_plain_normal, frag.normal, 0.2) : frag.normal;
-				vec3 viewRefRay = reflect(normalize(refvpos), normalize(refvnormal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
-				float reflection_fresnel_mul = frag_mask.is_trans ? 3.0 : 1.5;
-				vec3 ref_albedo = mix(color, vec3(1.0), 1.0 - (1.0 - specular.r) * (1.0 - specular.g));
-				float fresnel = 0.02 + 0.98 * pow(1.0 - dot(viewRefRay, refvnormal), reflection_fresnel_mul);
+				viewRefRay = reflect(normalize(refvpos), normalize(refvnormal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
 				#ifdef PLANE_REFLECTION
 				vec4 reflection = waterRayTarcing(refvpos + refvnormal * max(0.4, length(refvpos.xyz) / far), viewRefRay, color, specular.r);
-				vec3 ref_color = reflection.rgb * ref_albedo * (reflection.a * specular.r);
+				ref_color = reflection.rgb * (reflection.a * specular.r);
 				#else
 				vec4 reflection = vec4(0.0);
-				vec3 ref_color = vec3(0.0);
 				#endif
 
 				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal) * 480.0;
-				ref_color += calcSkyColor(wref, shade) * (1.0 - reflection.a) * specular.r * ref_albedo;
-				color = mix(color, ref_color, fresnel);
+				ref_color += calcSkyColor(wref, shade) * (1.0 - reflection.a) * specular.r;
 			}
 
-			if (specular.r > 0.08) {
+			if (specular.r > 0.07) {
 				specular.g = clamp(0.0001, specular.g, 0.9999);
 				vec3 V = -normalize(frag.vpos.xyz);
-				vec3 F0 = vec3(specular.r);
-				F0 = mix(F0, color, specular.r);
+				vec3 F0 = vec3(specular.g + 0.08);
+				F0 = mix(F0, color, 1.0 - specular.r);
 				vec3 F = fresnelSchlickRoughness(max(dot(frag.normal, V), 0.0), F0, specular.g);
 
 				vec3 halfwayDir = normalize(lightPosition - normalize(frag.vpos.xyz));
@@ -596,6 +588,10 @@ void main() {
 				vec3 no = GeometrySmith(frag.normal, V, lightPosition, specular.g) * stdNormal * F;
 				float denominator = max(0.0, 4 * max(dot(V, frag.normal), 0.0) * max(dot(lightPosition, frag.normal), 0.0) + 0.001);
 				vec3 brdf = no / denominator;
+
+				float reflection_fresnel_mul = frag_mask.is_trans ? 3.0 : 1.5;
+				float fresnel = 0.02 + 0.98 * pow(1.0 - dot(viewRefRay, frag.normal), reflection_fresnel_mul);
+				color = mix(color, ref_color * F, fresnel);
 
 				color += brdf * suncolor * (1.0 - shade);
 			}

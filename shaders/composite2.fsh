@@ -403,7 +403,7 @@ void main() {
 		float attenuation = clamp(0.0, light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, max_light);
 
 		vec3 diffuse_torch = attenuation * torchColor;
-		vec3 diffuse_sun = (1.0 - shade) * suncolor * clamp(0.0, luma(skycolor) * 4.5, 1.0);
+		vec3 diffuse_sun = (1.0 - shade) * suncolor;// * clamp(0.0, luma(horizontColor) * 4.5, 1.0);
 
 		bool is_plant = (flag > 0.49 && flag < 0.53);
 		//if (flag < 0.6f || !is_plant) {
