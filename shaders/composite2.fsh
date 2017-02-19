@@ -247,6 +247,7 @@ const  vec2 offset_table[6] = vec2 [] (
 );
 
 #define SHADOW_FILTER
+#define COLORED_SHADOW
 float shadow_map(out vec3 shadowcolor) {
 	shadowcolor = vec3(1.0);
 	if (cdepthN > 0.9f)
@@ -273,12 +274,14 @@ float shadow_map(out vec3 shadowcolor) {
 			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z);
 		#endif
 
+		#ifdef COLORED_SHADOW
 		if (shade < 0.95) {
 			float d2 = texture2D(shadowtex0, shadowposition.st).x;
 			if (d2 + 0.00002 / distortFactor < shadowposition.z) {
 				shadowcolor = texture2D(shadowcolor0, shadowposition.st).rgb * .773;
 			}
 		}
+		#endif
 
 		float edgeX = abs(shadowposition.x) - 0.95f;
 		float edgeY = abs(shadowposition.y) - 0.95f;
