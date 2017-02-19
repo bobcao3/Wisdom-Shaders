@@ -32,6 +32,8 @@ uniform sampler2D composite;
 uniform sampler2D gaux2;
 uniform sampler2D gaux3;
 uniform sampler2D depthtex0;
+uniform sampler2D shadowcolor0;
+uniform sampler2D shadowtex0;
 uniform sampler2D shadowtex1;
 
 uniform mat4 gbufferProjectionInverse;
@@ -245,7 +247,8 @@ const  vec2 offset_table[6] = vec2 [] (
 );
 
 #define SHADOW_FILTER
-float shadow_map() {
+float shadow_map(out vec3 shadowcolor) {
+	shadowcolor = vec3(1.0);
 	if (cdepthN > 0.9f)
 		return is_plant ? 0.0 : 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
 	float shade = 0.0;
@@ -269,6 +272,13 @@ float shadow_map() {
 		#else
 			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z);
 		#endif
+
+		if (shade < 0.95) {
+			float d2 = texture2D(shadowtex0, shadowposition.st).x;
+			if (d2 + 0.00002 / distortFactor < shadowposition.z) {
+				shadowcolor = texture2D(shadowcolor0, shadowposition.st).rgb * .773;
+			}
+		}
 
 		float edgeX = abs(shadowposition.x) - 0.95f;
 		float edgeY = abs(shadowposition.y) - 0.95f;
@@ -376,7 +386,8 @@ void main() {
 	float eyebrightness = pow(float(eyeBrightnessSmooth.y) / 120.0, 2.0);
 	vec3 ambientColor = vec3(0.135, 0.14, 0.215) * luma(horizontColor) * (1.0 - eyebrightness * 0.1) * 3.0;
 	if (!issky) {
-		shade = shadow_map();
+		vec3 shadowcolor;
+		shade = shadow_map(shadowcolor);
 		#ifdef CAUSTIC
 		if (((flag > 0.71f && flag < 0.79f) && !isEyeInWater) || isEyeInWater) {
 			float w = getwave(wpos.xyz + vec3(0.3, 0.0, 0.3) * (wpos.y + cameraPosition.y) + cameraPosition);
@@ -399,7 +410,7 @@ void main() {
 		float attenuation = clamp(0.0, light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, max_light);
 
 		vec3 diffuse_torch = attenuation * torchColor;
-		vec3 diffuse_sun = (1.0 - shade) * suncolor * luma(horizontColor) * 3.5;
+		vec3 diffuse_sun = (1.0 - shade) * suncolor * luma(horizontColor) * 3.5 * shadowcolor;
 
 		bool is_plant = (flag > 0.49 && flag < 0.53);
 
