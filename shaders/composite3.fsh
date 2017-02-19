@@ -577,10 +577,11 @@ void main() {
 
 			if (specular.r > 0.07) {
 				specular.g = clamp(0.0001, specular.g, 0.9999);
+				specular.r = clamp(0.0001, specular.r, 0.9999);
 				vec3 V = -normalize(frag.vpos.xyz);
 				vec3 F0 = vec3(specular.g + 0.08);
 				F0 = mix(F0, color, 1.0 - specular.r);
-				vec3 F = fresnelSchlickRoughness(max(dot(frag.normal, V), 0.0), F0, specular.g);
+				vec3 F = frag_mask.is_water ? vec3(1.0) : fresnelSchlickRoughness(max(dot(frag.normal, V), 0.0), F0, specular.g);
 
 				vec3 halfwayDir = normalize(lightPosition - normalize(frag.vpos.xyz));
 				float stdNormal = DistributionGGX(frag.normal, halfwayDir, specular.g);

@@ -380,7 +380,7 @@ void main() {
 		#ifdef CAUSTIC
 		if (((flag > 0.71f && flag < 0.79f) && !isEyeInWater) || isEyeInWater) {
 			float w = getwave(wpos.xyz + vec3(0.3, 0.0, 0.3) * (wpos.y + cameraPosition.y) + cameraPosition);
-			shade += pow(clamp(0.0, w * 2.0, 1.0), 1.5) * 0.3;
+			shade += pow(clamp(0.0, w * 2.0, 1.0), 1.5) * 0.5;
 			shade = clamp(shade, 0.0, 1.0);
 		}
 		#endif
@@ -393,26 +393,20 @@ void main() {
 		const float light_quadratic = 4.9f;
 		float max_light = 7.5 * mclight.x * mclight.x;
 		vec4 specular = texture2D(gaux1, texcoord);
-		if (specular.b > 0.1 || pow(mclight.x, 6.0) > 0.9) {
-			light_distance = 0.04;
-			max_light = 13.5;
-		}
 
 		const float light_constant1 = 1.09f;
 		const float light_constant2 = 1.09f;
 		float attenuation = clamp(0.0, light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, max_light);
 
 		vec3 diffuse_torch = attenuation * torchColor;
-		vec3 diffuse_sun = (1.0 - shade) * suncolor;// * clamp(0.0, luma(horizontColor) * 4.5, 1.0);
+		vec3 diffuse_sun = (1.0 - shade) * suncolor * luma(horizontColor) * 3.5;
 
 		bool is_plant = (flag > 0.49 && flag < 0.53);
-		//if (flag < 0.6f || !is_plant) {
-		//	diffuse_sun *= 0.63 + GeometrySmith(normal, normalize(wpos - vec3(0.0, -1.67, 0.0)), shadowLightPosition, specular.r) * 0.37;
-		//}
 
 		specular.r = clamp(0.0001, specular.r, 0.9999);
+		specular.g = clamp(0.0001, specular.g, 0.9999);
 		vec3 V = -normalize(vpos.xyz);
-		vec3 F0 = vec3(0.02);
+		vec3 F0 = vec3(specular.g + 0.02);
 		F0 = mix(F0, color, specular.g);
 		vec3 F = fresnelSchlickRoughness(max(dot(normal, V), 0.0), F0, specular.r);
 
@@ -421,7 +415,7 @@ void main() {
 		kD *= 1.0 - specular.g;
 
 		vec3 halfwayDir = normalize(lightPosition - normalize(vpos.xyz));
-		float stdNormal = DistributionGGX(normal, halfwayDir, specular.r);
+		float stdNormal = DistributionGGX(normal, halfwayDir, specular.g);
 
 		vec3 no = GeometrySmith(normal, V, lightPosition, specular.r) * stdNormal * F;
 		float denominator = max(0.0, 4 * max(dot(V, normal), 0.0) * max(dot(lightPosition, normal), 0.0) + 0.001);
@@ -453,7 +447,7 @@ void main() {
 		ambient *= ao;
 		#endif
 
-		vec3 Lo = is_water ? color * diffuse_sun : (kD * color / PI + brdf) * diffuse_sun;
+		vec3 Lo = is_water ? color * diffuse_sun * 0.6 : (kD * color / PI + brdf) * diffuse_sun;
 		color = ambient + Lo + diffuse_torch * color;
 
 		color = mix(fogcolor, color, clamp((512.0 - cdepth) / (512.0 - 32.0), 0.0, 1.0));
