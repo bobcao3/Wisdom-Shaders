@@ -124,7 +124,7 @@ void init_struct() {
 	frag.cdepth = length(frag.wpos);
 	frag.cdepthN = frag.cdepth * dFar;
 	frag_mask.flag = g.mcdata.a;
-	frag_mask.is_valid = (frag_mask.flag > 0.01);
+	frag_mask.is_valid = (frag_mask.flag > 0.01 && frag_mask.flag < 0.97);
 	frag_mask.is_water = (frag_mask.flag > 0.71f && frag_mask.flag < 0.79f);
 	frag_mask.is_glass = (frag_mask.flag > 0.93);
 	frag_mask.is_trans = frag_mask.is_water || frag_mask.is_glass;
@@ -445,6 +445,24 @@ void main() {
 	// * (max(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0) * 0.5 + 0.5);
 	vec3 ambientColor = vec3(0.155, 0.16, 0.165) * (luma(suncolor) * 0.3);
 
+	vec4 org_specular = texture2D(gaux1, texcoord);
+	if (frag_mask.is_glass || frag_mask.flag > 0.97) {
+		vec4 shifted_vpos = vec4(frag.vpos.xyz + normalize(refract(normalize(frag.vpos.xyz), normalDecode(g.normaltex.zw), 1.0f / 1.2f)), 1.0);
+		shifted_vpos = gbufferProjection * shifted_vpos;
+		shifted_vpos /= shifted_vpos.w;
+		shifted_vpos = shifted_vpos * 0.5f + 0.5f;
+		vec2 shifted = shifted_vpos.st;
+
+		color = texture2D(composite, shifted).rgb;
+		color += texture2DLod(composite, shifted, 1.0).rgb * 0.6;
+		color += texture2DLod(composite, shifted, 2.0).rgb * 0.4;
+		color *= 0.5;
+
+		color = color * 0.92 * org_specular.rgb;
+
+		if (frag_mask.is_valid) org_specular = vec4(0.1, 0.96, 0.0, 1.0);
+	}
+
 	if (frag_mask.is_valid) {
 		vec4 water_vpos = vec4(texture2D(gaux3, texcoord).xyz, 1.0);
 		vec4 ovpos = water_vpos;
@@ -528,7 +546,6 @@ void main() {
 
 		frag.wpos.y -= 1.67f;
 		// Preprocess Specular
-		vec4 org_specular = texture2D(gaux1, texcoord);
 		vec3 specular = vec3(0.0);
 		specular.r = min(org_specular.g, 0.9999);
 		specular.g = org_specular.r;
@@ -606,7 +623,8 @@ void main() {
 
 		frag.wpos = worldPosition.xyz;
 
-		color = calcSkyColor(frag.wpos, 0.0);
+		vec3 skycolor = calcSkyColor(frag.wpos, 0.0);
+		color = frag_mask.flag > 0.97 ? skycolor * 0.92 * org_specular.rgb : skycolor;
 	}
 
 	#ifdef BLACK_AND_WHITE

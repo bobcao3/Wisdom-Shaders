@@ -403,6 +403,8 @@ void main() {
 
 		bool is_plant = (flag > 0.49 && flag < 0.53);
 
+		if (flag > 0.89) specular = vec4(0.0001);
+
 		specular.r = clamp(0.0001, specular.r, 0.9999);
 		specular.g = clamp(0.0001, specular.g, 0.9999);
 		vec3 V = -normalize(vpos.xyz);
@@ -447,7 +449,7 @@ void main() {
 		ambient *= ao;
 		#endif
 
-		vec3 Lo = is_water ? color * diffuse_sun * 0.6 : (kD * color / PI + brdf) * diffuse_sun;
+		vec3 Lo = is_water || flag > 0.89 ? color * diffuse_sun * 0.6 : (kD * color / PI + brdf) * diffuse_sun;
 		color = ambient + Lo + diffuse_torch * color;
 
 		color = mix(fogcolor, color, clamp((512.0 - cdepth) / (512.0 - 32.0), 0.0, 1.0));

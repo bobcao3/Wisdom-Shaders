@@ -41,9 +41,9 @@ void main() {
 
 		gl_FragData[2] = vec4(0.2, 0.93, 0.0, 1.0);
 	}	else {
-		gl_FragData[0] = texture2D(texture, texcoord);
+		gl_FragData[0] = vec4(0.2);
 
-		gl_FragData[2] = vec4(0.01, 0.99, 0.0, 1.0);
+		gl_FragData[2] = vec4(texture2D(texture, texcoord).rgb, 1.0);
 	}
 	gl_FragData[1] = vec4(normal, iswater, 1.0);
 

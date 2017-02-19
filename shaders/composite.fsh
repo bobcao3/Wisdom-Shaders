@@ -333,6 +333,7 @@ void main() {
 	normal = normalDecode(normaltex.xy);
 	wnormal = mat3(gbufferModelViewInverse) * normal;
 	flag = (normaltex.b < 0.11 && normaltex.b > 0.01) ? normaltex.b : max(normaltex.b, water_normal_tex.b);
+	if (normaltex.b < 0.09 && water_normal_tex.b > 0.9) flag = 0.99;
 	bool issky = (flag < 0.01);
 
 	float ao = 1.0;
