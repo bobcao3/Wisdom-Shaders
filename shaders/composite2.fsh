@@ -386,7 +386,7 @@ void main() {
 		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, pow(max(0.0, dot(nvpos, lightPosition)), 16.0));
 		mclight = texture2D(gaux2, texcoord).xy;
 
-		const vec3 torchColor = vec3(2.15, 1.01, 0.48) * 0.45;
+		const vec3 torchColor = vec3(2.15, 1.01, 0.48) * 0.09;
 
 		float light_distance = clamp(0.08, (1.0 - pow(mclight.x, 6.6)), 1.0);
 		const float light_quadratic = 4.9f;
@@ -402,7 +402,7 @@ void main() {
 		float attenuation = clamp(0.0, light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, max_light);
 
 		vec3 diffuse_torch = attenuation * torchColor;
-		vec3 diffuse_sun = (1.0 - shade) * suncolor * clamp(0.0, luma(skycolor) * 4.5, 1.0);
+		vec3 diffuse_sun = (1.0 - shade) * suncolor * clamp(0.0, luma(skycolor) * 4.5, 1.0) * 0.5;
 
 		bool is_plant = (flag > 0.49 && flag < 0.53);
 		//if (flag < 0.6f || !is_plant) {
@@ -426,14 +426,20 @@ void main() {
 		vec3 kD = vec3(1.0) - kS;
 		kD *= 1.0 - specular.g;
 
-		diffuse_sun += (kD * color * PI + brdf) * max(0.0, NdotL) * (1.0 - shade);
-		//diffuse_sun += no / denominator * diffuse_sun * max(dot(worldLightPos, normal), 0.0);
+		diffuse_sun += no / denominator * max(dot(lightPosition, normal), 0.0) * diffuse_sun;//(kD * color * PI + brdf) * max(0.0, NdotL) * (1.0 -shade);// * no / denominator * diffuse_sun * max(dot(lightPosition, normal), 0.0);
 		// PBR specular, Red & Green reversed
 		// Spec is in composite1.fsh
 		diffuse_torch *= 1.0 - specular.r * 0.43;
 		//diffuse_torch *= 1.0 + specular.b;
 
-		vec3 diffuse = diffuse_sun + diffuse_torch;
+		vec3 diffuse;
+		if (specular.b > 0.1 || pow(mclight.x, 6.0) > 0.9) {
+			diffuse = vec3(1.0) + diffuse_torch;
+		} else {
+			diffuse = diffuse_sun + diffuse_torch;
+		}
+
+		color *= 1.0 + 4.0 * max(0.0, 0.73 - eyebrightness * 0.07 * luma(suncolor));
 
 		// AO
 		#ifdef AO_Enabled
@@ -448,7 +454,7 @@ void main() {
 		#endif
 		diffuse += gi;
 		#endif
-		float simulatedGI = 0.1 + 1.7 * mclight.y;
+		float simulatedGI = 0.005 + 1.7 * pow(mclight.y, 2.5);
 		color = color * diffuse + color * ambientColor * simulatedGI;
 
 		color = mix(fogcolor, color, clamp((512.0 - cdepth) / (512.0 - 32.0), 0.0, 1.0));
