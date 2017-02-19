@@ -560,8 +560,6 @@ void main() {
 			//  specular.r -> Metalness (Reflectness)
 			//  specular.b (PBR only) -> Light emmission (Self lighting)
 			vec3 halfwayDir = normalize(lightPosition - normalize(frag.vpos.xyz));
-			float stdNormal = DistributionGGX(frag.normal, halfwayDir, specular.g);
-			float spec = max(dot(frag.normal, halfwayDir), 0.0) * stdNormal * specular.r;
 			//spec = clamp(0.0, spec, 1.0 - wetness2 * 0.5);
 
 			#define refvpos frag.vpos.xyz
@@ -584,32 +582,25 @@ void main() {
 				ref_color += calcSkyColor(wref, shade) * (1.0 - reflection.a) * specular.r * ref_albedo;
 				color = mix(color, ref_color, fresnel);
 			}
-			/*
-			specular.g = clamp(0.0001, specular.g, 0.9999);
-			vec3 V = normalize(vec3(wpos - vec3(0.0, 1.67, 0.0)));
-			vec3 F0 = vec3(0.01);
-			F0 = mix(F0, color, specular.g);
-			vec3 F = fresnelSchlickRoughness(max(dot(normal, V), 0.0), F0, specular.r);
 
-			vec3 no = GeometrySmith(normal, V, worldLightPos, specular.r) * stdNormal * F;
-			float denominator = max(0.0, 4 * max(dot(V, normal), 0.0) * max(dot(worldLightPos, normal), 0.0) + 0.001);
-			vec3 brdf = no / denominator;*/
+			if (specular.r > 0.08) {
+				specular.g = clamp(0.0001, specular.g, 0.9999);
+				vec3 V = -normalize(frag.vpos.xyz);
+				vec3 F0 = vec3(specular.r);
+				F0 = mix(F0, color, specular.r);
+				vec3 F = fresnelSchlickRoughness(max(dot(frag.normal, V), 0.0), F0, specular.g);
 
-			// Sun reflect // - F * specular.g
-			vec3 sunref = (0.5 * (suncolor) * spec) * (1.0 - shade);
-			if (frag_mask.is_trans) {
-				float fresnel = 0.02 + 0.98 * pow(1.0 - dot(lightPosition, frag.normal), 3.0);
-				sunref *= 0.5 * fresnel;
+				vec3 halfwayDir = normalize(lightPosition - normalize(frag.vpos.xyz));
+				float stdNormal = DistributionGGX(frag.normal, halfwayDir, specular.g);
+
+				vec3 no = GeometrySmith(frag.normal, V, lightPosition, specular.g) * stdNormal * F;
+				float denominator = max(0.0, 4 * max(dot(V, frag.normal), 0.0) * max(dot(lightPosition, frag.normal), 0.0) + 0.001);
+				vec3 brdf = no / denominator;
+
+				color += brdf * suncolor * (1.0 - shade);
 			}
-			sunref *= (1.0 - extShadow) * (1.0 - wetness2 * 0.6);
-
-			color += min(vec3(1.5), sunref);
-			//color = reflection.rgb * reflection.a;
 
 			frag.cdepth = length(max(frag.wpos, water_wpos));
-
-			//color = mix(color, vec3(luma(color)), min(0.4, frag.cdepth * 0.025 * rainStrength));
-			color = mix(color, skycolor, min(0.6, frag.cdepth * 0.02 * rainStrength));
 		}
 	} else {
 		vec4 viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 1.0, 1.0f);
