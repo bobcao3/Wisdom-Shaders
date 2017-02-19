@@ -458,7 +458,7 @@ void main() {
 		color += texture2DLod(composite, shifted, 2.0).rgb * 0.4;
 		color *= 0.5;
 
-		color = color * 0.92 * org_specular.rgb;
+		color = color * 0.773 * org_specular.rgb;
 
 		if (frag_mask.is_valid) org_specular = vec4(0.1, 0.96, 0.0, 1.0);
 	}
@@ -624,7 +624,7 @@ void main() {
 		frag.wpos = worldPosition.xyz;
 
 		vec3 skycolor = calcSkyColor(frag.wpos, 0.0);
-		color = frag_mask.flag > 0.97 ? skycolor * 0.92 * org_specular.rgb : skycolor;
+		color = frag_mask.flag > 0.97 ? skycolor * 0.773 * org_specular.rgb : skycolor;
 	}
 
 	#ifdef BLACK_AND_WHITE
