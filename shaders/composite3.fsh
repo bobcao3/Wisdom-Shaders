@@ -335,7 +335,7 @@ vec3 calcSkyColor(in vec3 wpos, float shade) {
 
 #define BISEARCH(SEARCHPOINT, DIRVEC, SIGN) DIRVEC *= 0.5; SEARCHPOINT+= DIRVEC * SIGN; uv = getScreenCoordByViewCoord(SEARCHPOINT); sampleDepth = linearizeDepth(texture2DLod(depthtex0, uv, 0.0).x); testDepth = getLinearDepthOfViewCoord(SEARCHPOINT); SIGN = sign(sampleDepth - testDepth);
 
-#define linearizeDepth(depth) (2.0 * near) / (far + near - depth * (far - near))
+float linearizeDepth(float depth) { return (2.0 * near) / (far + near - depth * (far - near));}
 
 vec2 getScreenCoordByViewCoord(vec3 viewCoord) {
 	vec4 p = vec4(viewCoord, 1.0);
@@ -565,7 +565,7 @@ void main() {
 			//spec = clamp(0.0, spec, 1.0 - wetness2 * 0.5);
 
 			#define refvpos frag.vpos.xyz
-			//if (!isEyeInWater && specular.r > 0.01) {
+			if (!isEyeInWater && specular.r > 0.01) {
 				vec3 vs_plain_normal = mat3(gbufferModelView) * water_plain_normal;
 				vec3 refvnormal = frag_mask.is_water ? mix(vs_plain_normal, frag.normal, 0.2) : frag.normal;
 				vec3 viewRefRay = reflect(normalize(refvpos), normalize(refvnormal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
@@ -583,8 +583,7 @@ void main() {
 				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal) * 480.0;
 				ref_color += calcSkyColor(wref, shade) * (1.0 - reflection.a) * specular.r * ref_albedo;
 				color = mix(color, ref_color, fresnel);
-				color = waterRayTarcing(refvpos + refvnormal * max(0.4, length(refvpos.xyz) / far), viewRefRay, color, specular.r).rgb;
-			//}
+			}
 			/*
 			specular.g = clamp(0.0001, specular.g, 0.9999);
 			vec3 V = normalize(vec3(wpos - vec3(0.0, 1.67, 0.0)));
