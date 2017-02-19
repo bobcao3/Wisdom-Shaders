@@ -277,7 +277,7 @@ void main() {
 	#ifdef MOTION_BLUR
 	vec4 viewpos = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, texture2D(depthtex0, texcoord).r * 2.0 - 1.0, 1.0f);
 	viewpos /= viewpos.w;
-	color = motionBlur(color, texcoord, viewpos);
+	if (texture2D(gaux2, texcoord).a > 0.11) color = motionBlur(color, texcoord, viewpos);
 	#endif
 
 	float depth = texture2D(depthtex0, texcoord).r;
