@@ -35,8 +35,10 @@ uniform sampler2D gdepth;
 uniform sampler2D gcolor;
 uniform sampler2D gnormal;
 uniform sampler2D composite;
+uniform sampler2D gaux1;
 uniform sampler2D gaux2;
 uniform sampler2D gaux3;
+uniform sampler2D gaux4;
 uniform sampler2D depthtex0;
 uniform sampler2D shadowtex1;
 
@@ -353,10 +355,13 @@ void main() {
 	vl = VL();
 	#endif
 
-/* DRAWBUFFERS:237 */
+	vec4 specular_data = flag > 0.89f ? texture2D(gaux4, texcoord) : texture2D(gaux1, texcoord);
+
+/* DRAWBUFFERS:2347 */
 	gl_FragData[0] = vec4(normaltex.xy, water_normal_tex.xy);
 	gl_FragData[1] = vec4(flag, ao, vl, 0.0);
+	gl_FragData[2] = specular_data;
 	#ifdef GlobalIllumination
-	gl_FragData[2] = vec4(gir, 1.0);
+	gl_FragData[3] = vec4(gir, 1.0);
 	#endif
 }

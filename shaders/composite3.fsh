@@ -153,7 +153,7 @@ float fast_shadow_map(in vec3 wpos) {
 	return max(shade, extShadow);
 }
 
-const vec3 SEA_WATER_COLOR = vec3(0.6,0.83,0.96);
+const vec3 SEA_WATER_COLOR = vec3(0.69,0.87,0.96);
 
 float hash( vec2 p ) {
 	float h = dot(p,vec2(127.1,311.7));
@@ -447,7 +447,7 @@ void main() {
 
 	vec4 org_specular = texture2D(gaux1, texcoord);
 	if (frag_mask.is_glass || frag_mask.flag > 0.97) {
-		vec4 shifted_vpos = vec4(frag.vpos.xyz + normalize(refract(normalize(frag.vpos.xyz), normalDecode(g.normaltex.zw), 1.0f / 1.2f)), 1.0);
+		vec4 shifted_vpos = vec4(frag.vpos.xyz + normalize(refract(normalize(frag.vpos.xyz), normalDecode(g.normaltex.zw), 1.0f / 1.4f)), 1.0);
 		shifted_vpos = gbufferProjection * shifted_vpos;
 		shifted_vpos /= shifted_vpos.w;
 		shifted_vpos = shifted_vpos * 0.5f + 0.5f;
@@ -534,7 +534,7 @@ void main() {
 			}
 
 			vec3 watercolor = skycolor * (0.15 - wetness * 0.05) * vec3(0.17, 0.41, 0.68) * luma(suncolor) * (1.0 - dist_diff_NL * 0.7);
-			color = mix(color * SEA_WATER_COLOR, SEA_WATER_COLOR * skycolor * 0.3, dist_diff_N);
+			color = mix(color, SEA_WATER_COLOR * skycolor * 0.3, dist_diff_N);
 
 			shade = fast_shadow_map(water_wpos);
 

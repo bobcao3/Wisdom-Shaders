@@ -92,7 +92,7 @@ float linearizeDepth(float depth) {
 float flag;
 //#define WHITE_WORLD
 #ifdef WHITE_WORLD
-vec3 color = vec3(0.75);
+vec3 color = vec3(0.65);
 #else
 vec3 color = texture2D(gcolor, texcoord).rgb;
 #endif
