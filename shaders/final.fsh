@@ -187,15 +187,17 @@ vec3 Uncharted2Tonemap(in vec3 x) {
    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
+#define Brightness 4.0 // [1.0 2.0 4.0 6.0]
+
 void colorAdjust(inout vec3 c) {
-	c *= 4.0f;  // Hardcoded Exposure Adjustment
+	c *= Brightness;  // Hardcoded Exposure Adjustment
 
 	const float ExposureBias = 2.0f;
 	vec3 curr = Uncharted2Tonemap(ExposureBias * c);
 
 	vec3 whiteScale = 1.0f / Uncharted2Tonemap(vec3(W));
 	vec3 color = curr * whiteScale;
-      
+
 	c = pow(color, vec3(1.f/2.2f));
 }
 

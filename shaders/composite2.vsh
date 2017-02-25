@@ -25,7 +25,11 @@
 
 #pragma optimize(on)
 
+uniform mat4 gbufferModelViewInverse;
+uniform vec3 shadowLightPosition;
+
 #include "common_vars.inc.vsh"
+invariant varying vec3 worldLightPos;
 
 void main() {
 	calcCommon();
@@ -33,4 +37,5 @@ void main() {
 	gl_Position = ftransform();
 	texcoord = gl_MultiTexCoord0.st;
 
+	worldLightPos = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
 }

@@ -74,6 +74,7 @@ invariant varying vec3 skycolor;
 invariant varying vec3 fogcolor;
 invariant varying vec3 horizontColor;
 
+invariant varying vec3 worldLightPos;
 
 #define saturate(x) clamp(0.0,x,1.0)
 
@@ -105,6 +106,7 @@ float cdepth = length(wpos);
 float dFar = 1.0 / far;
 float cdepthN = cdepth * dFar;
 float NdotL;
+bool is_water;
 
 const int shadowMapResolution = 1512; // [1024 1512 2048 4096]
 
@@ -169,72 +171,6 @@ float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos) {
 
 bool is_plant;
 
-#define CAUSTIC
-#ifdef CAUSTIC
-float hash( vec2 p ) {
-	float h = dot(p,vec2(127.1,311.7));
-	return fract(sin(h)*43758.5453123);
-}
-
-float noise( in vec2 p ) {
-	vec2 i = floor( p );
-	vec2 f = fract( p );
-	vec2 u = f*f*(3.0-2.0*f);
-	return -1.0+2.0*mix( mix( hash( i + vec2(0.0,0.0) ),
-	hash( i + vec2(1.0,0.0) ), u.x),
-	mix( hash( i + vec2(0.0,1.0) ),
-	hash( i + vec2(1.0,1.0) ), u.x), u.y);
-}
-
-// sea
-#define ITER_GEOMETRY 5
-const float SEA_HEIGHT = 0.43;
-const float SEA_CHOPPY = 5.0;
-const float SEA_SPEED = 0.8;
-const float SEA_FREQ = 0.16;
-float SEA_TIME = 1.0 + frameTimeCounter * SEA_SPEED;
-mat2 octave_m = mat2(1.6,1.1,-1.2,1.6);
-
-
-float sea_octave(vec2 uv, float choppy) {
-	uv += noise(uv);
-	vec2 wv = 1.0-abs(sin(uv));
-	vec2 swv = abs(cos(uv));
-	wv = mix(wv,swv,wv);
-	return pow(1.0-pow(wv.x * wv.y,0.75),choppy);
-}
-
-#define OCTAVE d = sea_octave((uv+SEA_TIME)*freq,choppy); d += sea_octave((uv-SEA_TIME)*freq,choppy); h += d * amp; uv *= octave_m; freq *= 1.9; amp *= 0.18; choppy = mix(choppy,1.0,0.2);
-
-float getwave(vec3 p) {
-	float freq = SEA_FREQ;
-	float amp = SEA_HEIGHT;
-	float choppy = SEA_CHOPPY;
-	vec2 uv = p.xz ; uv.x *= 0.75;
-
-	float d, h = 0.0;
-
-	OCTAVE
-	OCTAVE
-	OCTAVE
-	OCTAVE
-	OCTAVE
-
-	float depth_bias = clamp(0.22, distance(wpos + cameraPosition, p) * 0.02, 1.0);
-	depth_bias = mix(depth_bias, 1.0, min(1.0, length(p - cameraPosition) * 0.01));
-	return h * depth_bias;
-}
-
-vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
-	vec3 w1 = vec3(0.1, getwave(wwpos + vec3(0.1, 0.0, 0.0)), 0.0);
-	vec3 w2 = vec3(0.0, getwave(wwpos + vec3(0.0, 0.0, 0.1)), 0.1);
-	vec3 w0 = displacement;
-	#define tangent w1 - w0
-	#define bitangent w2 - w0
-	return normalize(cross(bitangent, tangent));
-}
-#endif
-
 #define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
 
 const  vec2 offset_table[6] = vec2 [] (
@@ -246,9 +182,11 @@ const  vec2 offset_table[6] = vec2 [] (
 	vec2(-0.866,  0.5 )
 );
 
+#define CAUSTIC
+
 #define SHADOW_FILTER
 #define COLORED_SHADOW
-float shadow_map(out vec3 shadowcolor) {
+float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 	shadowcolor = vec3(1.0);
 	if (cdepthN > 0.9f)
 		return is_plant ? 0.0 : 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
@@ -279,6 +217,7 @@ float shadow_map(out vec3 shadowcolor) {
 			float d2 = texture2D(shadowtex0, shadowposition.st).x;
 			if (d2 + 0.00002 / distortFactor < shadowposition.z) {
 				shadowcolor = texture2D(shadowcolor0, shadowposition.st).rgb * .773;
+				under_water = luma(shadowcolor) > 0.6;
 			}
 		}
 		#endif
@@ -296,6 +235,70 @@ float shadow_map(out vec3 shadowcolor) {
 	return max(shade, extShadow);
 }
 
+#ifdef CAUSTIC
+
+float hash( vec2 p ) {
+	float h = dot(p,vec2(127.1,311.7));
+	return fract(sin(h)*43758.5453123);
+}
+
+float noise( in vec2 p ) {
+	vec2 i = floor( p );
+	vec2 f = fract( p );
+	vec2 u = f*f*(3.0-2.0*f);
+	return -1.0+2.0*mix( mix( hash( i + vec2(0.0,0.0) ),
+	hash( i + vec2(1.0,0.0) ), u.x),
+	mix( hash( i + vec2(0.0,1.0) ),
+	hash( i + vec2(1.0,1.0) ), u.x), u.y);
+}
+
+// sea
+const int ITER_GEOMETRY = 4;
+const float SEA_HEIGHT = 1.43;
+const float SEA_CHOPPY = 5.0;
+const float SEA_SPEED = 0.8;
+const float SEA_FREQ = 0.16;
+mat2 octave_m = mat2(1.6,1.1,-1.2,1.6);
+
+
+float sea_octave(vec2 uv, float choppy) {
+	uv += noise(uv);
+	vec2 wv = 1.0-abs(sin(uv));
+	vec2 swv = abs(cos(uv));
+	wv = mix(wv,swv,wv);
+	return pow(1.0-pow(wv.x * wv.y,0.75),choppy);
+}
+
+float getwave(vec3 p) {
+	float freq = SEA_FREQ;
+	float amp = SEA_HEIGHT;
+	float choppy = SEA_CHOPPY;
+	vec2 uv = p.xz ; uv.x *= 0.75;
+
+	float wave_speed = frameTimeCounter * SEA_SPEED;
+
+	float d, h = 0.0;
+	for(int i = 0; i < ITER_GEOMETRY; i++) {
+		d = sea_octave((uv+wave_speed)*freq,choppy);
+		d += sea_octave((uv-wave_speed)*freq,choppy);
+		h += d * amp;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.5;
+		choppy = mix(choppy,1.0,0.2);
+	}
+	return h;
+}
+
+#define luma(color) dot(color,vec3(0.2126, 0.7152, 0.0722))
+
+vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
+	vec3 w1 = vec3(0.1, getwave(wwpos + vec3(0.1, 0.0, 0.0)), 0.0);
+	vec3 w2 = vec3(0.0, getwave(wwpos + vec3(0.0, 0.0, 0.1)), 0.1);
+	#define w0 displacement
+	#define tangent w1 - w0
+	#define bitangent w2 - w0
+	return normalize(cross(bitangent, tangent));
+}
+#endif
 
 uniform sampler2D gaux1;
 
@@ -377,7 +380,7 @@ void main() {
 	vec4 compositetex = texture2D(composite, texcoord);
 	flag = compositetex.r;
 	bool issky = (flag < 0.01);
-	bool is_water = (flag > 0.71f && flag < 0.79f);
+ 	is_water = (flag > 0.71f && flag < 0.79f);
 	is_plant = (flag > 0.48 && flag < 0.53);
 	vec2 mclight = vec2(0.0);
 	float shade = 0.0;
@@ -390,14 +393,20 @@ void main() {
 	vec3 ambientColor = vec3(0.135, 0.14, 0.215) * luma(horizontColor) * (1.0 - eyebrightness * 0.1) * 3.0;
 	if (!issky) {
 		vec3 shadowcolor;
-		shade = shadow_map(shadowcolor);
+		bool under_water = false;
+		shade = shadow_map(shadowcolor, under_water);
+
 		#ifdef CAUSTIC
-		if (((flag > 0.71f && flag < 0.79f) && !isEyeInWater) || isEyeInWater) {
-			float w = getwave(wpos.xyz + vec3(0.3, 0.0, 0.3) * (wpos.y + cameraPosition.y) + cameraPosition);
-			shade += pow(clamp(0.0, w * 2.0, 1.0), 1.5) * 0.5;
-			shade = clamp(shade, 0.0, 1.0);
+		if (under_water) {
+			vec3 caustic_wpos = wpos + cameraPosition;
+			caustic_wpos.xz += (worldLightPos.xz / worldLightPos.y) * (64.0 - caustic_wpos.y);
+			caustic_wpos.y = 64.0;
+
+			vec3 surface_normal = get_water_normal(caustic_wpos, vec3(0.0, getwave(caustic_wpos), 0.0));
+			shadowcolor *= max(dot(surface_normal, worldLightPos), 0.0);
 		}
 		#endif
+
 		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, pow(max(0.0, dot(nvpos, lightPosition)), 16.0));
 		mclight = texture2D(gaux2, texcoord).xy;
 
