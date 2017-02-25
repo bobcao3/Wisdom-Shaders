@@ -421,7 +421,7 @@ void main() {
 
 		specular.r = clamp(0.0001, specular.r, 0.9999);
 		specular.g = clamp(0.0001, specular.g, 0.9999);
-		vec3 V = -normalize(vpos.xyz);
+		vec3 V = -nvpos;
 		vec3 F0 = vec3(specular.g + 0.02);
 		F0 = mix(F0, color, specular.g);
 		vec3 F = fresnelSchlickRoughness(max(dot(normal, V), 0.0), F0, specular.r);
@@ -430,11 +430,11 @@ void main() {
 		vec3 kD = vec3(1.0) - kS;
 		kD *= 1.0 - specular.g;
 
-		vec3 halfwayDir = normalize(lightPosition - normalize(vpos.xyz));
+		vec3 halfwayDir = normalize(lightPosition + V);
 		float stdNormal = DistributionGGX(normal, halfwayDir, specular.g);
 
 		vec3 no = GeometrySmith(normal, V, lightPosition, specular.r) * stdNormal * F;
-		float denominator = max(0.0, 4 * max(dot(V, normal), 0.0) * max(dot(lightPosition, normal), 0.0) + 0.001);
+		float denominator = max(0.0, 4 * max(dot(V, normal), 0.0) * max(NdotL, 0.0) + 0.001);
 		vec3 brdf = no / denominator;
 
 		// PBR specular, Red & Green reversed
@@ -456,7 +456,7 @@ void main() {
 		#endif
 
 		// AO
-		float simulatedGI = 0.005 + 1.7 * pow(mclight.y, 2.5);
+		float simulatedGI = 0.001 + 1.2 * pow(mclight.y, 2.5);
 
 		vec3 ambient = color * ambientColor * simulatedGI;
 		#ifdef AO_Enabled

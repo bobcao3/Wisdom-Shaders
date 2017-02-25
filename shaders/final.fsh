@@ -263,7 +263,7 @@ vec3 colorBalance(vec3 rgbColor, vec3 hslColor, vec3 s, vec3 m, vec3 h) {
 
 void color_adjust(inout vec3 c) {
 	vec3 hC = rgbToHsl(c);
-	c = colorBalance(c, hC, vec3(0.03, 0.02, 0.09), vec3(0.08, 0.11, 0.13), vec3(-0.18, -0.17, -0.15));
+	c = colorBalance(c, hC, vec3(0.03, 0.02, 0.09), vec3(0.18, 0.16, 0.21), vec3(-0.28, -0.37, -0.35));
 	vibrance(hC, c, 0.95)
 	c = mix(c, hslToRgb(hC), clamp(0.0, c.r + c.b * 0.1 + c.g * 0.05, 1.0));
 }
