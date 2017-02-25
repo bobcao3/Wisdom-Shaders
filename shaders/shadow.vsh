@@ -55,12 +55,15 @@ void main() {
 		position.z += cos(rand_ang) * 0.2;
 
 		#ifdef WAVING_SHADOW
-		float maxStrength = 1.0 + rainStrength * 0.5;
-		float time = frameTimeCounter * 3.0;
-		float reset = cos(hash(position.xy) * 10.0 + time * 0.1);
-		reset = max( reset * reset, max(rainStrength, 0.1));
-		position.x += sin(hash(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
-		position.z += sin(hash(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
+		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
+			float blockId = mc_Entity.x;
+			float maxStrength = 1.0 + rainStrength * 0.5;
+			float time = frameTimeCounter * 3.0;
+			float reset = cos(hash(position.xy) * 10.0 + time * 0.1);
+			reset = max( reset * reset, max(rainStrength, 0.1));
+			position.x += sin(hash(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
+			position.z += sin(hash(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
+		}
 		#endif
 	}
 	

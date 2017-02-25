@@ -256,7 +256,7 @@ float shadow_map(out vec3 shadowcolor) {
 	if (NdotL <= 0.05f && !is_plant) {
 		shade = 1.0f;
 	} else {
-		vec4 shadowposition = shadowModelView * vec4(wpos + wnormal * 0.01, 1.0f);
+		vec4 shadowposition = shadowModelView * vec4(wpos + wnormal * (0.01 + 0.13 * float(is_plant)), 1.0f);
 		shadowposition = shadowProjection * shadowposition;
 		float distb = length(shadowposition.xy);
 		float distortFactor = (1.0f - SHADOW_MAP_BIAS) + distb * SHADOW_MAP_BIAS;
@@ -414,8 +414,6 @@ void main() {
 
 		vec3 diffuse_torch = attenuation * torchColor;
 		vec3 diffuse_sun = (1.0 - shade) * suncolor * luma(horizontColor) * 3.5 * shadowcolor;
-
-		bool is_plant = (flag > 0.49 && flag < 0.53);
 
 		if (flag > 0.89) specular = vec4(0.0001);
 
