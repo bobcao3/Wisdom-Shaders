@@ -34,18 +34,15 @@ varying vec2 normal;
 varying float iswater;
 varying vec2 texcoord;
 
-/* DRAWBUFFERS:03467 */
+/* DRAWBUFFERS:3467 */
 void main() {
+	gl_FragData[0] = vec4(normal, iswater, 1.0);
+
 	if (iswater < 0.90f) {
-		gl_FragData[0] = vec4(0.3, 0.3, 0.3, 0.15);
-
-		gl_FragData[2] = vec4(0.1, 0.93, 0.0, 1.0);
-	}	else {
-		gl_FragData[0] = vec4(0.2);
-
-		gl_FragData[4] = texture2D(texture, texcoord);
+		gl_FragData[1] = vec4(0.1, 0.93, 0.0, 1.0);
+	} else {
+		gl_FragData[3] = texture2D(texture, texcoord);
 	}
-	gl_FragData[1] = vec4(normal, iswater, 1.0);
-
-	gl_FragData[3] = vec4(wpos, 1.0);
+	
+	gl_FragData[2] = vec4(wpos, 1.0);
 }
