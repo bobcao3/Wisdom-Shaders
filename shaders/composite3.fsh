@@ -177,7 +177,6 @@ const float SEA_HEIGHT = 0.33;
 const float SEA_CHOPPY = 5.0;
 const float SEA_SPEED = 0.8;
 const float SEA_FREQ = 0.16;
-float SEA_TIME = 1.0 + frameTimeCounter * SEA_SPEED;
 mat2 octave_m = mat2(1.6,1.1,-1.2,1.6);
 
 
@@ -195,12 +194,14 @@ float getwave(vec3 p) {
 	float choppy = SEA_CHOPPY;
 	vec2 uv = p.xz ; uv.x *= 0.75;
 
+	float wave_speed = frameTimeCounter * SEA_SPEED;
+	
 	float d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY; i++) {
-		d = sea_octave((uv+SEA_TIME)*freq,choppy);
-		d += sea_octave((uv-SEA_TIME)*freq,choppy);
+		d = sea_octave((uv+wave_speed)*freq,choppy);
+		d += sea_octave((uv-wave_speed)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= 0.22;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.5;
 		choppy = mix(choppy,1.0,0.2);
 	}
 	return h - SEA_HEIGHT;
@@ -212,16 +213,19 @@ float getwave2(vec3 p) {
 	float choppy = SEA_CHOPPY;
 	vec2 uv = p.xz ; uv.x *= 0.75;
 
+	float wave_speed = frameTimeCounter * SEA_SPEED;
+	
 	float d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY2; i++) {
-		d = sea_octave((uv+SEA_TIME)*freq,choppy);
-		d += sea_octave((uv-SEA_TIME)*freq,choppy);
+		d = sea_octave((uv+wave_speed)*freq,choppy);
+		d += sea_octave((uv-wave_speed)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= 0.22;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.5;
 		choppy = mix(choppy,1.0,0.2);
 	}
 	return h - SEA_HEIGHT;
 }
+
 
 #define luma(color) dot(color,vec3(0.2126, 0.7152, 0.0722))
 
@@ -551,7 +555,7 @@ void main() {
 			}
 
 			vec3 watercolor = skycolor * (0.15 - wetness * 0.05) * vec3(0.17, 0.41, 0.68) * luma(suncolor) * (1.0 - dist_diff_NL * 0.7);
-			color = mix(color, SEA_WATER_COLOR * skycolor * 0.3, dist_diff_N);
+			color = mix(SEA_WATER_COLOR * color, watercolor, dist_diff_N);
 
 			shade = fast_shadow_map(water_wpos);
 
