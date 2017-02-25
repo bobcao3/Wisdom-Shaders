@@ -175,100 +175,29 @@ vec3 blur() {
 	return c;
 }
 
-#define FINAL_COLOR_ADJUST
-#ifdef FINAL_COLOR_ADJUST
-vec3 rgbToHsl(vec3 rgbColor) {
-	rgbColor = clamp(rgbColor, vec3(0.0), vec3(1.0));
-	float h, s, l;
-	float r = rgbColor.r, g = rgbColor.g, b = rgbColor.b;
-	float minval = min(r, min(g, b));
-	float maxval = max(r, max(g, b));
-	float delta = maxval - minval;
-	l = ( maxval + minval ) / 2.0;
-	if (delta == 0.0) {
-		h = 0.0;
-		s = 0.0;
-	} else {
-		if ( l < 0.5 )
-		s = delta / ( maxval + minval );
-		else
-		s = delta / ( 2.0 - maxval - minval );
+float A = 0.11;
+float B = 0.50;
+float C = 0.10;
+float D = 0.20;
+float E = 0.02;
+float F = 0.30;
+float W = 11.2;
 
-		float deltaR = (((maxval - r) / 6.0) + (delta / 2.0)) / delta;
-		float deltaG = (((maxval - g) / 6.0) + (delta / 2.0)) / delta;
-		float deltaB = (((maxval - b) / 6.0) + (delta / 2.0)) / delta;
-
-		if(r == maxval)
-		h = deltaB - deltaG;
-		else if(g == maxval)
-		h = ( 1.0 / 3.0 ) + deltaR - deltaB;
-		else if(b == maxval)
-		h = ( 2.0 / 3.0 ) + deltaG - deltaR;
-
-		if ( h < 0.0 )
-		h += 1.0;
-		if ( h > 1.0 )
-		h -= 1.0;
-	}
-	return vec3(h, s, l);
+vec3 Uncharted2Tonemap(in vec3 x) {
+   return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
-float hueToRgb(float v1, float v2, float vH) {
-	vH += float(vH < 0.0);
-	vH -= float(vH > 1.0);
-	if ((6.0 * vH) < 1.0) return (v1 + (v2 - v1) * 6.0 * vH);
-	if ((2.0 * vH) < 1.0) return v2;
-	if ((3.0 * vH) < 2.0) return (v1 + ( v2 - v1 ) * ( ( 2.0 / 3.0 ) - vH ) * 6.0);
-	return v1;
+void colorAdjust(inout vec3 c) {
+	c *= 4.0f;  // Hardcoded Exposure Adjustment
+
+	const float ExposureBias = 2.0f;
+	vec3 curr = Uncharted2Tonemap(ExposureBias * c);
+
+	vec3 whiteScale = 1.0f / Uncharted2Tonemap(vec3(W));
+	vec3 color = curr * whiteScale;
+      
+	c = pow(color, vec3(1.f/2.2f));
 }
-
-vec3 hslToRgb(vec3 hslColor) {
-	hslColor = clamp(hslColor, vec3(0.0), vec3(1.0));
-	float r, g, b;
-	float h = hslColor.r, s = hslColor.g, l = hslColor.b;
-	if (s == 0.0) {
-		r = l;
-		g = l;
-		b = l;
-	} else {
-		float v1, v2;
-		v2 = l < 0.5 ? l * (1.0 + s) : (l + s) - (s * l);
-
-		v1 = 2.0 * l - v2;
-
-		r = hueToRgb(v1, v2, h + (1.0 / 3.0));
-		g = hueToRgb(v1, v2, h);
-		b = hueToRgb(v1, v2, h - (1.0 / 3.0));
-	}
-	return vec3(r, g, b);
-}
-
-vec3 colorBalance(vec3 rgbColor, vec3 hslColor, vec3 s, vec3 m, vec3 h) {
-	s *= clamp((hslColor.bbb - 0.333) / -0.25 + 0.5, 0.0, 1.0) * 0.7;
-	m *= clamp((hslColor.bbb - 0.333) /  0.25 + 0.5, 0.0, 1.0) *
-	clamp((hslColor.bbb + 0.333 - 1.0) / -0.25 + 0.5, 0.0, 1.0) * 0.7;
-	h *= clamp((hslColor.bbb + 0.333 - 1.0) /  0.25 + 0.5, 0.0, 1.0) * 0.7;
-	vec3 newColor = rgbColor;
-	newColor += s;
-	newColor += m;
-	newColor += h;
-	newColor = clamp(newColor, vec3(0.0), vec3(1.0));
-	vec3 newHslColor = rgbToHsl(newColor);
-	newHslColor.b = hslColor.b;
-	newColor = hslToRgb(newHslColor);
-	return newColor;
-}
-
-#define vibrance(hslColor, rgb, v) hslColor.g = pow(hslColor.g, v * clamp(0.0, 1.0 - rgb.r * 0.36 + rgb.b * 0.18 + rgb.g * 0.22, 1.0));
-
-void color_adjust(inout vec3 c) {
-	vec3 hC = rgbToHsl(c);
-	c = colorBalance(c, hC, vec3(0.03, 0.02, 0.09), vec3(0.18, 0.16, 0.21), vec3(-0.28, -0.37, -0.35));
-	vibrance(hC, c, 0.95)
-	c = mix(c, hslToRgb(hC), clamp(0.0, c.r + c.b * 0.1 + c.g * 0.05, 1.0));
-}
-
-#endif
 
 void main() {
 	vec3 color = texture2D(Output, texcoord).rgb;
@@ -293,12 +222,8 @@ void main() {
 	color += bloom();
 	#endif
 
-	color = pow(color, vec3(1. / gamma));
-	#ifdef FINAL_COLOR_ADJUST
-	color = clamp(vec3(0.0), color, vec3(1.0));
-	color_adjust(color);
-	#endif
 	color = vignette(color);
+	colorAdjust(color);
 
 	gl_FragColor = vec4(color, 1.0f);
 }

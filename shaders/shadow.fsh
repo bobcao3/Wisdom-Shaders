@@ -33,6 +33,7 @@ varying float iswater;
 
 void main() {
 	vec4 c = texture2D(texture, texcoord) * color;
+	c.rgb *= 1.0 - float(c.a > 0.9);
 	c = mix(c, vec4(1.0), iswater);
 	gl_FragData[0] = c;
 }
