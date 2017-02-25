@@ -39,7 +39,7 @@ void calcCommon() {
 	extShadow = (clamp((wTimeF-12000.0)/300.0,0.0,1.0)-clamp((wTimeF-13000.0)/300.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 
 	vec3 skycolor_sunrise = vec3(0.6, 0.56, 0.95) * 0.2 * (1.0-rainStrength*1.0) * TimeSunrise;
-	vec3 skycolor_noon = vec3(0.65, 0.64, 1.4) * 0.4 * (1.0-rainStrength*1.0) * TimeNoon;
+	vec3 skycolor_noon = vec3(1.1, 1.34, 2.16) * 0.5 * (1.0-rainStrength*1.0) * TimeNoon;
 	vec3 skycolor_sunset = vec3(0.5, 0.7, 1.0) * 0.2 * (1.0-rainStrength*1.0) * TimeSunset;
 	vec3 skycolor_night = vec3(0.0, 0.0, 0.0) * TimeMidnight;
 	vec3 skycolor_rain_day = vec3(1.2, 1.6, 2.0) * 0.1 * (TimeSunrise + TimeNoon + TimeSunset) * rainStrength;
