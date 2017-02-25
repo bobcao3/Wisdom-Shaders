@@ -35,6 +35,8 @@ uniform float frameTimeCounter;
 
 varying vec2 texcoord;
 varying vec4 color;
+varying float iswater;
+varying float isplant;
 
 #define hash(p) fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123)
 
@@ -45,6 +47,8 @@ varying vec4 color;
 void main() {
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
+	color = gl_Color;
+	
 	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
 		float rand_ang = hash(position.xz) * 0.3 * 3.14159f;
 		position.x += sin(rand_ang) * 0.2;
@@ -59,16 +63,18 @@ void main() {
 		position.z += sin(hash(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
 		#endif
 	}
+	
+	iswater = float(blockId == 8.0 || blockId == 9.0);
+	
 	gl_Position = gl_ModelViewMatrix * position;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
 
-	color = gl_Color;
 	#ifdef GlobalIllumination
 	if (blockId != 31.0 && blockId != 37.0 && blockId != 38.0) {
 		color.rgb *= max(0.0, dot(gl_Normal, vec3(0.0, 1.0, 0.0)));
 	}
 	#endif
-	 float distortFactor = (1.0 - SHADOW_MAP_BIAS) + length(gl_Position.xy) * SHADOW_MAP_BIAS;
+	float distortFactor = (1.0 - SHADOW_MAP_BIAS) + length(gl_Position.xy) * SHADOW_MAP_BIAS;
 	gl_Position.xy /= distortFactor;
 	texcoord = gl_MultiTexCoord0.st;
 }
