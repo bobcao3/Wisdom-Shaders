@@ -171,8 +171,9 @@ float noise( in vec2 p ) {
 }
 
 // sea
-const int ITER_GEOMETRY = 5;
-const float SEA_HEIGHT = 0.43;
+const int ITER_GEOMETRY = 3;
+const int ITER_GEOMETRY2 = 5;
+const float SEA_HEIGHT = 0.33;
 const float SEA_CHOPPY = 5.0;
 const float SEA_SPEED = 0.8;
 const float SEA_FREQ = 0.16;
@@ -199,20 +200,35 @@ float getwave(vec3 p) {
 		d = sea_octave((uv+SEA_TIME)*freq,choppy);
 		d += sea_octave((uv-SEA_TIME)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= 0.18;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22;
 		choppy = mix(choppy,1.0,0.2);
 	}
-	float depth_bias = clamp(0.22, distance(frag.wpos + cameraPosition, p) * 0.02, 1.0);
-	depth_bias = mix(depth_bias, 1.0, min(1.0, length(p - cameraPosition) * 0.01));
-	return (h - SEA_HEIGHT) * depth_bias;
+	return h - SEA_HEIGHT;
+}
+
+float getwave2(vec3 p) {
+	float freq = SEA_FREQ;
+	float amp = SEA_HEIGHT;
+	float choppy = SEA_CHOPPY;
+	vec2 uv = p.xz ; uv.x *= 0.75;
+
+	float d, h = 0.0;
+	for(int i = 0; i < ITER_GEOMETRY2; i++) {
+		d = sea_octave((uv+SEA_TIME)*freq,choppy);
+		d += sea_octave((uv-SEA_TIME)*freq,choppy);
+		h += d * amp;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22;
+		choppy = mix(choppy,1.0,0.2);
+	}
+	return h - SEA_HEIGHT;
 }
 
 #define luma(color) dot(color,vec3(0.2126, 0.7152, 0.0722))
 
 vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
 	float lod = max(length(wwpos - cameraPosition) / 256.0, 0.01);
-	vec3 w1 = vec3(lod, getwave(wwpos + vec3(lod, 0.0, 0.0)), 0.0);
-	vec3 w2 = vec3(0.0, getwave(wwpos + vec3(0.0, 0.0, lod)), lod);
+	vec3 w1 = vec3(lod, getwave2(wwpos + vec3(lod, 0.0, 0.0)), 0.0);
+	vec3 w2 = vec3(0.0, getwave2(wwpos + vec3(0.0, 0.0, lod)), lod);
 	#define w0 displacement
 	#define tangent w1 - w0
 	#define bitangent w2 - w0
@@ -305,7 +321,7 @@ vec4 calcCloud(in vec3 wpos, inout vec3 sunLuma) {
 }
 
 vec3 calcSkyColor(in vec3 wpos, float shade) {
-	float horizont = abs(wpos.y + cameraPosition.y - 0.5);
+	float horizont = abs(wpos.y);
 
 	if (horizont < -0.5) return vec3(0.0);
 
@@ -323,8 +339,8 @@ vec3 calcSkyColor(in vec3 wpos, float shade) {
 	vec3 sunl = mix(suncolor.rgb, hcol, pow(1.0 - worldLightPos.y, 0.3));
 	sky += clamp(pow(sun_glow, 690.0), 0.0, 0.2) * sunl * (1.0 - rainStrength * 0.6) * (1.0 - extShadow) * (1.0 + TimeMidnight * 17.0) * pow(1.0 - worldLightPos.y, 0.3) * 4.0;
 
-	//vec4 cloud = calcCloud(normalize(wpos), sky);
-	//sky = mix(sky, cloud.rgb, cloud.a);
+	vec4 cloud = calcCloud(normalize(wpos), sky);
+	sky = mix(sky, cloud.rgb, cloud.a);
 
 	return sky;
 }
@@ -399,8 +415,8 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
 #ifdef WATER_PARALLAX
 vec3 WaterParallax(vec3 wpos, vec3 viewDir) {
 	// number of depth layers
-	const float minLayers = 3;
-	const float maxLayers = 12;
+	const float minLayers = 1;
+	const float maxLayers = 4;
 
 	float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
 	float layerDepth = 1.0 / numLayers;
@@ -409,12 +425,12 @@ vec3 WaterParallax(vec3 wpos, vec3 viewDir) {
 	vec2 deltaTexCoords = P / numLayers;
 
 	vec3  currentTexCoords     = wpos;
-	float currentDepthMapValue = getwave(wpos + cameraPosition);
+	float currentDepthMapValue = getwave(wpos + cameraPosition) / SEA_HEIGHT;
 
 	for (int i = 0; i < numLayers; i++) {
 		if (currentLayerDepth >= currentDepthMapValue) break;
 		currentTexCoords -= vec3(deltaTexCoords.x, 0.0, deltaTexCoords.y);
-		currentDepthMapValue = getwave(wpos + cameraPosition);
+		currentDepthMapValue = getwave(wpos + cameraPosition) / SEA_HEIGHT;
 		currentLayerDepth += layerDepth;
 	}
 
@@ -422,7 +438,7 @@ vec3 WaterParallax(vec3 wpos, vec3 viewDir) {
 
 	// get depth after and before collision for linear interpolation
 	float afterDepth  = currentDepthMapValue - currentLayerDepth;
-	float beforeDepth = getwave(wpos + cameraPosition) - currentLayerDepth + layerDepth;
+	float beforeDepth = getwave(wpos + cameraPosition) / SEA_HEIGHT - currentLayerDepth + layerDepth;
 
 	// interpolation of texture coordinates
 	float weight = afterDepth / (afterDepth - beforeDepth);
@@ -476,7 +492,8 @@ void main() {
 			frag.normal = normalDecode(g.normaltex.zw);
 		}
 		if (isEyeInWater || frag_mask.is_water) {
-			water_plain_normal = mat3(gbufferModelViewInverse) * normalDecode(g.normaltex.zw);
+			vec3 vvnormal_plain = normalDecode(g.normaltex.zw);
+			water_plain_normal = mat3(gbufferModelViewInverse) * vvnormal_plain;
 
 			#ifdef WATER_PARALLAX
 			water_wpos = WaterParallax(water_wpos, water_vpos.xyz);
