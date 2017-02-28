@@ -24,8 +24,10 @@
 #version 120
 #pragma optimize(on)
 
+uniform vec3 skyColor;
+
 /* DRAWBUFFERS:02 */
 void main() {
-	gl_FragData[0] = vec4(1.0);
+	gl_FragData[0] = vec4(skyColor, 1.0);
 	gl_FragData[1] = vec4(0.0);
 }
