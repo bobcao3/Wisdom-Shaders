@@ -33,6 +33,7 @@ uniform vec3 shadowLightPosition;
 #include "common_vars.inc.vsh"
 
 invariant varying vec3 worldLightPos;
+varying vec3 worldSunPosition;
 
 void main() {
 	calcCommon();
@@ -41,4 +42,5 @@ void main() {
 	texcoord = gl_MultiTexCoord0.st;
 
 	worldLightPos = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+	worldSunPosition = (wTimeF > 0.0 && wTimeF < 13000.0 || wTimeF > 23214.5) ? worldLightPos : -worldLightPos;
 }
