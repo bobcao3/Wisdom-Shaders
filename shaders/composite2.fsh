@@ -218,6 +218,7 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 			if (d2 + 0.00002 / distortFactor < shadowposition.z) {
 				shadowcolor = texture2D(shadowcolor0, shadowposition.st).rgb * .773;
 				under_water = luma(shadowcolor) > 0.6;
+				shadowcolor = mix(shadowcolor, vec3(1.0), shade);
 			}
 		}
 		#endif
@@ -227,10 +228,6 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 		shade -= max(0.0f, edgeX * 20.0f);
 		shade -= max(0.0f, edgeY * 20.0f);
 		shade = max(0.0, shade);
-		if (!is_plant) {
-			float phong = 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
-			shade = max(shade, phong);
-		}
 	}
 	return max(shade, extShadow);
 }
@@ -253,8 +250,8 @@ float noise( in vec2 p ) {
 }
 
 // sea
-const int ITER_GEOMETRY = 4;
-const float SEA_HEIGHT = 1.43;
+const int ITER_GEOMETRY = 5;
+const float SEA_HEIGHT = 0.53;
 const float SEA_CHOPPY = 5.0;
 const float SEA_SPEED = 0.8;
 const float SEA_FREQ = 0.16;
@@ -282,7 +279,7 @@ float getwave(vec3 p) {
 		d = sea_octave((uv+wave_speed)*freq,choppy);
 		d += sea_octave((uv-wave_speed)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.5;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.2;
 		choppy = mix(choppy,1.0,0.2);
 	}
 	return h;
@@ -376,7 +373,7 @@ vec3 blurGI(vec3 c) {
 void main() {
 	vec4 normaltex = texture2D(gnormal, texcoord);
 	normal = normalize(normalDecode(normaltex.xy));
-	wnormal = mat3(gbufferModelViewInverse) * normal;
+	wnormal = normalize(mat3(gbufferModelViewInverse) * normal);
 	vec4 compositetex = texture2D(composite, texcoord);
 	flag = compositetex.r;
 	bool issky = (flag < 0.01);
@@ -403,9 +400,13 @@ void main() {
 			caustic_wpos.y = 64.0;
 
 			vec3 surface_normal = get_water_normal(caustic_wpos, vec3(0.0, getwave(caustic_wpos), 0.0));
-			shadowcolor *= max(dot(surface_normal, worldLightPos), 0.0);
+			//shadowcolor *= 0.5 + 0.5 * max(1.0 - dot(surface_normal, worldLightPos), 0.0);
+
+			shadowcolor *= 0.3 + 1.4 * max(0.0, dot(wnormal, -refract(worldLightPos, surface_normal, 1.0 / 1.2)));
 		}
 		#endif
+		float phong = is_plant ? 0.0 : 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
+		shade = max(shade, phong);
 
 		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, pow(max(0.0, dot(nvpos, lightPosition)), 16.0));
 		mclight = texture2D(gaux2, texcoord).xy;
@@ -429,11 +430,11 @@ void main() {
 		specular.r = clamp(0.0001, specular.r, 0.9999);
 		specular.g = clamp(0.0001, specular.g, 0.9999);
 		vec3 V = -nvpos;
-		vec3 F0 = vec3(specular.g + 0.02);
+		vec3 F0 = vec3(specular.g + 0.08);
 		F0 = mix(F0, color, specular.g);
 		vec3 F = fresnelSchlickRoughness(max(dot(normal, V), 0.0), F0, specular.r);
 
-		vec3 kS = F;
+		#define kS F
 		vec3 kD = vec3(1.0) - kS;
 		kD *= 1.0 - specular.g;
 
