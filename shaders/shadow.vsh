@@ -48,13 +48,13 @@ void main() {
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
 	color = gl_Color;
-	
+
+	#ifdef WAVING_SHADOW
 	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
 		float rand_ang = hash(position.xz) * 0.3 * 3.14159f;
 		position.x += sin(rand_ang) * 0.2;
 		position.z += cos(rand_ang) * 0.2;
 
-		#ifdef WAVING_SHADOW
 		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
 			float blockId = mc_Entity.x;
 			float maxStrength = 1.0 + rainStrength * 0.5;
@@ -64,11 +64,11 @@ void main() {
 			position.x += sin(hash(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
 			position.z += sin(hash(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
 		}
-		#endif
 	}
-	
+	#endif
+
 	iswater = float(blockId == 8.0 || blockId == 9.0);
-	
+
 	gl_Position = gl_ModelViewMatrix * position;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
 
