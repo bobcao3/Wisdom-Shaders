@@ -175,22 +175,20 @@ vec3 blur() {
 	return c;
 }
 
-float A = 0.11;
-float B = 0.50;
-float C = 0.10;
-float D = 0.20;
-float E = 0.02;
-float F = 0.30;
-float W = 11.2;
+const float A = 0.11;
+const float B = 0.50;
+const float C = 0.10;
+const float D = 0.20;
+const float E = 0.02;
+const float F = 0.30;
+const float W = 11.2;
 
 vec3 Uncharted2Tonemap(in vec3 x) {
-   return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+	return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
-#define Brightness 4.0 // [1.0 2.0 4.0 6.0]
-
 void colorAdjust(inout vec3 c) {
-	c *= Brightness;  // Hardcoded Exposure Adjustment
+	c *= 2.0;
 
 	const float ExposureBias = 2.0f;
 	vec3 curr = Uncharted2Tonemap(ExposureBias * c);
