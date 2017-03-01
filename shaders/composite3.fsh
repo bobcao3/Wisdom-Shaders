@@ -174,8 +174,8 @@ float noise( in vec2 p ) {
 // sea
 const int ITER_GEOMETRY = 3;
 const int ITER_GEOMETRY2 = 5;
-const float SEA_HEIGHT = 0.33;
-const float SEA_CHOPPY = 5.0;
+const float SEA_HEIGHT = 0.43;
+const float SEA_CHOPPY = 5.3;
 const float SEA_SPEED = 0.8;
 const float SEA_FREQ = 0.16;
 mat2 octave_m = mat2(1.6,1.1,-1.2,1.6);
@@ -202,10 +202,13 @@ float getwave(vec3 p) {
 		d = sea_octave((uv+wave_speed)*freq,choppy);
 		d += sea_octave((uv-wave_speed)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.3;
+		uv *= octave_m; freq *= 1.8; amp *= 0.27; wave_speed *= 1.3;
 		choppy = mix(choppy,1.0,0.2);
 	}
-	return h - SEA_HEIGHT;
+
+	float lod = 1.0 - length(p - cameraPosition) / 512.0;
+
+	return (h - SEA_HEIGHT) * lod;
 }
 
 float getwave2(vec3 p) {
@@ -221,19 +224,21 @@ float getwave2(vec3 p) {
 		d = sea_octave((uv+wave_speed)*freq,choppy);
 		d += sea_octave((uv-wave_speed)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.3;
+		uv *= octave_m; freq *= 1.8; amp *= 0.27; wave_speed *= 1.3;
 		choppy = mix(choppy,1.0,0.2);
 	}
-	return h - SEA_HEIGHT;
+
+	float lod = 1.0 - length(p - cameraPosition) / 512.0;
+
+	return (h - SEA_HEIGHT) * lod;
 }
 
 
 #define luma(color) dot(color,vec3(0.2126, 0.7152, 0.0722))
 
 vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
-	float lod = max(length(wwpos - cameraPosition) / 256.0, 0.01);
-	vec3 w1 = vec3(lod, getwave2(wwpos + vec3(lod, 0.0, 0.0)), 0.0);
-	vec3 w2 = vec3(0.0, getwave2(wwpos + vec3(0.0, 0.0, lod)), lod);
+	vec3 w1 = vec3(0.01, getwave2(wwpos + vec3(0.01, 0.0, 0.0)), 0.0);
+	vec3 w2 = vec3(0.0, getwave2(wwpos + vec3(0.0, 0.0, 0.01)), 0.01);
 	#define w0 displacement
 	#define tangent w1 - w0
 	#define bitangent w2 - w0
@@ -331,7 +336,7 @@ vec3 mie(float dist, vec3 sunL){
 }
 
 vec3 calcSkyColor(vec3 wpos, float camHeight){
-	const float coeiff = 0.3;
+	const float coeiff = 0.5785;
 	const vec3 totalSkyLight = vec3(0.3, 0.5, 1.0);
 
 	float sunDistance = distance(normalize(wpos), worldSunPosition);
