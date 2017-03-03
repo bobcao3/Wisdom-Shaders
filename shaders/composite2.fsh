@@ -252,7 +252,7 @@ float noise( in vec2 p ) {
 // sea
 const int ITER_GEOMETRY = 5;
 const float SEA_HEIGHT = 0.43;
-const float SEA_CHOPPY = 5.3;
+const float SEA_CHOPPY = 4.0;
 const float SEA_SPEED = 0.8;
 const float SEA_FREQ = 0.16;
 mat2 octave_m = mat2(1.6,1.1,-1.2,1.6);
@@ -279,17 +279,20 @@ float getwave(vec3 p) {
 		d = sea_octave((uv+wave_speed)*freq,choppy);
 		d += sea_octave((uv-wave_speed)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.8; amp *= 0.27; wave_speed *= 1.3;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.3;
 		choppy = mix(choppy,1.0,0.2);
 	}
-	return h;
+
+	//float lod = 1.0 - length(p - cameraPosition) / 512.0;
+
+	return (h - SEA_HEIGHT);// * lod;
 }
 
 #define luma(color) dot(color,vec3(0.2126, 0.7152, 0.0722))
 
 vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
-	vec3 w1 = vec3(0.1, getwave(wwpos + vec3(0.1, 0.0, 0.0)), 0.0);
-	vec3 w2 = vec3(0.0, getwave(wwpos + vec3(0.0, 0.0, 0.1)), 0.1);
+	vec3 w1 = vec3(0.035, getwave(wwpos + vec3(0.035, 0.0, 0.0)), 0.0);
+	vec3 w2 = vec3(0.0, getwave(wwpos + vec3(0.0, 0.0, 0.035)), 0.035);
 	#define w0 displacement
 	#define tangent w1 - w0
 	#define bitangent w2 - w0
@@ -402,7 +405,8 @@ void main() {
 			vec3 surface_normal = get_water_normal(caustic_wpos, vec3(0.0, getwave(caustic_wpos), 0.0));
 			//shadowcolor *= 0.5 + 0.5 * max(1.0 - dot(surface_normal, worldLightPos), 0.0);
 
-			shadowcolor *= 1.0 + 0.6 * dot(wnormal, -refract(worldLightPos, surface_normal, 1.0 / 1.2));
+			float index = dot(wnormal, -refract(worldLightPos, surface_normal, 1.0 / 1.2));
+			shadowcolor *= 0.6 + 2.0 * (1.0 - index * index * index);
 		}
 		#endif
 		float phong = is_plant ? 0.0 : 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;

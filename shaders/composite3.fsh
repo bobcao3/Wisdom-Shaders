@@ -172,10 +172,10 @@ float noise( in vec2 p ) {
 }
 
 // sea
-const int ITER_GEOMETRY = 3;
+const int ITER_GEOMETRY = 2;
 const int ITER_GEOMETRY2 = 5;
 const float SEA_HEIGHT = 0.43;
-const float SEA_CHOPPY = 5.3;
+const float SEA_CHOPPY = 4.0;
 const float SEA_SPEED = 0.8;
 const float SEA_FREQ = 0.16;
 mat2 octave_m = mat2(1.6,1.1,-1.2,1.6);
@@ -202,7 +202,7 @@ float getwave(vec3 p) {
 		d = sea_octave((uv+wave_speed)*freq,choppy);
 		d += sea_octave((uv-wave_speed)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.8; amp *= 0.27; wave_speed *= 1.3;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.3;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
@@ -224,7 +224,7 @@ float getwave2(vec3 p) {
 		d = sea_octave((uv+wave_speed)*freq,choppy);
 		d += sea_octave((uv-wave_speed)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.8; amp *= 0.27; wave_speed *= 1.3;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.3;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
@@ -237,8 +237,8 @@ float getwave2(vec3 p) {
 #define luma(color) dot(color,vec3(0.2126, 0.7152, 0.0722))
 
 vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
-	vec3 w1 = vec3(0.01, getwave2(wwpos + vec3(0.01, 0.0, 0.0)), 0.0);
-	vec3 w2 = vec3(0.0, getwave2(wwpos + vec3(0.0, 0.0, 0.01)), 0.01);
+	vec3 w1 = vec3(0.035, getwave2(wwpos + vec3(0.035, 0.0, 0.0)), 0.0);
+	vec3 w2 = vec3(0.0, getwave2(wwpos + vec3(0.0, 0.0, 0.035)), 0.035);
 	#define w0 displacement
 	#define tangent w1 - w0
 	#define bitangent w2 - w0
@@ -437,25 +437,25 @@ void WaterParallax(inout vec3 wpos) {
 	const int maxLayers = 6;
 
 	vec3 nwpos = normalize(wpos);
-	vec3 fpos = nwpos * SEA_HEIGHT;
+	vec3 fpos = nwpos / max(0.1, abs(nwpos.y)) * SEA_HEIGHT;
 	float exph = 0.0;
 	float hstep = 1.0 / float(maxLayers);
 
+	float h;
 	for (int i = 0; i < maxLayers; i++) {
-		float h = getwave(wpos + cameraPosition);
-		hstep *= 1.5;
+		h = getwave(wpos + cameraPosition);
+		hstep *= 1.3;
 
-		if (h + 0.05 > exph) {
-			wpos -= vec3(fpos.x, 0.0, fpos.z) * abs(h - exph) * hstep;
-			break;
-		}
+		if (h + 0.05 > exph) break;
 
 		exph -= hstep;
 		wpos += vec3(fpos.x, 0.0, fpos.z) * hstep;
 	}
+	wpos -= vec3(fpos.x, 0.0, fpos.z) * abs(h - exph) * hstep;
 }
 #endif
 // #define BLACK_AND_WHITE
+#define SKY_REFLECTIONS
 
 /* DRAWBUFFERS:3 */
 void main() {
@@ -509,21 +509,16 @@ void main() {
 			#else
 			float wave = getwave2(water_wpos + cameraPosition);
 			vec2 p = water_vpos.xy / water_vpos.z * wave;
-			wave = getwave(water_wpos + cameraPosition - vec3(p.x, 0.0, p.y));
+			wave = getwave2(water_wpos + cameraPosition - vec3(p.x, 0.0, p.y));
 			vec2 wp = length(p) * normalize(water_wpos).xz;
 			water_wpos -= vec3(wp.x, 0.0, wp.y);
 			#endif
 
 			water_displacement = wave * water_plain_normal;
-			vec3 water_normal = water_plain_normal;
-			if (water_plain_normal.y > 0.8) {
-				water_normal = get_water_normal(water_wpos + cameraPosition, water_displacement);
-			}
-
-			//water_wpos += water_displacement;
+			vec3 water_normal = (water_plain_normal.y > 0.8) ? get_water_normal(water_wpos + cameraPosition, water_displacement) : water_plain_normal;
 
 			vec3 vsnormal = normalize(mat3(gbufferModelView) * water_normal);
-			water_vpos = gbufferModelView * vec4(water_wpos + water_displacement, 1.0);
+			water_vpos = (!frag_mask.is_water && isEyeInWater) ? frag.vpos : gbufferModelView * vec4(water_wpos, 1.0);
 			#ifdef ENHANCED_WATER
 			const float refindex = 0.7;
 			vec4 shifted_vpos = vec4(frag.vpos.xyz + normalize(refract(normalize(frag.vpos.xyz), vsnormal, refindex)), 1.0);
@@ -541,7 +536,7 @@ void main() {
 				shifted = texcoord;
 			}
 			frag.vpos = vec4(texture2D(gdepth, shifted).xyz, 1.0);
-			float dist_diff = isEyeInWater ? min(length(water_vpos.xyz), length(frag.vpos.xyz)) : distance(frag.vpos.xyz, water_vpos.xyz);
+			float dist_diff = isEyeInWater ? length(water_vpos.xyz) : distance(frag.vpos.xyz, water_vpos.xyz);
 			float dist_diff_N = pow(clamp(0.0, abs(dist_diff) / 6.0, 1.0), 0.2);
 
 			vec3 org_color = color;
@@ -598,21 +593,25 @@ void main() {
 
 			vec3 ref_color = vec3(0.0);
 			vec3 viewRefRay = vec3(0.0);
-			#define refvpos frag.vpos.xyz
 			if (!isEyeInWater && specular.r > 0.01) {
 				vec3 vs_plain_normal = mat3(gbufferModelView) * water_plain_normal;
-				vec3 refvnormal = frag_mask.is_water ? mix(vs_plain_normal, frag.normal, 0.2) : frag.normal;
-				viewRefRay = reflect(normalize(refvpos), normalize(refvnormal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
+				viewRefRay = reflect(normalize(frag.vpos.xyz), normalize(frag.normal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
 				#ifdef PLANE_REFLECTION
-				vec4 reflection = waterRayTarcing(refvpos + refvnormal * max(0.4, length(refvpos.xyz) / far), viewRefRay, color, specular.r);
-				ref_color = reflection.rgb * (reflection.a * specular.r);
+				vec3 refnormal = frag_mask.is_water ? normalize(mix(frag.normal, vs_plain_normal, 0.8)) : frag.normal;
+				vec3 plainRefRay = reflect(normalize(frag.vpos.xyz), normalize(refnormal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
+
+				vec4 reflection = waterRayTarcing(frag.vpos.xyz + refnormal * max(0.4, length(frag.vpos.xyz) / far), plainRefRay, color, specular.r);
+				ref_color = reflection.rgb * reflection.a * specular.r;
 				#else
 				vec4 reflection = vec4(0.0);
 				#endif
 
+				#ifdef SKY_REFLECTIONS
 				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal) * 480.0;
-				wref.y = abs(wref.y);
-				ref_color += calcSkyColor(wref, cameraPosition.y - frag.wpos.y) * (1.0 - reflection.a) * specular.r;
+				ref_color += calcSkyColor(wref, cameraPosition.y + frag.wpos.y) * (1.0 - reflection.a) * specular.r;
+				#else
+				ref_color += skycolor * (1.0 - reflection.a) * specular.r;
+				#endif
 			}
 
 			if (specular.r > 0.07) {
@@ -636,7 +635,7 @@ void main() {
 				}
 
 				float reflection_fresnel_mul = frag_mask.is_trans ? 3.0 : 1.5;
-				float fresnel = 0.02 + 0.98 * pow(1.0 - dot(viewRefRay, frag.normal), reflection_fresnel_mul);
+				float fresnel = pow(1.0 - dot(viewRefRay, frag.normal), reflection_fresnel_mul);
 				ref_color = mix(fogcolor, ref_color, clamp((512.0 - frag.cdepth) / (512.0 - 32.0), 0.0, 1.0));
 				color += ref_color * F * fresnel;
 			}
