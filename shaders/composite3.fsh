@@ -172,9 +172,9 @@ float noise( in vec2 p ) {
 }
 
 // sea
+#define SEA_HEIGHT 0.43 // [0.21 0.33 0.43 0.66]
 const int ITER_GEOMETRY = 2;
 const int ITER_GEOMETRY2 = 5;
-const float SEA_HEIGHT = 0.43;
 const float SEA_CHOPPY = 4.0;
 const float SEA_SPEED = 0.8;
 const float SEA_FREQ = 0.16;
