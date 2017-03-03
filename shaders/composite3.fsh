@@ -332,7 +332,7 @@ vec4 calcCloud(in vec3 wpos, inout vec3 sunLuma) {
 
 
 vec3 mie(float dist, vec3 sunL){
-    return max(exp(-pow(dist, 0.25)) * sunL - 0.4, 0.0);
+	return max(exp(-pow(dist, 0.25)) * sunL - 0.4, 0.0);
 }
 
 vec3 calcSkyColor(vec3 wpos, float camHeight){
@@ -340,23 +340,29 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	const vec3 totalSkyLight = vec3(0.3, 0.5, 1.0);
 
 	float sunDistance = distance(normalize(wpos), worldSunPosition);
+	float moonDistance = distance(normalize(wpos), -worldSunPosition);
 	sunDistance *= 0.5;
 
 	float sunH = worldSunPosition.y * 1.589;
 
-	float scatterMult = clamp(sunDistance, 0.0, 1.0);
-	float sun = clamp(1.0 - smoothstep(0.01, 0.011, scatterMult), 0.0, 1.0);
+	float sunScatterMult = clamp(sunDistance, 0.0, 1.0);
+	float sun = clamp(1.0 - smoothstep(0.01, 0.018, sunScatterMult), 0.0, 1.0);
+
+	float moonScatterMult = clamp(moonDistance, 0.0, 1.0);
+	float moon = clamp(1.0 - smoothstep(0.01, 0.011, moonScatterMult), 0.0, 1.0);
 
 	float horizont = max(0.001, normalize(wpos + vec3(0.0, camHeight, 0.0)).y);
-	horizont = (coeiff * mix(scatterMult, 1.0, horizont)) / horizont;
+	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
 
-	vec3 mieScatter = mie(sunDistance, vec3(1.0));
+	vec3 sunMieScatter = mie(sunDistance, vec3(1.0));
+	vec3 moonMieScatter = mie(moonDistance, vec3(1.0));
 
 	vec3 sky = horizont * totalSkyLight;
 	sky = max(sky, 0.0);
 
-	sky = max(mix(pow(sky, 1.0 - sky), sky / (2.0 * sky + 0.5 - sky), clamp(sunH * 2.0, 0.0, 1.0)),0.0) + sun + mieScatter;
-	sky *= 1.0 + pow(1.0 - scatterMult, 10.0) * 10.0;
+	sky = max(mix(pow(sky, 1.0 - sky), sky / (2.0 * sky + 0.5 - sky), clamp(sunH * 2.0, 0.0, 1.0)),0.0) + sun + moon + sunMieScatter + moonMieScatter;
+	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 10.0;
+	sky *= 1.0 + pow(1.0 - moonScatterMult, 20.0) * 5.0;
 
 	float underscatter = distance(sunH * 0.5 + 0.5, 1.0);
 	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0));
