@@ -189,7 +189,7 @@ const  vec2 offset_table[6] = vec2 [] (
 float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 	shadowcolor = vec3(1.0);
 	if (cdepthN > 0.9f)
-		return is_plant ? 0.0 : 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
+		return is_plant ? (1.0 - max(0.0, NdotL)) * cdepthN : 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
 	float shade = 0.0;
 	if (NdotL <= 0.05f && !is_plant) {
 		shade = 1.0f;
