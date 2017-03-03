@@ -250,7 +250,7 @@ float noise( in vec2 p ) {
 }
 
 // sea
-const int ITER_GEOMETRY = 5;
+const int ITER_GEOMETRY = 4;
 const float SEA_HEIGHT = 0.43;
 const float SEA_CHOPPY = 4.0;
 const float SEA_SPEED = 0.8;
@@ -406,7 +406,7 @@ void main() {
 			//shadowcolor *= 0.5 + 0.5 * max(1.0 - dot(surface_normal, worldLightPos), 0.0);
 
 			float index = dot(wnormal, -refract(worldLightPos, surface_normal, 1.0 / 1.2));
-			shadowcolor *= 0.6 + 2.0 * (1.0 - index * index * index);
+			shadowcolor *= 0.6 + 3.14 * (1.0 - pow(index, 3.5));
 		}
 		#endif
 		float phong = is_plant ? 0.0 : 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
@@ -491,7 +491,7 @@ void main() {
 		vl = (1.0 - (1.0 / (1.0 + vl) - 0.5) * 2.0) * 0.7;
 		vl *= (1.0 - extShadow);
 
-		color = mix(color, suncolor, vl * max(0.0, 0.73 - eyebrightness * 0.07 * luma(suncolor)) * (1.0 - max(0.0, - dot(nvpos, lightPosition))));
+		color = mix(color, fogcolor, vl * max(0.0, 0.73 - eyebrightness * 0.07) * dot(nvpos, lightPosition));
 
 		#endif
 	}
