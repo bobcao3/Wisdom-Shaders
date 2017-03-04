@@ -156,6 +156,8 @@ float fast_shadow_map(in vec3 wpos) {
 
 const vec3 SEA_WATER_COLOR = vec3(0.69,0.87,0.96);
 
+#define IQ_NOISE
+
 float hash( vec2 p ) {
 	float h = dot(p,vec2(127.1,311.7));
 	return fract(sin(h)*43758.5453123);
@@ -269,42 +271,26 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
 	return ggx1 * ggx2;
 }
 
-vec4 calcCloud(in vec3 wpos, inout vec3 sunLuma) {
-	if (wpos.y < 0.03) return vec4(0.0);
-
-	vec3 spos = wpos / wpos.y * 2850.0;
+float cloudNoise(in vec3 wpos) {
+	vec3 spos = wpos;
 	float total;
 	vec2 ns = spos.xz + cameraPosition.xz + frameTimeCounter * vec2(18.0, 2.0);
 	ns.y *= 0.73;
 	ns *= 0.0008;
 
+	vec2 coord = ns;
+
 	// Shape
-	float f, l;
-	l  = 0.50000 * noise(ns); ns = ns * 2.02;
-	f  = mix(l, abs(l), rainStrength);
-	l  = 0.25000 * noise(ns); ns = ns * 2.03;
-	f += mix(l, abs(l), rainStrength);
-	f += 0.12500 * noise(ns);
-	f += 0.07300 * noise(ns * 2.0);
-	f += abs(0.03100 * noise(ns * 4.0));
-	f += abs(0.03100 * noise(ns * 14.0));
-	f += 0.03100 * noise(ns * 8.0);
-	f += abs(0.01100 * noise(ns * 10.0) * f);
+	float n  = noise(coord) * 0.5;   coord *= 3.0;
+  n += noise(coord) * 0.25;  coord *= 3.01;
+  n += noise(coord) * 0.125; coord *= 3.02;
+  n += noise(coord) * 0.0625;
 
-	total = f;
-
-	ns *= 0.1;
-	l  = 0.50000 * noise(ns); ns = ns * 1.62;
-	f  = mix(l, abs(l), rainStrength);
-	l  = 0.25000 * noise(ns); ns = ns * 1.63;
-	f += mix(l, abs(l), rainStrength);
-	f += 0.12500 * noise(ns);
-
-	total = total * 0.4 + f * total * 0.5 + f * 0.1;
+	total = n;
 
 	ns *= 2.0;
-	ns += frameTimeCounter * 0.06;
-	f  = 0.50000 * noise(ns); ns = ns * 0.7;
+	ns -= frameTimeCounter * 0.3;
+	float f = 0.50000 * noise(ns); ns = ns * 0.7;
 	f += 0.25000 * noise(ns); ns = ns * 0.9;
 	f += 0.12500 * noise(ns);
 	total += f * total;
@@ -312,17 +298,27 @@ vec4 calcCloud(in vec3 wpos, inout vec3 sunLuma) {
 	float weight = 0.4;
 	f = 0.0; ns *= 3.0;
 	for (int i=0; i<5; i++){
-		f += abs(weight * noise(ns + frameTimeCounter * 0.03));
+		f += (weight * noise(ns + frameTimeCounter * 0.1));
 		ns = 1.2 * ns;
 		weight *= 0.6;
 	}
-	total += f * total;
+	total += max(0.0, f) * total * 0.5;
 
 	total = clamp(0.0, total, 1.0);
 
-	vec3 cloud_color = (skycolor + horizontColor) * 0.7;
+	return total;
+}
+
+vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
+	if (wpos.y < 0.03) return vec4(0.0);
+
+	vec3 spos = wpos / wpos.y * 2850.0;
+	float total = cloudNoise(spos);
+
+	float density = cloudNoise(spos + worldLightPos * 3.0);
+
+	vec3 cloud_color = L * 0.7 * (1.0 - density) + mie * (1.0 - total) * (1.0 - density) + horizontColor * (1.0 - total * 0.5);
 	cloud_color *= 1.0 - rainStrength * 0.8;
-	cloud_color += pow(max(0.0, dot(wpos, worldLightPos)), 9.0) * horizontColor * (1.0 - total) * 0.8;
 	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.9) * 10.0);
 
 	total = clamp(0.0, total, 1.0);
@@ -337,7 +333,8 @@ vec3 mie(float dist, vec3 sunL){
 
 vec3 calcSkyColor(vec3 wpos, float camHeight){
 	const float coeiff = 0.5785;
-	const vec3 totalSkyLight = vec3(0.151, 0.311, 1.0) * 0.5;
+	float rain = (1.0 - rainStrength * 0.9);
+	vec3 totalSkyLight = vec3(0.151, 0.311, 1.0) * 0.5 * rain;
 
 	float sunDistance = distance(normalize(wpos), worldSunPosition);
 	float moonDistance = distance(normalize(wpos), -worldSunPosition);
@@ -346,26 +343,32 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	float sunH = worldSunPosition.y * 1.589;
 
 	float sunScatterMult = clamp(sunDistance, 0.0, 1.0);
-	float sun = clamp(1.0 - smoothstep(0.01, 0.018, sunScatterMult), 0.0, 1.0);
+	float sun = clamp(1.0 - smoothstep(0.01, 0.018, sunScatterMult), 0.0, 1.0) * rain;
 
 	float moonScatterMult = clamp(moonDistance, 0.0, 1.0);
-	float moon = clamp(1.0 - smoothstep(0.01, 0.011, moonScatterMult), 0.0, 1.0);
+	float moon = clamp(1.0 - smoothstep(0.01, 0.011, moonScatterMult), 0.0, 1.0) * rain;
 
 	float horizont = max(0.001, normalize(wpos + vec3(0.0, camHeight, 0.0)).y);
 	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
 
-	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984));
-	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 0.984));
+	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * rain);
+	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 0.984) * rain);
 
 	vec3 sky = horizont * totalSkyLight;
 	sky = max(sky, 0.0);
 
-	sky = max(mix(pow(sky, 1.0 - sky), sky / (2.0 * sky + 0.5 - sky), clamp(sunH * 2.0, 0.0, 1.0)),0.0) + sun + moon + sunMieScatter + moonMieScatter;
+	sky = max(mix(pow(sky, 1.0 - sky), sky / (2.0 * sky + 0.5 - sky), clamp(sunH * 2.0, 0.0, 1.0)),0.0);
+
+	float underscatter = distance(sunH * 0.5 + 0.5, 1.0);
+	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0)) + sunMieScatter + moonMieScatter;
+
+	vec4 cloud = calcCloud(normalize(wpos), sunMieScatter, sky);
+
+	sky += sun + moon;
 	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 10.0;
 	sky *= 1.0 + pow(1.0 - moonScatterMult, 20.0) * 5.0;
 
-	float underscatter = distance(sunH * 0.5 + 0.5, 1.0);
-	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0));
+	sky = mix(sky, cloud.rgb, cloud.a);
 
 	return sky;
 }
@@ -556,7 +559,7 @@ void main() {
 				color *= 0.5 + pow(length(shifted - vec2(0.5)) / 1.414f, 2.0);
 			}
 
-			vec3 watercolor = skycolor * (0.15 - wetness * 0.05) * vec3(0.17, 0.41, 0.68) * luma(suncolor);
+			vec3 watercolor = skycolor * 0.15 * vec3(0.17, 0.41, 0.68) * luma(suncolor);
 			color = SEA_WATER_COLOR * mix(color, watercolor, dist_diff_N);
 
 			shade = fast_shadow_map(water_wpos);
