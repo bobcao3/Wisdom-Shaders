@@ -463,7 +463,7 @@ void main() {
 		#endif
 
 		// AO
-		float simulatedGI = 0.001 + 1.2 * pow(mclight.y, 2.5);
+		float simulatedGI = 0.001 + 0.8 * pow(mclight.y, 2.5);
 
 		vec3 ambient = ambientColor * simulatedGI;
 		#ifdef AO_Enabled

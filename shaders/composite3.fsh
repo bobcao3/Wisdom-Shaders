@@ -48,6 +48,7 @@ uniform mat4 gbufferModelView;
 uniform vec3 shadowLightPosition;
 vec3 lightPosition = normalize(shadowLightPosition);
 uniform vec3 cameraPosition;
+uniform vec3 skyColor;
 
 uniform float viewWidth;
 uniform float viewHeight;
@@ -317,7 +318,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 
 	float density = cloudNoise(spos + worldLightPos * 3.0);
 
-	vec3 cloud_color = L * 0.7 * (1.0 - density) + mie * (1.0 - total) * (1.0 - density) + horizontColor * (1.0 - total * 0.5);
+	vec3 cloud_color = L * 0.7 * (1.0 - density) + mie * 1.4 * (1.0 - total) * (1.0 - density) + skyColor * (1.0 - total * 0.5);
 	cloud_color *= 1.0 - rainStrength * 0.8;
 	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.9) * 10.0);
 
@@ -334,7 +335,7 @@ vec3 mie(float dist, vec3 sunL){
 vec3 calcSkyColor(vec3 wpos, float camHeight){
 	const float coeiff = 0.5785;
 	float rain = (1.0 - rainStrength * 0.9);
-	vec3 totalSkyLight = vec3(0.151, 0.311, 1.0) * 0.5 * rain;
+	vec3 totalSkyLight = vec3(0.151, 0.311, 1.0) * 0.3 * rain;
 
 	float sunDistance = distance(normalize(wpos), worldSunPosition);
 	float moonDistance = distance(normalize(wpos), -worldSunPosition);
@@ -352,7 +353,7 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
 
 	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * rain);
-	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 0.984) * rain);
+	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 0.984) * 0.1 * rain);
 
 	vec3 sky = horizont * totalSkyLight;
 	sky = max(sky, 0.0);
