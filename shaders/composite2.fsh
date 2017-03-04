@@ -218,6 +218,7 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 			if (d2 + 0.00002 / distortFactor < shadowposition.z) {
 				shadowcolor = texture2D(shadowcolor0, shadowposition.st).rgb * .773;
 				under_water = luma(shadowcolor) > 0.6;
+				if (under_water) shade = max(shade, min(1.0, abs(d2 - shadowposition.z) * 32.0));
 				shadowcolor = mix(shadowcolor, vec3(1.0), shade);
 			}
 		}
@@ -415,7 +416,7 @@ void main() {
 		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, pow(max(0.0, dot(nvpos, lightPosition)), 16.0));
 		mclight = texture2D(gaux2, texcoord).xy;
 
-		const vec3 torchColor = vec3(2.15, 1.01, 0.48) * 0.09;
+		const vec3 torchColor = vec3(0.1935, 0.0906, 0.04972);
 
 		float light_distance = clamp(0.08, (1.0 - pow(mclight.x, 6.6)), 1.0);
 		const float light_quadratic = 4.9f;
