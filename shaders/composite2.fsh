@@ -53,6 +53,7 @@ uniform float viewHeight;
 uniform float far;
 uniform float near;
 uniform float frameTimeCounter;
+uniform float rainStrength;
 
 uniform bool isEyeInWater;
 
@@ -391,7 +392,7 @@ void main() {
 	vec3 fogColor;
 
 	float eyebrightness = pow(float(eyeBrightnessSmooth.y) / 120.0, 2.0);
-	vec3 ambientColor = vec3(0.135, 0.14, 0.215) * luma(horizontColor) * (1.0 - eyebrightness * 0.1) * 3.0;
+	vec3 ambientColor = vec3(0.135, 0.14, 0.215) * luma(horizontColor) * (1.0 - eyebrightness * 0.1) * 3.0 * (1.0 - rainStrength * 0.7);
 	if (!issky) {
 		vec3 shadowcolor;
 		bool under_water = false;
@@ -428,7 +429,7 @@ void main() {
 		float attenuation = clamp(0.0, light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, max_light);
 
 		vec3 diffuse_torch = attenuation * torchColor;
-		vec3 diffuse_sun = (1.0 - shade) * suncolor * luma(horizontColor) * 3.5 * shadowcolor;
+		vec3 diffuse_sun = (1.0 - shade) * suncolor * luma(horizontColor) * 3.5 * shadowcolor * (1.0 - rainStrength * 0.8);
 
 		if (flag > 0.89) specular = vec4(0.0001);
 
@@ -461,25 +462,29 @@ void main() {
 		float ao = blurAO(compositetex.g, normal);
 		#endif
 
+		// AO
+		float simulatedGI = 0.001 + 1.2 * pow(mclight.y, 2.5);
+
+		vec3 ambient = ambientColor * simulatedGI;
+		#ifdef AO_Enabled
+		ambient *= ao;
+		#endif
+
 		#ifdef GlobalIllumination
 		vec3 gi = blurGI(texture2D(gaux4, texcoord).rgb) * 10.0;
 		#ifdef AO_Enabled
 		gi *= 0.2 + ao * 0.8;
 		#endif
+		ambient += gi;
 		#endif
 
-		// AO
-		float simulatedGI = 0.001 + 1.2 * pow(mclight.y, 2.5);
-
-		vec3 ambient = color * ambientColor * simulatedGI;
-		#ifdef AO_Enabled
-		ambient *= ao;
-		#endif
+		ambient *= color;
 
 		vec3 Lo = is_water || flag > 0.89 ? color * diffuse_sun * 0.6 : (kD * color / PI + brdf) * diffuse_sun;
 		color = ambient + Lo + diffuse_torch * color;
 
-		color = mix(fogcolor, color, clamp((512.0 - cdepth) / (512.0 - 32.0), 0.0, 1.0));
+		float fog_coord = clamp((512.0 - cdepth) / (512.0 - 32.0 * (1.0 - rainStrength * 0.6)), 0.0, 1.0);
+		color = mix(fogcolor * (1.0 - rainStrength * 0.9), color, pow(fog_coord, (1.0 - rainStrength * 0.6)));
 		#ifdef CrespecularRays
 		float vl = texture2D(composite, texcoord * 0.5).b;
 		vl += texture2D(composite, texcoord * 0.5, 1.0).b;

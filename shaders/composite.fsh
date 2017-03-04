@@ -22,7 +22,7 @@
 // =============================================================================
 
 #version 120
-
+#extension GL_ARB_shader_texture_lod : require
 #pragma optimize(on)
 
 const int shadowMapResolution = 1512; // [1024 1512 2048 4096]
@@ -203,87 +203,52 @@ vec3 wpos2shadowpos(in  vec3 wpos) {
 
 uniform sampler2D shadowcolor0;
 
-
-/*
-vec3 shadowpos2wpos(in vec3 spos) {
-	vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
-	shadowposition = shadowProjection * shadowposition;
-	float distb = sqrt(shadowposition.x * shadowposition.x + shadowposition.y * shadowposition.y);
-	float distortFactor = (1.0f - SHADOW_MAP_BIAS) + distb * SHADOW_MAP_BIAS;
-	shadowposition.xy /= distortFactor;
-	shadowposition /= shadowposition.w;
-	shadowposition = shadowposition * 0.5f + 0.5f;
-	return shadowposition.xyz;
-}*/
+const vec2 gi_offset[7] = vec2 [] (
+	vec2( 0.0,    1.0 ),
+	vec2( 0.866,  0.5 ),
+	vec2( 0.866, -0.5 ),
+	vec2( 0.0,   -1.0 ),
+	vec2(-0.866, -0.5 ),
+	vec2(-0.866,  0.5 ),
+	vec2( 0.0,    1.0 )
+);
 
 vec3 GI() {
-	vec2 texc = texcoord;
-	if (texc.x > 1.0 || texc.y > 1.0) return vec3(0.0);
-
-	vec3 ntex = texture2D(gnormal, texc).rgb;
-	vec3 normal = mat3(gbufferModelViewInverse) * normalDecode(ntex.xy);
-
 	vec3 gi = vec3(.0);
 
-	if (ntex.b > 0.11 && cdepthN < 0.6) {
-		vec3 owpos = (gbufferModelViewInverse * vec4(texture2D(gdepth, texc).xyz, 1.0)).xyz;
-		vec3 flat_normal = normalize(cross(dFdx(owpos),dFdy(owpos)));
-		vec3 swpos = owpos + normal * 0.2;
-		vec3 rand_pos = (swpos + cameraPosition);
+	vec3 trace_dir = -reflect(worldLightPos, vec3(0.0, 1.0, 0.0));
 
-		float randx = find_closest(rand_pos.xy / cdepthN) * 0.1;
-		float randy = find_closest(rand_pos.zy / cdepthN) * 0.1;
-		vec3 trace_dir = -reflect(-worldLightPos, normalize(vec3(randx, 1.0, randy))) * 0.2;
-		float NdotL = dot(normal, trace_dir * 5.0);
-		if (NdotL < 0.0) return vec3(0.0);
+	if (flag > 0.11 && cdepthN < 0.6) {
+		for (int i = 0; i < 6; i++) {
+			// Sample 1
+			vec2 inc = normalize(gi_offset[i] + find_closest(texcoord + i * 0.1) * gi_offset[i + 1]);
 
-		// Half voxel trace, 2 steps 1 voxel
-		for (int i = 0; i < 12; i++) {
-			swpos += trace_dir;
-			vec3 shadowpos = wpos2shadowpos(swpos + find_closest(rand_pos.xz + vec2(i) * 0.01));
+			float dista = 2.0 * (0.1 + find_closest(texcoord - i * 0.1));
+			float distb = 4.0 * (find_closest(texcoord));
 
-			// Detect bounce
-			float sample_depth = texture2D(shadowtex0, shadowpos.xy).x;
-			float nd = shadowpos.z - sample_depth;
-			if (abs(nd) < 0.0003) {
-				// Calculate normal & light contribution
-				//vec3 snormal = normalize(cross(dFdx(shadowpos), dFdy(shadowpos)));
-				vec3 halfwayDir = normalize(trace_dir * 3.0 - normalize(owpos));
+			vec3 spos = wpos + vec3(inc.x, 0.0, inc.y) * dista * distb;
+			spos += distb * trace_dir;
+			spos = wpos2shadowpos(spos);
 
-				vec3 scolor = texture2D(shadowcolor0, shadowpos.xy).rgb;
-				scolor *= dot(trace_dir * 5.0, flat_normal);
+			float sample_depth = texture2D(shadowtex0, spos.xy).x;
+			float sam2 = texture2D(shadowtex1, spos.xy).x;
 
-				gi += scolor.rgb * (4.5 - distance(swpos, owpos)) * 0.05 * (max(0.0, dot(normal, halfwayDir)) * 0.5 + 0.5) * suncolor;
-				break;
-			}
-		}
+			gi += float(abs(sample_depth - sam2) < 0.001 && sample_depth > spos.z && abs(sample_depth - spos.z) < 0.04) * texture2DLod(shadowcolor0, spos.xy, 1.0).xyz;
 
-		randx = find_closest(rand_pos.xy / cdepthN) * 0.1;
-		randy = find_closest(rand_pos.zy / cdepthN) * 0.1;
-		trace_dir = -reflect(-worldLightPos, normalize(vec3(randx, 1.0, randy))) * 0.2;
+			// Sample 2
+			distb = 4.0 + 4.0 * find_closest(texcoord);
 
-		// Half voxel trace, 2 steps 1 voxel
-		for (int i = 0; i < 12; i++) {
-			swpos += trace_dir;
-			vec3 shadowpos = wpos2shadowpos(swpos + find_closest(rand_pos.xz + vec2(i) * 0.005));
+			spos = wpos + vec3(inc.x, 0.0, inc.y) * dista * distb;
+			spos += distb * trace_dir;
+			spos = wpos2shadowpos(spos);
 
-			// Detect bounce
-			float sample_depth = texture2D(shadowtex0, shadowpos.xy).x;
-			float nd = shadowpos.z - sample_depth;
-			if (abs(nd) < 0.0003) {
-				// Calculate normal & light contribution
-				//vec3 snormal = normalize(cross(dFdx(shadowpos), dFdy(shadowpos)));
-				vec3 halfwayDir = normalize(trace_dir * 3.0 - normalize(owpos));
+			sample_depth = texture2D(shadowtex0, spos.xy).x;
+			sam2 = texture2D(shadowtex1, spos.xy).x;
 
-				vec3 scolor = texture2D(shadowcolor0, shadowpos.xy).rgb;
-				scolor *= dot(trace_dir * 5.0, flat_normal);
-
-				gi += scolor.rgb * (4.5 - distance(swpos, owpos)) * 0.05 * (max(0.0, dot(normal, halfwayDir)) * 0.5 + 0.5) * suncolor;
-				break;
-			}
+			gi += float(abs(sample_depth - sam2) < 0.001 && sample_depth > spos.z && abs(sample_depth - spos.z) < 0.04) * texture2DLod(shadowcolor0, spos.xy, 1.0).xyz;
 		}
 	}
-	return gi * 0.5 * (1.0 - (clamp(0.4, cdepthN, 0.6) - 0.4) * 5.0);
+	return gi * 0.01;
 }
 
 #endif
