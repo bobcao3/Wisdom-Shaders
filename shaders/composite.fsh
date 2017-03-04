@@ -150,34 +150,25 @@ const  vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 #define sampleDepth 3
 
 float AO() {
-	float am = 0;
-	// float rcdepth = texture2D(depthtex0, texcoord).r * 200.0f;
-	float d = 0.0022 / cdepthN;
-	float maxAngle = 0.0;
-	if (cdepthN < 0.7) {
+	float am = 0.0;
+	float d = 0.0042 / cdepthN;
+
+	if (cdepthN < 0.85) {
 		for (int i = 0; i < Sample_Directions; i++) {
-			for (int j = 1; j < sampleDepth; j++) {
-				float noise = find_closest(texcoord + vec2(i, j) * 0.001);
-				float inc = (j - 1 + noise) * d;
-				float noise_angle = find_closest(texcoord - vec2(i, j) * 0.001);
-				vec2 dir = mix(offset_table[i], offset_table[i + 1], noise_angle) * inc + texcoord;
-				if (dir.x > 0.0 && dir.x < 1.0 && dir.y > 0.0 && dir.y < 1.0) {
-					vec3 nVpos = texture2D(gdepth, dir).xyz;
-					if (texture2D(gnormal, dir).b > 0.11) {
-						float NdC = distance(nVpos, vpos.xyz);
-						if (NdC < 1.25) {
-							float angle = clamp(0.0, dot(nVpos - vpos.xyz, normal) / NdC - 0.2, 0.7);
-							if (angle > maxAngle) {
-								maxAngle = angle;
-								float datt = sampleDepth * d;
-								am += angle * (datt - inc) / datt / j * 0.5;
-							}
-						}
-					}
-				}
-			}
+			vec2 inc = normalize(offset_table[i] + offset_table[i + 1] * find_closest(texcoord + i * 0.2));
+			vec2 sample_cr = texcoord + inc * d * (0.1 + find_closest(texcoord - i * 0.2));
+			if (sample_cr.x > 1.0 || sample_cr.x < 0.0 || sample_cr.y > 1.0 || sample_cr.y < 0.0) continue;
+
+			vec3 svpos = texture2D(gdepth, sample_cr).xyz;
+			float occu = max(0.0, dot(svpos - vpos.xyz, normal) / distance(svpos, vpos.xyz) - 0.1);
+			occu *= float(distance(svpos, vpos.xyz) < 1.5);
+
+			am += occu * 0.18;
 		}
 	}
+
+	am = pow(am, 0.5);
+
 	return clamp(0.0, 1.0 - am, 1.0);
 }
 #endif
