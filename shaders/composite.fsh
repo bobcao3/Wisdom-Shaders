@@ -137,6 +137,9 @@ float find_closest(vec2 pos) {
 #define AO_Enabled
 #ifdef AO_Enabled
 
+#define AO_HIGHQUALITY
+
+#ifdef AO_HIGHQUALITY
 #define Sample_Directions 6
 const  vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 	vec2( 0.0,    1.0 ),
@@ -147,7 +150,16 @@ const  vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 	vec2(-0.866,  0.5 ),
 	vec2( 0.0,    1.0 )
 );
-#define sampleDepth 3
+#else
+#define Sample_Directions 4
+const  vec2 offset_table[Sample_Directions + 1] = vec2 [] (
+	vec2( 0.0,  1.0 ),
+	vec2( 1.0,  0.0 ),
+	vec2( 0.0, -1.0 ),
+	vec2(-1.0,  0.0 ),
+	vec2( 0.0,  1.0 )
+);
+#endif
 
 float AO() {
 	float am = 0.0;
@@ -163,7 +175,7 @@ float AO() {
 			float occu = max(0.0, dot(svpos - vpos.xyz, normal) / distance(svpos, vpos.xyz) - 0.1);
 			occu *= float(distance(svpos, vpos.xyz) < 1.5);
 
-			am += occu * 0.18;
+			am += occu / Sample_Directions;
 		}
 	}
 
