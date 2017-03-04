@@ -337,11 +337,11 @@ vec3 mie(float dist, vec3 sunL){
 
 vec3 calcSkyColor(vec3 wpos, float camHeight){
 	const float coeiff = 0.5785;
-	const vec3 totalSkyLight = vec3(0.3, 0.5, 1.0);
+	const vec3 totalSkyLight = vec3(0.151, 0.311, 1.0) * 0.5;
 
 	float sunDistance = distance(normalize(wpos), worldSunPosition);
 	float moonDistance = distance(normalize(wpos), -worldSunPosition);
-	sunDistance *= 0.5;
+	sunDistance *= 0.5; moonDistance *= 0.5;
 
 	float sunH = worldSunPosition.y * 1.589;
 
@@ -354,8 +354,8 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	float horizont = max(0.001, normalize(wpos + vec3(0.0, camHeight, 0.0)).y);
 	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
 
-	vec3 sunMieScatter = mie(sunDistance, vec3(1.0));
-	vec3 moonMieScatter = mie(moonDistance, vec3(1.0));
+	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984));
+	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 0.984));
 
 	vec3 sky = horizont * totalSkyLight;
 	sky = max(sky, 0.0);
@@ -603,7 +603,7 @@ void main() {
 				vec3 vs_plain_normal = mat3(gbufferModelView) * water_plain_normal;
 				viewRefRay = reflect(normalize(frag.vpos.xyz), normalize(frag.normal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
 				#ifdef PLANE_REFLECTION
-				vec3 refnormal = frag_mask.is_water ? normalize(mix(frag.normal, vs_plain_normal, 0.8)) : frag.normal;
+				vec3 refnormal = frag_mask.is_water ? normalize(mix(frag.normal, vs_plain_normal, 0.9)) : frag.normal;
 				vec3 plainRefRay = reflect(normalize(frag.vpos.xyz), normalize(refnormal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
 
 				vec4 reflection = waterRayTarcing(frag.vpos.xyz + refnormal * max(0.4, length(frag.vpos.xyz) / far), plainRefRay, color, specular.r);
