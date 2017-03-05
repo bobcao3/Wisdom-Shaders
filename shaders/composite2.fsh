@@ -468,6 +468,7 @@ void main() {
 		vec3 ambient = ambientColor * simulatedGI;
 		#ifdef AO_Enabled
 		ambient *= ao;
+		diffuse_torch *= ao;
 		#endif
 
 		#ifdef GlobalIllumination
