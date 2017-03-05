@@ -181,7 +181,7 @@ float AO() {
 
 	am = pow(am, 0.5);
 
-	return clamp(0.0, 1.0 - am, 1.0);
+	return clamp(1.0 - am, 0.0, 1.0);
 }
 #endif
 
@@ -310,7 +310,7 @@ void main() {
 	if (!issky) {
 		#ifdef AO_Enabled
 		if (flag > 0.22 && (flag < 0.71f || flag > 0.79f))
-			ao = clamp(0.0, AO(), 1.0);
+			ao = AO();
 		#endif
 	}
 

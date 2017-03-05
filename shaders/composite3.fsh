@@ -304,7 +304,7 @@ float cloudNoise(in vec3 wpos) {
 	}
 	total += max(0.0, f) * total * 0.5;
 
-	total = clamp(0.0, total, 1.0);
+	total = clamp(total, 0.0, 1.0);
 
 	return total;
 }
@@ -321,7 +321,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	cloud_color *= 1.0 - rainStrength * 0.8;
 	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.9) * 10.0);
 
-	total = clamp(0.0, total, 1.0);
+	total = clamp(total, 0.0, 1.0);
 
 	return vec4(cloud_color, total);
 }
@@ -546,7 +546,7 @@ void main() {
 			}
 			frag.vpos = vec4(texture2D(gdepth, shifted).xyz, 1.0);
 			float dist_diff = isEyeInWater ? length(water_vpos.xyz) : distance(frag.vpos.xyz, water_vpos.xyz);
-			float dist_diff_N = pow(clamp(0.0, abs(dist_diff) / 6.0, 1.0), 0.2);
+			float dist_diff_N = pow(clamp(abs(dist_diff) / 6.0, 0.0, 1.0), 0.2);
 
 			vec3 org_color = color;
 			color = texture2DLod(composite, shifted, 0.0).rgb;
@@ -585,10 +585,10 @@ void main() {
 			wetness_distribution *= wetness_distribution;
 			wetness_distribution = clamp(wetness_distribution, 0.0, 1.0);
 			if (specular.g < 0.000001f) specular.g = 0.4;
-			specular.g = clamp(0.003, specular.g - wetness2 * 0.005, 0.9999);
+			specular.g = clamp(specular.g - wetness2 * 0.005, 0.003, 0.9999);
 			specular.g = mix(specular.g, 0.1, wetness_distribution);
 
-			specular.r = clamp(0.00001, specular.r + wetness2 * 0.25, 0.7);
+			specular.r = clamp(specular.r + wetness2 * 0.25, 0.00001, 0.7);
 			specular.r = mix(specular.r, 0.3, wetness_distribution);
 		}
 
@@ -625,8 +625,8 @@ void main() {
 			}
 
 			if (specular.r > 0.07) {
-				specular.g = clamp(0.0001, specular.g, 0.9999);
-				specular.r = clamp(0.0001, specular.r, 0.9999);
+				specular.g = clamp(specular.g, 0.0001, 0.9999);
+				specular.r = clamp(specular.r, 0.0001, 0.9999);
 				vec3 V = -normalize(frag.vpos.xyz);
 				vec3 F0 = vec3(specular.r + 0.08);
 				F0 = mix(F0, color, 1.0 - specular.r);
@@ -667,5 +667,5 @@ void main() {
 	color = vec3(luma(color));
 	#endif
 
-	gl_FragData[0] = vec4(clamp(vec3(0.0), color, vec3(6.0)), 1.0);
+	gl_FragData[0] = vec4(clamp(color, vec3(0.0),vec3(6.0)), 1.0);
 }

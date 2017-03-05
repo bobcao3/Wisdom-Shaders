@@ -38,7 +38,7 @@ float cdepth = length(vpos);
 float dFar = 1.0 / far;
 float cdepthN = cdepth * dFar;
 
-#define saturate(x) clamp(0.0,x,1.0)
+#define saturate(x) clamp(x,0.0,1.0)
 
 vec3 normalDecode(vec2 enc) {
 	vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
