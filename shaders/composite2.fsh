@@ -77,7 +77,7 @@ invariant varying vec3 horizontColor;
 
 invariant varying vec3 worldLightPos;
 
-#define saturate(x) clamp(0.0,x,1.0)
+#define saturate(x) clamp(x,0.0,1.0)
 
 vec3 normalDecode(vec2 enc) {
 	vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
@@ -190,7 +190,7 @@ const  vec2 offset_table[6] = vec2 [] (
 float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 	shadowcolor = vec3(1.0);
 	if (cdepthN > 0.9f)
-		return is_plant ? (1.0 - max(0.0, NdotL)) * cdepthN : 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
+		return is_plant ? (1.0 - max(0.0, NdotL)) * cdepthN : 1.0 - (clamp(NdotL, 0.07f, 1.0f) - 0.07f) * 1.07528f;
 	float shade = 0.0;
 	if (NdotL <= 0.05f && !is_plant) {
 		shade = 1.0f;
@@ -411,7 +411,7 @@ void main() {
 			shadowcolor *= 0.6 + 3.14 * (1.0 - pow(index, 3.5));
 		}
 		#endif
-		float phong = is_plant ? 0.0 : 1.0 - (clamp(0.07f, NdotL, 1.0f) - 0.07f) * 1.07528f;
+		float phong = is_plant ? 0.0 : 1.0 - (clamp(NdotL, 0.07f, 1.0f) - 0.07f) * 1.07528f;
 		shade = max(shade, phong);
 
 		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, pow(max(0.0, dot(nvpos, lightPosition)), 16.0));
@@ -419,22 +419,22 @@ void main() {
 
 		const vec3 torchColor = vec3(0.1935, 0.0906, 0.04972);
 
-		float light_distance = clamp(0.08, (1.0 - pow(mclight.x, 6.6)), 1.0);
+		float light_distance = clamp((1.0 - pow(mclight.x, 6.6)), 0.08, 1.0);
 		const float light_quadratic = 4.9f;
 		float max_light = 7.5 * mclight.x * mclight.x;
 		vec4 specular = texture2D(gaux1, texcoord);
 
 		const float light_constant1 = 1.09f;
 		const float light_constant2 = 1.09f;
-		float attenuation = clamp(0.0, light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, max_light);
+		float attenuation = clamp(light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, 0.0, max_light);
 
 		vec3 diffuse_torch = attenuation * torchColor;
 		vec3 diffuse_sun = (1.0 - shade) * suncolor * luma(horizontColor) * 3.5 * shadowcolor * (1.0 - rainStrength * 0.8);
 
 		if (flag > 0.89) specular = vec4(0.0001);
 
-		specular.r = clamp(0.0001, specular.r, 0.9999);
-		specular.g = clamp(0.0001, specular.g, 0.9999);
+		specular.r = clamp(specular.r, 0.0001, 0.9999);
+		specular.g = clamp(specular.g, 0.0001, 0.9999);
 		vec3 V = -nvpos;
 		vec3 F0 = vec3(specular.g + 0.08);
 		F0 = mix(F0, color, specular.g);
@@ -468,6 +468,7 @@ void main() {
 		vec3 ambient = ambientColor * simulatedGI;
 		#ifdef AO_Enabled
 		ambient *= ao;
+		diffuse_torch *= ao;
 		#endif
 
 		#ifdef GlobalIllumination
@@ -483,7 +484,7 @@ void main() {
 		vec3 Lo = is_water || flag > 0.89 ? color * diffuse_sun * 0.6 : (kD * color / PI + brdf) * diffuse_sun;
 		color = ambient + Lo + diffuse_torch * color;
 
-		float fog_coord = clamp((512.0 - cdepth) / (512.0 - 32.0 * (1.0 - rainStrength * 0.6)), 0.0, 1.0);
+		float fog_coord = saturate((512.0 - cdepth) / (512.0 - 32.0 * (1.0 - rainStrength * 0.6)));
 		color = mix(fogcolor * (1.0 - rainStrength * 0.9), color, pow(fog_coord, (1.0 - rainStrength * 0.6)));
 		#ifdef CrespecularRays
 		float vl = texture2D(composite, texcoord * 0.5).b;

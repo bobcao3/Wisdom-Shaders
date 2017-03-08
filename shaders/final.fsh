@@ -213,7 +213,7 @@ void main() {
 	float ldepthN = linearizeDepth(depth);
 	float blurMin = 0.95f - rainStrength * 0.5;
 	float blurStrength1 = 1.0 / (1.0 - blurMin);
-	if (ldepthN > blurMin) color = mix(color, blurcolor, clamp(0.f, (ldepthN - blurMin) * blurStrength1, 1.f));
+	if (ldepthN > blurMin) color = mix(color, blurcolor, clamp((ldepthN - blurMin) * blurStrength1, 0.f, 1.f));
 
 	#ifdef DOF
 	color = dof(color, texcoord, depth, blurcolor);
