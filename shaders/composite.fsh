@@ -29,7 +29,7 @@ const int shadowMapResolution = 1512; // [1024 1512 2048 4096]
 const float shadowDistance = 128.0; // [64 90 128.0 160 256]
 const float sunPathRotation = -39.0;
 const float shadowIntervalSize = 5.0;
-const float ambientOcclusionLevel = 0.5f; // [0.5f 1.0f]
+const float ambientOcclusionLevel = 0.5f; // [0.0f 0.5f 1.0f]
 
 uniform sampler2D gdepth;
 uniform sampler2D gcolor;
@@ -114,25 +114,30 @@ float rand( in vec2 p ) {
 	hash( i + vec2(1.0,1.0) ), u.x), u.y);
 }
 
-float find_closest(vec2 pos) {
-	const int ditherPattern[64] = int[64](
-		0, 32, 8, 40, 2, 34, 10, 42, /* 8x8 Bayer ordered dithering */
-		48, 16, 56, 24, 50, 18, 58, 26, /* pattern. Each input pixel */
-		12, 44, 4, 36, 14, 46, 6, 38, /* is scaled to the 0..63 range */
-		60, 28, 52, 20, 62, 30, 54, 22, /* before looking in this table */
-		3, 35, 11, 43, 1, 33, 9, 41, /* to determine the action. */
-		51, 19, 59, 27, 49, 17, 57, 25,
-		15, 47, 7, 39, 13, 45, 5, 37,
-		63, 31, 55, 23, 61, 29, 53, 21);
+//#define USE_LOW_QUALITY_BAYER
 
-	vec2 positon = vec2(0.0f);
-	positon.x = floor(mod(texcoord.s * viewWidth, 8.0f));
-	positon.y = floor(mod(texcoord.t * viewHeight, 8.0f));
+#define g(a) (-4*a.x*a.y+3*a.x+2*a.y)
 
-	int dither = ditherPattern[int(positon.x) + int(positon.y) * 8];
+#ifdef USE_LOW_QUALITY_BAYER
+float bayer_8x8(vec2 pos) {
+	ivec2 p = ivec2(texcoord * vec2(viewWidth, viewHeight));
 
-	return float(dither) / 64.0f;
+	ivec2 m0 = ivec2(mod(floor(p * 0.5), 2.0));
+	ivec2 m1 = ivec2(mod(p, 2.0));
+	return float(g(m0)+g(m1)*4) / 15.0f;
 }
+#else
+float bayer_8x8(vec2 pos) {
+	ivec2 p = ivec2(pos * vec2(viewWidth, viewHeight));
+
+	ivec2 m0 = ivec2(mod(floor(p * 0.25), 2.0));
+	ivec2 m1 = ivec2(mod(floor(p * 0.5), 2.0));
+	ivec2 m2 = ivec2(mod(p, 2.0));
+	return float(g(m0)+g(m1)*4+g(m2)*16) / 63.0f;
+}
+#endif
+
+#undef g
 
 #define AO_Enabled
 #ifdef AO_Enabled
@@ -167,8 +172,8 @@ float AO() {
 
 	if (cdepthN < 0.85) {
 		for (int i = 0; i < Sample_Directions; i++) {
-			vec2 inc = normalize(offset_table[i] + offset_table[i + 1] * find_closest(texcoord + i * 0.2));
-			vec2 sample_cr = texcoord + inc * d * (0.1 + find_closest(texcoord - i * 0.2));
+			vec2 inc = normalize(offset_table[i] + offset_table[i + 1] * bayer_8x8(texcoord + i * 0.2));
+			vec2 sample_cr = texcoord + inc * d * (0.1 + bayer_8x8(texcoord - i * 0.2));
 			if (sample_cr.x > 1.0 || sample_cr.x < 0.0 || sample_cr.y > 1.0 || sample_cr.y < 0.0) continue;
 
 			vec3 svpos = texture2D(gdepth, sample_cr).xyz;
@@ -221,10 +226,10 @@ vec3 GI() {
 	if (flag > 0.11 && cdepthN < 0.6) {
 		for (int i = 0; i < 6; i++) {
 			// Sample 1
-			vec2 inc = normalize(gi_offset[i] + find_closest(texcoord + i * 0.1) * gi_offset[i + 1]);
+			vec2 inc = normalize(gi_offset[i] + bayer_8x8(texcoord + i * 0.1) * gi_offset[i + 1]);
 
-			float dista = 2.0 * (0.1 + find_closest(texcoord - i * 0.1));
-			float distb = 4.0 * (find_closest(texcoord));
+			float dista = 2.0 * (0.1 + bayer_8x8(texcoord - i * 0.1));
+			float distb = 4.0 * (bayer_8x8(texcoord));
 
 			vec3 spos = wpos + vec3(inc.x, 0.0, inc.y) * dista * distb;
 			spos += distb * trace_dir;
@@ -236,7 +241,7 @@ vec3 GI() {
 			gi += float(abs(sample_depth - sam2) < 0.001 && sample_depth > spos.z && abs(sample_depth - spos.z) < 0.04) * texture2DLod(shadowcolor0, spos.xy, 1.0).xyz;
 
 			// Sample 2
-			distb = 4.0 + 4.0 * find_closest(texcoord);
+			distb = 4.0 + 4.0 * bayer_8x8(texcoord);
 
 			spos = wpos + vec3(inc.x, 0.0, inc.y) * dista * distb;
 			spos += distb * trace_dir;
@@ -282,7 +287,7 @@ float VL() {
 
 		for (int i = 0; i < loop; i++) {
 			swpos -= dir;
-			float dither = find_closest(texcoord + vec2(i) * 0.01);
+			float dither = bayer_8x8(texcoord + vec2(i) * 0.01);
 			vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
 			if (shadowpos.z + 0.0006 < texture2D(shadowtex0, shadowpos.xy).x) {
 				total += (prev + 1.0) * length(dir) * (1 + dither) * 0.5;

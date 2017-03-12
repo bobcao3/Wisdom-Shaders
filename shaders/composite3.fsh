@@ -23,6 +23,7 @@
 
 #version 120
 #extension GL_ARB_shader_texture_lod : require
+#pragma optionNV (unroll all)
 #pragma optimize(on)
 
 const bool compositeMipmapEnabled = true;
@@ -155,7 +156,7 @@ float fast_shadow_map(in vec3 wpos) {
 	return max(shade, extShadow);
 }
 
-const vec3 SEA_WATER_COLOR = vec3(0.69,0.87,0.96);
+const vec3 SEA_WATER_COLOR = vec3(0.69,0.87,0.96) * 0.25;
 
 #define IQ_NOISE
 
@@ -547,13 +548,14 @@ void main() {
 			}
 			frag.vpos = vec4(texture2D(gdepth, shifted).xyz, 1.0);
 			float dist_diff = isEyeInWater ? length(water_vpos.xyz) : distance(frag.vpos.xyz, water_vpos.xyz);
-			float dist_diff_N = pow(clamp(abs(dist_diff) / 6.0, 0.0, 1.0), 0.2);
+			//float dist_diff_N = clamp(abs(dist_diff) / 12.0, 0.0, 1.0);
+			float water_fog = clamp(1.0 - 1.0f / (exp(dist_diff * 0.2)), 0.0, 1.0);
 
 			vec3 org_color = color;
 			color = texture2DLod(composite, shifted, 0.0).rgb;
-			color = mix(color, texture2DLod(composite, shifted, 1.0).rgb, dist_diff_N * 0.8);
-			color = mix(color, texture2DLod(composite, shifted, 2.0).rgb, dist_diff_N * 0.6);
-			color = mix(color, texture2DLod(composite, shifted, 3.0).rgb, dist_diff_N * 0.4);
+			color = mix(color, texture2DLod(composite, shifted, 1.0).rgb, water_fog * 0.8);
+			color = mix(color, texture2DLod(composite, shifted, 2.0).rgb, water_fog * 0.6);
+			color = mix(color, texture2DLod(composite, shifted, 3.0).rgb, water_fog * 0.4);
 
 			color = mix(color, org_color, pow(length(shifted - vec2(0.5)) / 1.414f, 2.0));
 			if (shifted.x > 1.0 || shifted.x < 0.0 || shifted.y > 1.0 || shifted.y < 0.0) {
@@ -561,7 +563,7 @@ void main() {
 			}
 
 			vec3 watercolor = skycolor * 0.15 * vec3(0.17, 0.41, 0.68) * luma(suncolor);
-			color = SEA_WATER_COLOR * mix(color, watercolor, dist_diff_N);
+			color = mix(SEA_WATER_COLOR * color, watercolor, water_fog);
 
 			shade = fast_shadow_map(water_wpos);
 
