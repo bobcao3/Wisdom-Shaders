@@ -32,7 +32,7 @@ uniform vec3 shadowLightPosition;
 
 #include "common_vars.inc.vsh"
 
-invariant varying vec3 worldLightPos;
+varying vec3 worldLightPos;
 varying vec3 worldSunPosition;
 
 void main() {

@@ -1,28 +1,30 @@
 uniform int worldTime;
 uniform float wetness;
-float rainStrength = pow(clamp(wetness, 0.0f, 1.0f), 2.0);
 
-float wTimeF = float(worldTime);
+varying vec2 texcoord;
+varying vec3 suncolor;
 
-invariant varying vec2 texcoord;
-invariant varying vec3 suncolor;
+varying float TimeSunrise;
+varying float TimeNoon;
+varying float TimeSunset;
+varying float TimeMidnight;
+varying float extShadow;
 
-invariant varying float TimeSunrise;
-invariant varying float TimeNoon;
-invariant varying float TimeSunset;
-invariant varying float TimeMidnight;
-invariant varying float extShadow;
-
-invariant varying vec3 skycolor;
-invariant varying vec3 fogcolor;
-invariant varying vec3 horizontColor;
+varying vec3 skycolor;
+varying vec3 fogcolor;
+varying vec3 horizontColor;
 
 #define SUNRISE 23500
 #define SUNSET 12000
 #define FADE_START 520
 #define FADE_END 350
 
+float wTimeF;
+
 void calcCommon() {
+	float rainStrength = pow(clamp(wetness, 0.0, 1.0), 2.0);
+	wTimeF = float(worldTime);
+
 	TimeSunrise  = ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0) + (1.0 - (clamp(wTimeF, 0.0, 2000.0)/2000.0));
 	TimeNoon     = ((clamp(wTimeF, 0.0, 2000.0)) / 2000.0) - ((clamp(wTimeF, 10000.0, 12000.0) - 10000.0) / 2000.0);
 	TimeSunset   = ((clamp(wTimeF, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(wTimeF, 12000.0, 12750.0) - 12000.0) / 750.0);

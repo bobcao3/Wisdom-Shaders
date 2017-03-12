@@ -62,20 +62,20 @@ uniform float frameTimeCounter;
 const float eyeBrightnessHalflife	 = 8.5f;
 uniform ivec2 eyeBrightnessSmooth;
 
-invariant varying vec2 texcoord;
-invariant varying vec3 suncolor;
+varying vec2 texcoord;
+varying vec3 suncolor;
 
-invariant varying float TimeSunrise;
-invariant varying float TimeNoon;
-invariant varying float TimeSunset;
-invariant varying float TimeMidnight;
-invariant varying float extShadow;
+varying float TimeSunrise;
+varying float TimeNoon;
+varying float TimeSunset;
+varying float TimeMidnight;
+varying float extShadow;
 
-invariant varying vec3 skycolor;
-invariant varying vec3 fogcolor;
-invariant varying vec3 horizontColor;
+varying vec3 skycolor;
+varying vec3 fogcolor;
+varying vec3 horizontColor;
 
-invariant varying vec3 worldLightPos;
+varying vec3 worldLightPos;
 
 const float PI = 3.14159;
 const float hPI = PI / 2;
@@ -145,7 +145,7 @@ float bayer_8x8(vec2 pos) {
 #define AO_HIGHQUALITY
 
 #ifdef AO_HIGHQUALITY
-#define Sample_Directions 6
+const int Sample_Directions = 6;
 const  vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 	vec2( 0.0,    1.0 ),
 	vec2( 0.866,  0.5 ),
@@ -156,7 +156,7 @@ const  vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 	vec2( 0.0,    1.0 )
 );
 #else
-#define Sample_Directions 4
+const int Sample_Directions = 4;
 const  vec2 offset_table[Sample_Directions + 1] = vec2 [] (
 	vec2( 0.0,  1.0 ),
 	vec2( 1.0,  0.0 ),
@@ -188,6 +188,7 @@ float AO() {
 
 	return clamp(1.0 - am, 0.0, 1.0);
 }
+#undef Sample_Directions
 #endif
 
 #define SHADOW_MAP_BIAS 0.9
@@ -263,11 +264,11 @@ vec3 GI() {
 #ifdef CrespecularRays
 
 #ifdef HIGH_QUALITY_Crespecular
-#define step 48.0
-#define loop 47
+const float step = 48.0;
+const float loop = 47;
 #else
-#define step 8.0
-#define loop 7
+const float step = 8.0;
+const float loop = 7;
 #endif
 
 float VL() {
