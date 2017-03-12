@@ -25,7 +25,7 @@
 
 #pragma optimize(on)
 
-invariant varying vec2 texcoord;
+varying vec2 texcoord;
 
 void main() {
 	gl_Position = ftransform();

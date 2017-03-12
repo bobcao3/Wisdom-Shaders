@@ -60,20 +60,20 @@ uniform float rainStrength;
 
 uniform bool isEyeInWater;
 
-invariant varying vec2 texcoord;
-invariant varying vec3 suncolor;
+varying vec2 texcoord;
+varying vec3 suncolor;
 
-invariant varying float TimeSunrise;
-invariant varying float TimeNoon;
-invariant varying float TimeSunset;
-invariant varying float TimeMidnight;
-invariant varying float extShadow;
+varying float TimeSunrise;
+varying float TimeNoon;
+varying float TimeSunset;
+varying float TimeMidnight;
+varying float extShadow;
 
-invariant varying vec3 skycolor;
-invariant varying vec3 fogcolor;
-invariant varying vec3 horizontColor;
+varying vec3 skycolor;
+varying vec3 fogcolor;
+varying vec3 horizontColor;
 
-invariant varying vec3 worldLightPos;
+varying vec3 worldLightPos;
 varying vec3 worldSunPosition;
 
 vec3 normalDecode(in vec2 enc) {
