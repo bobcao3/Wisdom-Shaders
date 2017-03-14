@@ -408,7 +408,7 @@ void main() {
 			//shadowcolor *= 0.5 + 0.5 * max(1.0 - dot(surface_normal, worldLightPos), 0.0);
 
 			float index = dot(wnormal, -refract(worldLightPos, surface_normal, 1.0 / 1.2));
-			shadowcolor *= 0.6 + (1.0 - pow(index, 3.5));
+			shadowcolor *= 1.9 - 1.5 * pow(index, 3.5);
 		}
 		#endif
 		float phong = is_plant ? 0.0 : 1.0 - (clamp(NdotL, 0.07f, 1.0f) - 0.07f) * 1.07528f;
