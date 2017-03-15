@@ -156,7 +156,7 @@ float fast_shadow_map(in vec3 wpos) {
 	return max(shade, extShadow);
 }
 
-const vec3 SEA_WATER_COLOR = vec3(0.69,0.87,0.96) * 0.25;
+const vec3 SEA_WATER_COLOR = vec3(.55,.92,.99);
 
 float hash( vec2 p ) {
 	float h = dot(p,vec2(127.1,311.7));
@@ -271,35 +271,55 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
 	return ggx1 * ggx2;
 }
 
+#define CLOUDS
+
+#ifdef CLOUDS
+const mat2 rotate = mat2(1.6,1.1,-1.2,1.6);
+
+vec2 hash22(vec2 p) {
+	p = vec2(dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)));
+	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
+}
+
+float noisePerlin(in vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+
+	vec2 u = f*f*f*(6.0*f*f - 15.0*f + 10.0);
+
+	return
+		mix( mix( dot( hash22( i + vec2(0.0,0.0) ), f - vec2(0.0,0.0) ),
+		dot( hash22( i + vec2(1.0,0.0) ), f - vec2(1.0,0.0) ), u.x),
+		mix( dot( hash22( i + vec2(0.0,1.0) ), f - vec2(0.0,1.0) ),
+		dot( hash22( i + vec2(1.0,1.0) ), f - vec2(1.0,1.0) ), u.x), u.y);
+}
+
 float cloudNoise(in vec3 wpos) {
 	vec3 spos = wpos;
 	float total;
-	vec2 ns = spos.xz + cameraPosition.xz + frameTimeCounter * vec2(18.0, 2.0);
+	vec2 ns = spos.xz + cameraPosition.xz + frameTimeCounter * vec2(36.0, 4.0);
 	ns.y *= 0.73;
-	ns *= 0.0008;
+	ns *= 0.0004;
 
 	vec2 coord = ns;
 
 	// Shape
-	float n  = noise(coord) * 0.5;   coord *= 3.0;
-  n += noise(coord) * 0.25;  coord *= 3.01;
-  n += noise(coord) * 0.125; coord *= 3.02;
-  n += noise(coord) * 0.0625;
+	float n  = noisePerlin(coord) * 0.5;   coord *= 3.0;
+  n += noisePerlin(coord) * 0.25;  coord *= 3.01;
+  n += noisePerlin(coord) * 0.125; coord *= 3.02;
+  n += noisePerlin(coord) * 0.0625;
 
 	total = n;
 
-	ns *= 2.0;
-	ns -= frameTimeCounter * 0.3;
-	float f = 0.50000 * noise(ns); ns = ns * 0.7;
-	f += 0.25000 * noise(ns); ns = ns * 0.9;
-	f += 0.12500 * noise(ns);
-	total += f * total;
+	ns *= 12.0;
+	ns = rotate * ns;
+	ns -= frameTimeCounter * 0.6;
 
 	float weight = 0.4;
-	f = 0.0; ns *= 3.0;
+	float f = 0.0; ns *= 3.0;
 	for (int i=0; i<5; i++){
-		f += (weight * noise(ns + frameTimeCounter * 0.1));
-		ns = 1.2 * ns;
+		f += (weight * noisePerlin(ns + frameTimeCounter * 0.1));
+		ns = 1.4 * rotate * ns;
 		weight *= 0.6;
 	}
 	total += max(0.0, f) * total * 0.5;
@@ -325,10 +345,11 @@ float bayer_8x8(vec2 pos) {
 	ivec2 m2 = ivec2(mod(p, 2.0));
 	return float(g(m0)+g(m1)*4+g(m2)*16) / 63.0f;
 }
+#undef g
 
 float cloud3D(vec3 wpos) {
-	float h = pow(cloudNoise(wpos), 0.5);
-	return float(distance(wpos.y, cloudDense) < h * (cloudMax - cloudMin)) * h;
+	float h = cloudNoise(wpos);
+	return smoothstep(0.0, 1.0, pow(h, 0.5));;
 }
 
 vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
@@ -339,9 +360,10 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	float total = 0.0;
 	float density = 0.0;
 	for (int i = 0; i < 8; i++) {
-		float s = cloudNoise(spos);
-		density += cloudNoise(spos + worldLightPos * 3.0);
-		spos += wpos / wpos.y * (cloudMax - spos.y) * 0.5 * bayer_8x8(texcoord);
+		vec3 dither = wpos / wpos.y * 0.125 * bayer_8x8(texcoord);
+		float s = cloud3D(spos + dither);
+		density += cloud3D(spos + dither + worldLightPos * 3.0);
+		spos += wpos / wpos.y * (cloudMax - cloudMin) * 0.125;
 		total += s;
 	}
 	total *= 0.125;
@@ -376,7 +398,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 }
 
 #endif
-
+#endif
 
 vec3 mie(float dist, vec3 sunL){
 	return max(exp(-pow(dist, 0.25)) * sunL - 0.4, 0.0);
@@ -413,13 +435,17 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	float underscatter = distance(sunH * 0.5 + 0.5, 1.0);
 	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0)) + sunMieScatter + moonMieScatter;
 
+	#ifdef CLOUDS
 	vec4 cloud = calcCloud(normalize(wpos), sunMieScatter, sky);
+	#endif
 
 	sky += sun + moon;
 	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 10.0;
 	sky *= 1.0 + pow(1.0 - moonScatterMult, 20.0) * 5.0;
 
+	#ifdef CLOUDS
 	sky = mix(sky, cloud.rgb, cloud.a);
+	#endif
 
 	return sky;
 }
@@ -621,7 +647,7 @@ void main() {
 			}
 			color = (frag.vpos.z > 0.99) ? calcSkyColor(normalize(frag.wpos), cameraPosition.y + frag.wpos.y) : color;
 
-			vec3 watercolor = vec3(min(luma(skycolor), 0.9));
+			vec3 watercolor = SEA_WATER_COLOR * vec3(min(luma(skycolor), 1.0));
 			watercolor.r *= (1. / (14. * dist_diff_N + 1) * 0.85 + 0.15) * 0.35;
 			watercolor.g *= (1. / (8.  * dist_diff_N + 1) * 0.72 + 0.28) * 0.51;
 			watercolor.b *= (1. / (2.  * dist_diff_N + 1) * 0.75 + 0.25);
