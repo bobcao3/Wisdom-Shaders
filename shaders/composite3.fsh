@@ -725,7 +725,7 @@ void main() {
 				#ifdef SKY_REFLECTIONS
 				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal) * 480.0;
 				if (frag_mask.is_water) wref.y = abs(wref.y);
-				ref_color += calcSkyColor(wref, cameraPosition.y + frag.wpos.y) * (1.0 - reflection.a) * specular.r * g.mcdata.g;
+				ref_color += calcSkyColor(wref, cameraPosition.y + frag.wpos.y) * (1.0 - reflection.a) * specular.r;
 				#else
 				ref_color += skycolor * (1.0 - reflection.a) * specular.r;
 				#endif
