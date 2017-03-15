@@ -665,7 +665,8 @@ void main() {
 			frag.vpos.xyz = water_vpos.xyz;
 			frag.wnormal = water_normal;
 			#else
-			vec3 watercolor = SEA_WATER_COLOR * vec3(min(luma(skycolor), 1.0));
+			const vec3 wcolor = vec3(0.1569, 0.5882, 0.783);
+			vec3 watercolor = wcolor * vec3(min(luma(skycolor), 1.0));
 			color = mix(color, watercolor, 0.1);
 
 			frag.wpos = water_wpos;
@@ -723,7 +724,7 @@ void main() {
 				#endif
 
 				#ifdef SKY_REFLECTIONS
-				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal) * 480.0;
+				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal) * 960.0;
 				if (frag_mask.is_water) wref.y = abs(wref.y);
 				ref_color += calcSkyColor(wref, cameraPosition.y + frag.wpos.y) * (1.0 - reflection.a) * specular.r * g.mcdata.g;
 				#else
