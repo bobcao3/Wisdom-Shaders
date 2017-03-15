@@ -23,6 +23,7 @@
 
 #version 120
 #extension GL_ARB_shader_texture_lod : require
+#pragma optionNV (unroll all)
 #pragma optimize(on)
 
 const bool compositeMipmapEnabled = true;
@@ -48,6 +49,7 @@ uniform mat4 gbufferModelView;
 uniform vec3 shadowLightPosition;
 vec3 lightPosition = normalize(shadowLightPosition);
 uniform vec3 cameraPosition;
+uniform vec3 skyColor;
 
 uniform float viewWidth;
 uniform float viewHeight;
@@ -154,7 +156,7 @@ float fast_shadow_map(in vec3 wpos) {
 	return max(shade, extShadow);
 }
 
-const vec3 SEA_WATER_COLOR = vec3(0.69,0.87,0.96);
+const vec3 SEA_WATER_COLOR = vec3(0.69,0.87,0.96) * 0.25;
 
 float hash( vec2 p ) {
 	float h = dot(p,vec2(127.1,311.7));
@@ -206,7 +208,7 @@ float getwave(vec3 p) {
 		choppy = mix(choppy,1.0,0.2);
 	}
 
-	float lod = 1.0 - length(p - cameraPosition) / 512.0;
+	float lod = pow(1.0 - length(p - cameraPosition) / 512.0, 0.5);
 
 	return (h - SEA_HEIGHT) * lod;
 }
@@ -228,8 +230,8 @@ float getwave2(vec3 p) {
 		choppy = mix(choppy,1.0,0.2);
 	}
 
-	float lod = 1.0 - length(p - cameraPosition) / 512.0;
-
+	float lod = pow(1.0 - length(p - cameraPosition) / 512.0, 0.5);
+	
 	return (h - SEA_HEIGHT) * lod;
 }
 
@@ -368,7 +370,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 
 	float density = cloudNoise(spos + worldLightPos * 3.0);
 
-	vec3 cloud_color = L * 0.7 * (1.0 - density) + mie * (1.0 - total) * (1.0 - density) + horizontColor * (1.0 - total * 0.5);
+	vec3 cloud_color = L * 0.7 * (1.0 - density) + mie * 1.4 * (1.0 - total) * (1.0 - density) + skyColor * (1.0 - total * 0.5);
 	cloud_color *= 1.0 - rainStrength * 0.8;
 	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.9) * 10.0);
 
@@ -405,7 +407,7 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
 
 	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * rain);
-	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 0.984) * rain);
+	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 0.984) * 0.1 * rain);
 
 	vec3 sky = horizont * totalSkyLight;
 	sky = max(sky, 0.0);
@@ -495,7 +497,7 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
 #define ENHANCED_WATER
 #define WATER_PARALLAX
 #ifdef WATER_PARALLAX
-void WaterParallax(inout vec3 wpos) {
+void WaterParallax(inout vec3 wpos, in float lod) {
 	const int maxLayers = 6;
 
 	vec3 nwpos = normalize(wpos);
@@ -505,7 +507,7 @@ void WaterParallax(inout vec3 wpos) {
 
 	float h;
 	for (int i = 0; i < maxLayers; i++) {
-		h = getwave(wpos + cameraPosition);
+		h = getwave(wpos + cameraPosition) * lod;
 		hstep *= 1.3;
 
 		if (h + 0.05 > exph) break;
@@ -573,11 +575,13 @@ void main() {
 			vec3 vvnormal_plain = normalDecode(g.normaltex.zw);
 			water_plain_normal = mat3(gbufferModelViewInverse) * vvnormal_plain;
 
+			float lod = pow(dot(water_plain_normal, vec3(0.0, 1.0, 0.0)), 10.0);
+			
 			#ifdef WATER_PARALLAX
-			if (!isEyeInWater) WaterParallax(water_wpos);
-			float wave = getwave2(water_wpos + cameraPosition);
+			if (!isEyeInWater) WaterParallax(water_wpos, lod);
+			float wave = getwave2(water_wpos + cameraPosition) * lod;
 			#else
-			float wave = getwave2(water_wpos + cameraPosition);
+			float wave = getwave2(water_wpos + cameraPosition) * lod;
 			vec2 p = water_vpos.xy / water_vpos.z * wave;
 			wave = getwave2(water_wpos + cameraPosition - vec3(p.x, 0.0, p.y));
 			vec2 wp = length(p) * normalize(water_wpos).xz;
@@ -611,9 +615,9 @@ void main() {
 
 			vec3 org_color = color;
 			color = texture2DLod(composite, shifted, 0.0).rgb;
-			color = mix(color, texture2DLod(composite, shifted, 1.0).rgb, dist_diff_N * 0.8);
-			color = mix(color, texture2DLod(composite, shifted, 2.0).rgb, dist_diff_N * 0.6);
-			color = mix(color, texture2DLod(composite, shifted, 3.0).rgb, dist_diff_N * 0.4);
+			color = mix(color, texture2DLod(composite, shifted, 1.0).rgb, water_fog * 0.8);
+			color = mix(color, texture2DLod(composite, shifted, 2.0).rgb, water_fog * 0.6);
+			color = mix(color, texture2DLod(composite, shifted, 3.0).rgb, water_fog * 0.4);
 
 			color = mix(color, org_color, pow(length(shifted - vec2(0.5)) / 1.414f, 2.0));
 			if (shifted.x > 1.0 || shifted.x < 0.0 || shifted.y > 1.0 || shifted.y < 0.0) {
@@ -683,7 +687,7 @@ void main() {
 				#ifdef SKY_REFLECTIONS
 				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal) * 480.0;
 				if (frag_mask.is_water) wref.y = abs(wref.y);
-				ref_color += calcSkyColor(wref, cameraPosition.y + frag.wpos.y) * (1.0 - reflection.a) * specular.r;
+				ref_color += calcSkyColor(wref, cameraPosition.y + frag.wpos.y) * (1.0 - reflection.a) * specular.r * g.mcdata.g;
 				#else
 				ref_color += skycolor * (1.0 - reflection.a) * specular.r;
 				#endif
