@@ -231,7 +231,7 @@ float getwave2(vec3 p) {
 	}
 
 	float lod = pow(1.0 - length(p - cameraPosition) / 512.0, 0.5);
-	
+
 	return (h - SEA_HEIGHT) * lod;
 }
 
@@ -313,26 +313,22 @@ float cloudNoise(in vec3 wpos) {
 #ifdef VOLUMETRIC_CLOUD
 
 const float cloudMin = 2800.0;
-const float cloudMax = 3312.0;
+const float cloudMax = 3512.0;
+const float cloudDense = (cloudMin + cloudMax) * 0.5;
 
-float find_closest(vec2 pos) {
-	const int ditherPattern[64] = int[64](
-		0, 32, 8, 40, 2, 34, 10, 42, /* 8x8 Bayer ordered dithering */
-		48, 16, 56, 24, 50, 18, 58, 26, /* pattern. Each input pixel */
-		12, 44, 4, 36, 14, 46, 6, 38, /* is scaled to the 0..63 range */
-		60, 28, 52, 20, 62, 30, 54, 22, /* before looking in this table */
-		3, 35, 11, 43, 1, 33, 9, 41, /* to determine the action. */
-		51, 19, 59, 27, 49, 17, 57, 25,
-		15, 47, 7, 39, 13, 45, 5, 37,
-		63, 31, 55, 23, 61, 29, 53, 21);
+#define g(a) (-4*a.x*a.y+3*a.x+2*a.y)
+float bayer_8x8(vec2 pos) {
+	ivec2 p = ivec2(pos * vec2(viewWidth, viewHeight));
 
-	vec2 positon = vec2(0.0f);
-	positon.x = floor(mod(texcoord.s * viewWidth, 8.0f));
-	positon.y = floor(mod(texcoord.t * viewHeight, 8.0f));
+	ivec2 m0 = ivec2(mod(floor(p * 0.25), 2.0));
+	ivec2 m1 = ivec2(mod(floor(p * 0.5), 2.0));
+	ivec2 m2 = ivec2(mod(p, 2.0));
+	return float(g(m0)+g(m1)*4+g(m2)*16) / 63.0f;
+}
 
-	int dither = ditherPattern[int(positon.x) + int(positon.y) * 8];
-
-	return float(dither) / 64.0f;
+float cloud3D(vec3 wpos) {
+	float h = pow(cloudNoise(wpos), 0.5);
+	return float(distance(wpos.y, cloudDense) < h * (cloudMax - cloudMin)) * h;
 }
 
 vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
@@ -345,7 +341,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	for (int i = 0; i < 8; i++) {
 		float s = cloudNoise(spos);
 		density += cloudNoise(spos + worldLightPos * 3.0);
-		spos += wpos / wpos.y * (cloudMax - spos.y) * 0.5 * find_closest(texcoord);
+		spos += wpos / wpos.y * (cloudMax - spos.y) * 0.5 * bayer_8x8(texcoord);
 		total += s;
 	}
 	total *= 0.125;
@@ -576,7 +572,7 @@ void main() {
 			water_plain_normal = mat3(gbufferModelViewInverse) * vvnormal_plain;
 
 			float lod = pow(dot(water_plain_normal, vec3(0.0, 1.0, 0.0)), 10.0);
-			
+
 			#ifdef WATER_PARALLAX
 			if (!isEyeInWater) WaterParallax(water_wpos, lod);
 			float wave = getwave2(water_wpos + cameraPosition) * lod;
@@ -615,9 +611,9 @@ void main() {
 
 			vec3 org_color = color;
 			color = texture2DLod(composite, shifted, 0.0).rgb;
-			color = mix(color, texture2DLod(composite, shifted, 1.0).rgb, water_fog * 0.8);
-			color = mix(color, texture2DLod(composite, shifted, 2.0).rgb, water_fog * 0.6);
-			color = mix(color, texture2DLod(composite, shifted, 3.0).rgb, water_fog * 0.4);
+			color = mix(color, texture2DLod(composite, shifted, 1.0).rgb, dist_diff_N * 0.8);
+			color = mix(color, texture2DLod(composite, shifted, 2.0).rgb, dist_diff_N * 0.6);
+			color = mix(color, texture2DLod(composite, shifted, 3.0).rgb, dist_diff_N * 0.4);
 
 			color = mix(color, org_color, pow(length(shifted - vec2(0.5)) / 1.414f, 2.0));
 			if (shifted.x > 1.0 || shifted.x < 0.0 || shifted.y > 1.0 || shifted.y < 0.0) {
