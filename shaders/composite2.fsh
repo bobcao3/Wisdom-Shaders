@@ -185,6 +185,8 @@ const  vec2 offset_table[6] = vec2 [] (
 
 #define CAUSTIC
 
+//#define NOSHADOW
+vec2 mclight = vec2(0.0);
 #define SHADOW_FILTER
 #define COLORED_SHADOW
 float shadow_map(out vec3 shadowcolor, inout bool under_water) {
@@ -195,6 +197,9 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 	if (NdotL <= 0.05f && !is_plant) {
 		shade = 1.0f;
 	} else {
+		#ifdef NOSHADOW
+		shade = 1.0 - smoothstep(0.94, 1.0, mclight.y);
+		#else
 		vec4 shadowposition = shadowModelView * vec4(wpos + wnormal * (0.01 + 0.13 * float(is_plant)), 1.0f);
 		shadowposition = shadowProjection * shadowposition;
 		float distb = length(shadowposition.xy);
@@ -230,6 +235,7 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 		shade -= max(0.0f, edgeX * 20.0f);
 		shade -= max(0.0f, edgeY * 20.0f);
 		shade = max(0.0, shade);
+		#endif
 	}
 	return max(shade, extShadow);
 }
@@ -384,7 +390,6 @@ void main() {
 	bool issky = (flag < 0.01);
  	is_water = (flag > 0.71f && flag < 0.79f);
 	is_plant = (flag > 0.48 && flag < 0.53);
-	vec2 mclight = vec2(0.0);
 	float shade = 0.0;
 	NdotL = dot(lightPosition, normal);
 	// Preprocess Gamma 2.2
@@ -396,6 +401,7 @@ void main() {
 	if (!issky) {
 		vec3 shadowcolor;
 		bool under_water = false;
+		mclight = texture2D(gaux2, texcoord).xy;
 		shade = shadow_map(shadowcolor, under_water);
 
 		#ifdef CAUSTIC
@@ -415,7 +421,6 @@ void main() {
 		shade = max(shade, phong);
 
 		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, pow(max(0.0, dot(nvpos, lightPosition)), 16.0));
-		mclight = texture2D(gaux2, texcoord).xy;
 
 		const vec3 torchColor = vec3(0.1935, 0.0906, 0.04972);
 

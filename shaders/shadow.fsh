@@ -25,15 +25,23 @@
 
 #pragma optimize(on)
 
+//#define NOSHADOW
+
+#ifndef NOSHADOW
 uniform sampler2D texture;
 
 varying vec2 texcoord;
 varying vec4 color;
 varying float iswater;
+#endif
 
 void main() {
+	#ifndef NOSHADOW
 	vec4 c = texture2D(texture, texcoord) * color;
 	c.rgb *= 1.0 - float(c.a > 0.9);
 	c = mix(c, vec4(1.0), iswater);
 	gl_FragData[0] = c;
+	#else
+	discard;
+	#endif
 }

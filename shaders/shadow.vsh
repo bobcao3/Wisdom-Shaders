@@ -26,7 +26,9 @@
 #pragma optimize(on)
 
 #define SHADOW_MAP_BIAS 0.9
+//#define NOSHADOW
 
+#ifndef NOSHADOW
 attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
 
@@ -43,8 +45,11 @@ varying float isplant;
 #define GlobalIllumination
 
 #define WAVING_SHADOW
+#endif
 
 void main() {
+
+#ifndef NOSHADOW
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
 	color = gl_Color;
@@ -75,4 +80,7 @@ void main() {
 	float distortFactor = (1.0 - SHADOW_MAP_BIAS) + length(gl_Position.xy) * SHADOW_MAP_BIAS;
 	gl_Position.xy /= distortFactor;
 	texcoord = gl_MultiTexCoord0.st;
+#else
+	gl_Position = vec4(0.0);
+#endif
 }

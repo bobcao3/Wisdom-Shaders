@@ -543,6 +543,8 @@ void WaterParallax(inout vec3 wpos, in float lod) {
 // #define BLACK_AND_WHITE
 #define SKY_REFLECTIONS
 
+//#define NOSHADOW
+
 /* DRAWBUFFERS:3 */
 void main() {
 	g.normaltex = texture2D(gnormal, texcoord);
@@ -594,6 +596,7 @@ void main() {
 			frag.wpos = worldPosition.xyz;
 		}
 		if (isEyeInWater || frag_mask.is_water) {
+			#ifndef NOSHADOW
 			vec3 vvnormal_plain = normalDecode(g.normaltex.zw);
 			water_plain_normal = mat3(gbufferModelViewInverse) * vvnormal_plain;
 
@@ -623,7 +626,7 @@ void main() {
 			shifted_vpos = shifted_vpos * 0.5f + 0.5f;
 			vec2 shifted = shifted_vpos.st;
 			#else
-			vec2 shifted = texcoord + water_normal.xz;
+			vec2 shifted = texcoord + water_normal.xz * 0.2 * pow(1.0 - frag.cdepthN, 0.3);
 			#endif
 
 			float shifted_flag = texture2D(gaux2, shifted).a;
@@ -637,6 +640,7 @@ void main() {
 
 			vec3 org_color = color;
 			color = texture2DLod(composite, shifted, 0.0).rgb;
+			#ifdef ENHANCED_WATER
 			color = mix(color, texture2DLod(composite, shifted, 1.0).rgb, dist_diff_N * 0.8);
 			color = mix(color, texture2DLod(composite, shifted, 2.0).rgb, dist_diff_N * 0.6);
 			color = mix(color, texture2DLod(composite, shifted, 3.0).rgb, dist_diff_N * 0.4);
@@ -646,6 +650,7 @@ void main() {
 				color *= 0.5 + pow(length(shifted - vec2(0.5)) / 1.414f, 2.0);
 			}
 			color = (frag.vpos.z > 0.99) ? calcSkyColor(normalize(frag.wpos), cameraPosition.y + frag.wpos.y) : color;
+			#endif
 
 			vec3 watercolor = SEA_WATER_COLOR * vec3(min(luma(skycolor), 1.0));
 			watercolor.r *= (1. / (14. * dist_diff_N + 1) * 0.85 + 0.15) * 0.35;
@@ -659,7 +664,18 @@ void main() {
 			frag.normal = vsnormal;
 			frag.vpos.xyz = water_vpos.xyz;
 			frag.wnormal = water_normal;
+			#else
+			vec3 watercolor = SEA_WATER_COLOR * vec3(min(luma(skycolor), 1.0));
+			color = mix(color, watercolor, 0.1);
+
+			frag.wpos = water_wpos;
+			frag.vpos = gbufferModelView * vec4(water_wpos, 1.0);
+			vec3 vvnormal_plain = normalDecode(g.normaltex.zw);
+			frag.normal = vvnormal_plain;
+			frag.wnormal = mat3(gbufferModelViewInverse) * vvnormal_plain;
+			#endif
 		}
+
 
 		frag.wpos.y -= 1.67f;
 		// Preprocess Specular
@@ -724,7 +740,6 @@ void main() {
 				vec3 F = frag_mask.is_water ? vec3(1.0) : fresnelSchlickRoughness(max(dot(frag.normal, V), 0.0), F0, specular.g);
 
 				if (frag_mask.is_trans) {
-
 					vec3 halfwayDir = normalize(lightPosition - normalize(frag.vpos.xyz));
 					float stdNormal = DistributionGGX(frag.normal, halfwayDir, specular.g);
 
@@ -748,9 +763,7 @@ void main() {
 		viewPosition /= viewPosition.w;
 		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * 480.0 * 2.0;
 
-		frag.wpos = worldPosition.xyz;
-
-		vec3 skycolor = calcSkyColor(frag.wpos, cameraPosition.y);
+		vec3 skycolor = calcSkyColor(worldPosition.xyz, cameraPosition.y);
 		color = frag_mask.flag > 0.97 ? skycolor * org_specular.rgb : skycolor;
 	}
 
