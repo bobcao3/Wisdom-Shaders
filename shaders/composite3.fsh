@@ -313,6 +313,26 @@ float cloudNoise(in vec3 wpos) {
 const float cloudMin = 2800.0;
 const float cloudMax = 3312.0;
 
+float find_closest(vec2 pos) {
+	const int ditherPattern[64] = int[64](
+		0, 32, 8, 40, 2, 34, 10, 42, /* 8x8 Bayer ordered dithering */
+		48, 16, 56, 24, 50, 18, 58, 26, /* pattern. Each input pixel */
+		12, 44, 4, 36, 14, 46, 6, 38, /* is scaled to the 0..63 range */
+		60, 28, 52, 20, 62, 30, 54, 22, /* before looking in this table */
+		3, 35, 11, 43, 1, 33, 9, 41, /* to determine the action. */
+		51, 19, 59, 27, 49, 17, 57, 25,
+		15, 47, 7, 39, 13, 45, 5, 37,
+		63, 31, 55, 23, 61, 29, 53, 21);
+
+	vec2 positon = vec2(0.0f);
+	positon.x = floor(mod(texcoord.s * viewWidth, 8.0f));
+	positon.y = floor(mod(texcoord.t * viewHeight, 8.0f));
+
+	int dither = ditherPattern[int(positon.x) + int(positon.y) * 8];
+
+	return float(dither) / 64.0f;
+}
+
 vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	if (wpos.y < 0.03) return vec4(0.0);
 
@@ -323,7 +343,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	for (int i = 0; i < 8; i++) {
 		float s = cloudNoise(spos);
 		density += cloudNoise(spos + worldLightPos * 3.0);
-		spos += wpos / wpos.y * (cloudMax - cloudMin) * 0.125;
+		spos += wpos / wpos.y * (cloudMax - spos.y) * 0.5 * find_closest(texcoord);
 		total += s;
 	}
 	total *= 0.125;
