@@ -307,6 +307,39 @@ float cloudNoise(in vec3 wpos) {
 	return total;
 }
 
+#define VOLUMETRIC_CLOUD
+#ifdef VOLUMETRIC_CLOUD
+
+const float cloudMin = 2800.0;
+const float cloudMax = 3312.0;
+
+vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
+	if (wpos.y < 0.03) return vec4(0.0);
+
+	vec3 spos = wpos / wpos.y * 2850.0;
+
+	float total = 0.0;
+	float density = 0.0;
+	for (int i = 0; i < 8; i++) {
+		float s = cloudNoise(spos);
+		density += cloudNoise(spos + worldLightPos * 3.0);
+		spos += wpos / wpos.y * (cloudMax - cloudMin) * 0.125;
+		total += s;
+	}
+	total *= 0.125;
+	density *= 0.125;
+
+	vec3 cloud_color = L * 0.7 * (1.0 - density) + mie * (1.0 - total) * (1.0 - density) + horizontColor * (1.0 - total * 0.5);
+	cloud_color *= 1.0 - rainStrength * 0.8;
+	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.9) * 10.0);
+
+	total = clamp(total, 0.0, 1.0);
+
+	return vec4(cloud_color, total);
+}
+
+#else
+
 vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	if (wpos.y < 0.03) return vec4(0.0);
 
@@ -323,6 +356,8 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 
 	return vec4(cloud_color, total);
 }
+
+#endif
 
 
 vec3 mie(float dist, vec3 sunL){
