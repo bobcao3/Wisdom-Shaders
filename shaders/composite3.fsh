@@ -369,7 +369,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	total *= 0.125;
 	density *= 0.125;
 
-	vec3 cloud_color = L * 0.7 * (1.0 - density) + mie * (1.0 - total) * (1.0 - density) + horizontColor * (1.0 - total * 0.5);
+	vec3 cloud_color = (1.0 - density) * (L * 0.7 + mie * (1.0 - total)) + horizontColor * (1.0 - total * 0.5);
 	cloud_color *= 1.0 - rainStrength * 0.8;
 	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.9) * 10.0);
 
@@ -388,7 +388,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 
 	float density = cloudNoise(spos + worldLightPos * 3.0);
 
-	vec3 cloud_color = L * 0.7 * (1.0 - density) + mie * 1.4 * (1.0 - total) * (1.0 - density) + skyColor * (1.0 - total * 0.5);
+	vec3 cloud_color = (1.0 - density) * (L * 0.7 + mie * (1.0 - total)) + horizontColor * (1.0 - total * 0.5);
 	cloud_color *= 1.0 - rainStrength * 0.8;
 	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.9) * 10.0);
 
@@ -430,7 +430,7 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	vec3 sky = horizont * totalSkyLight;
 	sky = max(sky, 0.0);
 
-	sky = max(mix(pow(sky, 1.0 - sky), sky / (2.0 * sky + 0.5 - sky), clamp(sunH * 2.0, 0.0, 1.0)),0.0);
+	sky = max(mix(pow(sky, 1.0 - sky), sky / (sky + 0.5), clamp(sunH * 2.0, 0.0, 1.0)),0.0);
 
 	float underscatter = distance(sunH * 0.5 + 0.5, 1.0);
 	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0)) + sunMieScatter + moonMieScatter;
@@ -520,10 +520,10 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
 #define WATER_PARALLAX
 #ifdef WATER_PARALLAX
 void WaterParallax(inout vec3 wpos, in float lod) {
-	const int maxLayers = 6;
+	const int maxLayers = 4;
 
 	vec3 nwpos = normalize(wpos);
-	vec3 fpos = nwpos / max(0.1, abs(nwpos.y)) * SEA_HEIGHT;
+	vec3 fpos = (nwpos / max(0.1, abs(nwpos.y))) * SEA_HEIGHT;
 	float exph = 0.0;
 	float hstep = 1.0 / float(maxLayers);
 
@@ -574,6 +574,9 @@ void main() {
 
 		if (frag_mask.is_valid) org_specular = vec4(0.1, 0.96, 0.0, 1.0);
 	}
+	
+	// Preprocess Specular
+	vec3 specular = vec3(min(org_specular.g, 0.9999), org_specular.rb);
 
 	if (frag_mask.is_valid) {
 		vec4 water_vpos = vec4(texture2D(gaux3, texcoord).xyz, 1.0);
@@ -614,7 +617,7 @@ void main() {
 			#endif
 
 			water_displacement = wave * water_plain_normal;
-			vec3 water_normal = (water_plain_normal.y > 0.8) ? get_water_normal(water_wpos + cameraPosition, water_displacement) : water_plain_normal;
+			vec3 water_normal = mix(water_plain_normal, get_water_normal(water_wpos + cameraPosition, water_displacement), lod);
 
 			vec3 vsnormal = normalize(mat3(gbufferModelView) * water_normal);
 			water_vpos = (!frag_mask.is_water && isEyeInWater) ? frag.vpos : gbufferModelView * vec4(water_wpos, 1.0);
@@ -626,14 +629,12 @@ void main() {
 			shifted_vpos = shifted_vpos * 0.5f + 0.5f;
 			vec2 shifted = shifted_vpos.st;
 			#else
-			vec2 shifted = texcoord + water_normal.xz * 0.2 * pow(1.0 - frag.cdepthN, 0.3);
+			vec2 shifted = texcoord + water_normal.xz * (0.2 * pow(1.0 - frag.cdepthN, 0.3));
 			#endif
 
 			float shifted_flag = texture2D(gaux2, shifted).a;
 
-			if (shifted_flag < 0.71f || shifted_flag > 0.92f) {
-				shifted = texcoord;
-			}
+			if (shifted_flag < 0.71f || shifted_flag > 0.92f) shifted = texcoord;
 			frag.vpos = vec4(texture2D(gdepth, shifted).xyz, 1.0);
 			float dist_diff = isEyeInWater ? length(water_vpos.xyz) : distance(frag.vpos.xyz, water_vpos.xyz);
 			float dist_diff_N = clamp(abs(dist_diff) / 8.0, 0.0, 1.0);
@@ -646,16 +647,11 @@ void main() {
 			color = mix(color, texture2DLod(composite, shifted, 3.0).rgb, dist_diff_N * 0.4);
 
 			color = mix(color, org_color, pow(length(shifted - vec2(0.5)) / 1.414f, 2.0));
-			if (shifted.x > 1.0 || shifted.x < 0.0 || shifted.y > 1.0 || shifted.y < 0.0) {
-				color *= 0.5 + pow(length(shifted - vec2(0.5)) / 1.414f, 2.0);
-			}
-			color = (frag.vpos.z > 0.99) ? calcSkyColor(normalize(frag.wpos), cameraPosition.y + frag.wpos.y) : color;
+			if (frag.vpos.z > 0.99) color = calcSkyColor(normalize(frag.wpos), cameraPosition.y + frag.wpos.y);
 			#endif
 
 			vec3 watercolor = SEA_WATER_COLOR * vec3(min(luma(skycolor), 1.0));
-			watercolor.r *= (1. / (14. * dist_diff_N + 1) * 0.85 + 0.15) * 0.35;
-			watercolor.g *= (1. / (8.  * dist_diff_N + 1) * 0.72 + 0.28) * 0.51;
-			watercolor.b *= (1. / (2.  * dist_diff_N + 1) * 0.75 + 0.25);
+			watercolor *= (vec3(0.85, 0.72, 0.75) / (vec3(14.0, 8.0, 2.0) * dist_diff_N + 1.0) + vec3(0.15, 0.28, 0.25)) * vec3(0.35, 0.41, 1.0);
 			color = mix(color, watercolor, 1.0 - pow(2.0 / (dist_diff_N + 1.0) - 1.0, 2.0));
 
 			shade = fast_shadow_map(water_wpos);
@@ -674,17 +670,7 @@ void main() {
 			frag.normal = vvnormal_plain;
 			frag.wnormal = mat3(gbufferModelViewInverse) * vvnormal_plain;
 			#endif
-		}
-
-
-		frag.wpos.y -= 1.67f;
-		// Preprocess Specular
-		vec3 specular = vec3(0.0);
-		specular.r = min(org_specular.g, 0.9999);
-		specular.g = org_specular.r;
-		specular.b = org_specular.b;
-
-		if (!frag_mask.is_water) {
+		} else {
 			vec3 cwpos = frag.wpos + cameraPosition;
 			float wetness_distribution = texture2D(noisetex, cwpos.xz * 0.01).r + texture2D(noisetex, cwpos.yz  * 0.01).r;
 			wetness_distribution = wetness_distribution * 0.5 + 0.8 * (texture2D(noisetex, cwpos.zx * 0.002).r + texture2D(noisetex, cwpos.yx  * 0.002).r);
@@ -699,6 +685,8 @@ void main() {
 			specular.r = mix(specular.r, 0.3, wetness_distribution);
 		}
 
+		frag.wpos.y -= 1.62;
+		
 		if (!isEyeInWater){
 			// Specular definition:
 			//  specular.g -> Roughness
