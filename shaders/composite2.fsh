@@ -413,7 +413,7 @@ void main() {
 			vec3 surface_normal = get_water_normal(caustic_wpos, vec3(0.0, getwave(caustic_wpos), 0.0));
 			//shadowcolor *= 0.5 + 0.5 * max(1.0 - dot(surface_normal, worldLightPos), 0.0);
 
-			float index = dot(wnormal, -refract(worldLightPos, surface_normal, 1.0 / 1.2));
+			float index = dot(wnormal, -normalize(refract(worldLightPos, surface_normal, 1.0 / 1.2)));
 			shadowcolor *= 1.9 - 1.5 * pow(index, 3.5);
 		}
 		#endif

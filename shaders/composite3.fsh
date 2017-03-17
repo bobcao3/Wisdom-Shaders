@@ -137,6 +137,9 @@ void init_struct() {
 float fast_shadow_map(in vec3 wpos) {
 	if (frag.cdepthN > 0.9f)
 		return 0.0f;
+	#ifdef NOSHADOW
+	return 1.0 - smoothstep(0.94, 1.0, g.mcdata.g);
+	#else
 	float shade = 0.0;
 	vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
 	shadowposition = shadowProjection * shadowposition;
@@ -154,6 +157,7 @@ float fast_shadow_map(in vec3 wpos) {
 	shade -= clamp((frag.cdepthN - 0.7f) * 5.0f, 0.0f, 1.0f);
 	shade = clamp(shade, 0.0f, 1.0f);
 	return max(shade, extShadow);
+	#endif
 }
 
 const vec3 SEA_WATER_COLOR = vec3(.55,.92,.99);

@@ -25,15 +25,11 @@
 
 #pragma optimize(on)
 
-//#define NOSHADOW
-
-#ifndef NOSHADOW
 uniform sampler2D texture;
 
 varying vec2 texcoord;
 varying vec4 color;
 varying float iswater;
-#endif
 
 void main() {
 	#ifndef NOSHADOW
