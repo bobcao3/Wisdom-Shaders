@@ -172,8 +172,6 @@ float shadowTexSmooth(in sampler2D s, in vec2 texc, float spos) {
 
 bool is_plant;
 
-#define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
-
 const  vec2 offset_table[6] = vec2 [] (
 	vec2( 0.0,    1.0 ),
 	vec2( 0.866,  0.5 ),
@@ -211,7 +209,7 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 		#ifdef SHADOW_FILTER
 			for (int i = 0; i < 25; i++) {
 				float shadowDepth = texture2D(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0008f).x;
-				shade += float(shadowDepth + 0.00002 / distortFactor < shadowposition.z);
+				shade += float(shadowDepth + 0.00002 + cdepthN * 0.01 < shadowposition.z);
 			}
 			shade /= 25.0f;
 		#else
@@ -326,8 +324,8 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 	float a2     = a*a;
 	float NdotH  = max(dot(N, H), 0.0);
 
-	float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
-	denom = PI * denom * denom;
+	float denom = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
+	denom = PI * (denom * denom);
 
 	return a2 / denom;
 }
@@ -396,8 +394,8 @@ void main() {
 	color = pow(color, vec3(2.2f));
 	vec3 fogColor;
 
-	float eyebrightness = pow(float(eyeBrightnessSmooth.y) / 120.0, 2.0);
-	vec3 ambientColor = vec3(0.135, 0.14, 0.215) * luma(horizontColor) * (1.0 - eyebrightness * 0.1) * 3.0 * (1.0 - rainStrength * 0.7);
+	float eyebrightness = pow(float(eyeBrightnessSmooth.y) / 240.0, 2.0);
+	vec3 ambientColor = vec3(0.135, 0.14, 0.215) * luma(horizontColor) * (1.0 - eyebrightness * 0.2) * 3.0 * (1.0 - rainStrength * 0.7);
 	if (!issky) {
 		vec3 shadowcolor;
 		bool under_water = false;
@@ -426,7 +424,7 @@ void main() {
 
 		float light_distance = clamp((1.0 - pow(mclight.x, 6.6)), 0.08, 1.0);
 		const float light_quadratic = 4.9f;
-		float max_light = 7.5 * mclight.x * mclight.x;
+		float max_light = 7.5 * pow(mclight.x, 2.0);
 		vec4 specular = texture2D(gaux1, texcoord);
 
 		const float light_constant1 = 1.09f;
@@ -434,7 +432,7 @@ void main() {
 		float attenuation = clamp(light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, 0.0, max_light);
 
 		vec3 diffuse_torch = attenuation * torchColor;
-		vec3 diffuse_sun = (1.0 - shade) * suncolor * luma(horizontColor) * 3.5 * shadowcolor * (1.0 - rainStrength * 0.8);
+		vec3 diffuse_sun = (1.0 - shade) * (suncolor * luma(horizontColor)) * (3.5 * shadowcolor) * (1.0 - rainStrength * 0.8);
 
 		if (flag > 0.89) specular = vec4(0.0001);
 
@@ -461,7 +459,7 @@ void main() {
 		diffuse_torch *= 1.0 - specular.r * 0.43;
 		//diffuse_torch *= 1.0 + specular.b;
 
-		color *= 1.0 + 4.0 * max(0.0, 0.73 - eyebrightness * 0.07 * luma(suncolor));
+		color *= 1.0 + 4.0 * max(0.0, 0.73 - eyebrightness * 0.14 * luma(suncolor));
 
 		#ifdef AO_Enabled
 		float ao = blurAO(compositetex.g, normal);
@@ -493,17 +491,16 @@ void main() {
 		color = mix(fogcolor * (1.0 - rainStrength * 0.9), color, pow(fog_coord, (1.0 - rainStrength * 0.6)));
 		#ifdef CrespecularRays
 		float vl = texture2D(composite, texcoord * 0.5).b;
-		vl += texture2D(composite, texcoord * 0.5, 1.0).b;
+		vl += texture2DLod(composite, texcoord * 0.5, 1.0).b;
 		vl += texture2D(composite, texcoord * 0.5 + vec2(0.0005, 0.0)).b;
 		vl += texture2D(composite, texcoord * 0.5 + vec2(-0.0005, 0.0)).b;
 		vl += texture2D(composite, texcoord * 0.5 + vec2(0.0, 0.0005)).b;
 		vl += texture2D(composite, texcoord * 0.5 + vec2(0.0, -0.0005)).b;
 		vl /= 6.0;
 
-		vl = (1.0 - (1.0 / (1.0 + vl) - 0.5) * 2.0) * 0.7;
-		vl *= (1.0 - extShadow);
+		vl = (2.0 - 2.0 / (1.0 + vl)) * (1.0 - extShadow);
 
-		color = mix(color, fogcolor, vl * max(0.0, 0.73 - eyebrightness * 0.07) * dot(nvpos, lightPosition));
+		color = mix(color, fogcolor, (vl * (0.73 - eyebrightness * 0.14)) * dot(nvpos, lightPosition));
 
 		#endif
 	}
