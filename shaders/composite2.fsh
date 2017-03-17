@@ -22,7 +22,7 @@
 // =============================================================================
 
 #version 120
-
+#extension GL_ARB_shader_texture_lod : require
 #pragma optimize(on)
 
 uniform sampler2D gdepth;

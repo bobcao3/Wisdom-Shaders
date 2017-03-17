@@ -43,11 +43,9 @@ varying float isplant;
 #define GlobalIllumination
 
 #define WAVING_SHADOW
-#endif
 
 void main() {
 
-#ifndef NOSHADOW
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
 	color = gl_Color;
