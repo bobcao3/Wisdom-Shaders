@@ -25,7 +25,7 @@
 
 #pragma optimize(on)
 
-const int RGB8 = 0, RGBA32F = 1, R11F_G11F_B10F = 2, RGBA16 = 3, RGBA8 = 4, RGB8_SNORM = 5;
+const int RGB8 = 0, RGBA32F = 1, RGB16 = 2, RGBA16 = 3, RGBA8 = 4, RGB8_SNORM = 5;
 #define GAlbedo colortex0
 #define GWPos colortex1
 #define GNormals gnormal
@@ -40,7 +40,7 @@ uniform float centerDepthSmooth;
 const int colortex0Format = RGBA8;
 const int colortex1Format = RGBA32F;
 const int gnormalFormat = RGBA16;
-const int compositeFormat = R11F_G11F_B10F;
+const int compositeFormat = RGB16;
 const int gaux1Format = RGBA8;
 const int gaux2Format = RGBA8;
 const int gaux3Format = RGBA32F;

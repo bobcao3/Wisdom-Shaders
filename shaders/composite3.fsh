@@ -102,9 +102,9 @@ struct Mask {
 
 struct Material {
 	vec4 vpos;
-	 vec3 normal;
+	vec3 normal;
 	vec3 wpos;
-	 vec3 wnormal;
+	vec3 wnormal;
 	float cdepth;
 	float cdepthN;
 };
