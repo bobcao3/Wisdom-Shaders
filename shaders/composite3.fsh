@@ -593,6 +593,9 @@ void main() {
 			frag.vpos = water_vpos;
 			frag.wpos = water_wpos;
 			frag.normal = normalDecode(g.normaltex.zw);
+			frag.wnormal = mat3(gbufferModelViewInverse) * frag.normal;
+			frag.cdepth = length(frag.vpos);
+			frag.cdepthN = frag.cdepth / far;
 		}
 
 		if (isEyeInWater && frag.vpos.z > 0.99) {
