@@ -280,22 +280,22 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
 #ifdef CLOUDS
 const mat2 rotate = mat2(1.6,1.1,-1.2,1.6);
 
-vec2 hash22(vec2 p) {
+vec2 hash22( vec2 p ) {
 	p = vec2(dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)));
 	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
 }
 
-float noisePerlin(in vec2 p) {
-	vec2 i = floor(p);
-	vec2 f = fract(p);
-
-	vec2 u = f*f*f*(6.0*f*f - 15.0*f + 10.0);
-
-	return
-		mix( mix( dot( hash22( i + vec2(0.0,0.0) ), f - vec2(0.0,0.0) ),
-		dot( hash22( i + vec2(1.0,0.0) ), f - vec2(1.0,0.0) ), u.x),
-		mix( dot( hash22( i + vec2(0.0,1.0) ), f - vec2(0.0,1.0) ),
-		dot( hash22( i + vec2(1.0,1.0) ), f - vec2(1.0,1.0) ), u.x), u.y);
+float noisePerlin( in vec2 p ) {
+    const float K1 = 0.366025404; // (sqrt(3)-1)/2;
+    const float K2 = 0.211324865; // (3-sqrt(3))/6;
+	vec2 i = floor(p + (p.x+p.y)*K1);	
+    vec2 a = p - i + (i.x+i.y)*K2;
+    vec2 o = (a.x>a.y) ? vec2(1.0,0.0) : vec2(0.0,1.0); //vec2 of = 0.5 + 0.5*vec2(sign(a.x-a.y), sign(a.y-a.x));
+    vec2 b = a - o + K2;
+	vec2 c = a - 1.0 + 2.0*K2;
+    vec3 h = max(0.5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0.0 );
+	vec3 n = h*h*h*h*vec3( dot(a,hash22(i+0.0)), dot(b,hash22(i+o)), dot(c,hash22(i+1.0)));
+    return dot(n, vec3(70.0));	
 }
 
 float cloudNoise(in vec3 wpos) {
@@ -308,10 +308,10 @@ float cloudNoise(in vec3 wpos) {
 	vec2 coord = ns;
 
 	// Shape
-	float n  = noisePerlin(coord) * 0.5;   coord *= 3.0;
-  n += noisePerlin(coord) * 0.25;  coord *= 3.01;
-  n += noisePerlin(coord) * 0.125; coord *= 3.02;
-  n += noisePerlin(coord) * 0.0625;
+	float n = noisePerlin(coord) * 0.5; coord *= 3.0; coord += frameTimeCounter * 0.03;
+	n += noisePerlin(coord) * 0.25;     coord *= 3.01;coord += frameTimeCounter * 0.05;
+	n += noisePerlin(coord) * 0.125;    coord *= 3.02;coord += frameTimeCounter * 0.09;
+	n += noisePerlin(coord) * 0.0625;
 
 	total = n;
 
@@ -323,7 +323,7 @@ float cloudNoise(in vec3 wpos) {
 	float f = 0.0; ns *= 3.0;
 	for (int i=0; i<5; i++){
 		f += (weight * noisePerlin(ns + frameTimeCounter * 0.1));
-		ns = 1.4 * rotate * ns;
+		ns = 1.4 * rotate * ns + frameTimeCounter * 0.3 * (1.0 - weight);
 		weight *= 0.6;
 	}
 	total += max(0.0, f) * total * 0.5;
@@ -420,6 +420,7 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 
 	float sunScatterMult = clamp(sunDistance, 0.0, 1.0);
 	float sun = clamp(1.0 - smoothstep(0.01, 0.018, sunScatterMult), 0.0, 1.0) * rain;
+	vec3 sunFade = clamp(smoothstep(0.0, 0.01, wpos.y), 0.0, 1.0) * pow(vec3(max(0.0, sunH)), vec3(0.1, 0.5, 0.7));
 
 	float moonScatterMult = clamp(moonDistance, 0.0, 1.0);
 	float moon = clamp(1.0 - smoothstep(0.01, 0.011, moonScatterMult), 0.0, 1.0) * rain;
@@ -428,24 +429,24 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	const float coeiff = 0.6785;
 	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
 
-	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * rain);
-	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 0.984) * 0.1 * rain);
+	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * rain) * sunFade;
+	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 1.0) * rain) * 0.05;
 
 	vec3 sky = horizont * totalSkyLight;
 	sky = max(sky, 0.0);
 
-	sky = max(mix(pow(sky, 1.0 - sky), sky / (sky + 0.5), clamp(sunH * 2.0, 0.0, 1.0)),0.0);
+	sky = max(mix(pow(sky, 1.0 - sky), sky / (sky + 0.7), clamp(sunH * 2.0, 0.0, 1.0)),0.0);
 
-	float underscatter = distance(sunH * 0.5 + 0.5, 1.0);
+	float underscatter = distance(sunH * 0.5 + 0.7, 1.0);
 	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0)) + sunMieScatter + moonMieScatter;
 
 	#ifdef CLOUDS
-	vec4 cloud = calcCloud(normalize(wpos), sunMieScatter, sky);
+	vec4 cloud = calcCloud(normalize(wpos), sunMieScatter + moonMieScatter, sky);
 	#endif
 
 	sky += sun + moon;
 	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 10.0;
-	sky *= 1.0 + pow(1.0 - moonScatterMult, 20.0) * 5.0;
+	sky *= 1.0 + pow(1.0 - moonScatterMult, 11.0);
 
 	#ifdef CLOUDS
 	sky = mix(sky, cloud.rgb, cloud.a);
