@@ -187,10 +187,26 @@ const  vec2 offset_table[6] = vec2 [] (
 vec2 mclight = vec2(0.0);
 #define SHADOW_FILTER
 #define COLORED_SHADOW
+
+float OrenNayar(vec3 v, vec3 l, vec3 n, float r) {
+	r *= r;
+
+	float NdotL = dot(n,l);
+	float NdotV = dot(n,v);
+
+	float t = max(NdotL,NdotV);
+	float g = max(.0, dot(v - n * NdotV, l - n * NdotL));
+	float c = g/t - g*t;
+
+	float a = .285 / (r+.57) + .5;
+	float b = .45 * r / (r+.09);
+
+	return max(0., NdotL) * ( b * c + a);
+}
+
 float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 	shadowcolor = vec3(1.0);
-	if (cdepthN > 0.9f)
-		return is_plant ? (1.0 - max(0.0, NdotL)) * cdepthN : 1.0 - (clamp(NdotL, 0.07f, 1.0f) - 0.07f) * 1.07528f;
+	if (cdepthN > 0.9f) return 0.0;
 	float shade = 0.0;
 	if (NdotL <= 0.05f && !is_plant) {
 		shade = 1.0f;
@@ -222,7 +238,7 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 			if (d2 + 0.00002 / distortFactor < shadowposition.z) {
 				shadowcolor = texture2D(shadowcolor0, shadowposition.st).rgb * .773;
 				under_water = luma(shadowcolor) > 0.6;
-				if (under_water) shade = max(shade, min(1.0, abs(d2 - shadowposition.z) * 32.0));
+				if (under_water) shade = max(shade, 1.0 - pow(2.0 / (2.0 - mclight.y) - 1.0, 2.0));
 				shadowcolor = mix(shadowcolor, vec3(1.0), shade);
 			}
 		}
@@ -399,7 +415,9 @@ void main() {
 	if (!issky) {
 		vec3 shadowcolor;
 		bool under_water = false;
+		vec4 specular = texture2D(gaux1, texcoord);
 		mclight = texture2D(gaux2, texcoord).xy;
+		float oren = max(extShadow, 1.0 - OrenNayar(vpos.xyz, lightPosition, normal, specular.r));
 		shade = shadow_map(shadowcolor, under_water);
 
 		#ifdef CAUSTIC
@@ -415,8 +433,7 @@ void main() {
 			shadowcolor *= 1.9 - 1.5 * pow(index, 3.5);
 		}
 		#endif
-		float phong = is_plant ? 0.0 : 1.0 - (clamp(NdotL, 0.07f, 1.0f) - 0.07f) * 1.07528f;
-		shade = max(shade, phong);
+		shade = max(shade, (1.0 - float(is_plant) * smoothstep(1.0, 0.7, cdepthN)) * oren);
 
 		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, pow(max(0.0, dot(nvpos, lightPosition)), 16.0));
 
@@ -425,7 +442,6 @@ void main() {
 		float light_distance = clamp((1.0 - pow(mclight.x, 6.6)), 0.08, 1.0);
 		const float light_quadratic = 4.9f;
 		float max_light = 7.5 * pow(mclight.x, 2.0);
-		vec4 specular = texture2D(gaux1, texcoord);
 
 		const float light_constant1 = 1.09f;
 		const float light_constant2 = 1.09f;
