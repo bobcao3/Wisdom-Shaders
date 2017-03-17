@@ -188,7 +188,7 @@ vec3 Uncharted2Tonemap(in vec3 x) {
 }
 
 void colorAdjust(inout vec3 c) {
-	c *= 3.0;
+	c *= 2.0;
 
 	const float ExposureBias = 2.0f;
 	vec3 curr = Uncharted2Tonemap(ExposureBias * c);
