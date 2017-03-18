@@ -48,24 +48,28 @@ varying vec3 tangent;
 varying vec3 binormal;
 #endif
 
+varying vec4 texcoordb;
+
+vec2 dcdx = dFdx(texcoordb.st * texcoordb.pq);
+vec2 dcdy = dFdy(texcoordb.st * texcoordb.pq);
+
 #ifdef SMOOTH_TEXTURE
-#define texF texSmooth
+#define texF(a,b) texSmooth(a,b)
 uniform ivec2 atlasSize;
 
 vec4 texSmooth(in sampler2D s, in vec2 texc) {
-	float lod = length(dFdx(wpos) + dFdy(wpos)) * 4.0;
 
 	vec2 pix_size = vec2(1.0) / (vec2(atlasSize) * 24.0);
 
-	vec4 texel0 = texture2DLod(s, texc + pix_size * vec2(0.1, 0.5), lod);
-	vec4 texel1 = texture2DLod(s, texc + pix_size * vec2(0.5, -0.1), lod);
-	vec4 texel2 = texture2DLod(s, texc + pix_size * vec2(-0.1, -0.5), lod);
-	vec4 texel3 = texture2DLod(s, texc + pix_size * vec2(0.5, 0.1), lod);
+	vec4 texel0 = texture2DGradARB(s, texc + pix_size * vec2(0.1, 0.5), dcdx, dcdy);
+	vec4 texel1 = texture2DGradARB(s, texc + pix_size * vec2(0.5, -0.1), dcdx, dcdy);
+	vec4 texel2 = texture2DGradARB(s, texc + pix_size * vec2(-0.1, -0.5), dcdx, dcdy);
+	vec4 texel3 = texture2DGradARB(s, texc + pix_size * vec2(0.5, 0.1), dcdx, dcdy);
 
 	return (texel0 + texel1 + texel2 + texel3) * 0.25;
 }
 #else
-#define texF texture2D
+#define texF(a,b) texture2DGradARB(a, b, dcdx, dcdy)
 #endif
 
 //#define ParallaxOcculusion
