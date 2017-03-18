@@ -663,16 +663,16 @@ void main() {
 		} else {
 			vec3 cwpos = frag.wpos + cameraPosition;
 			float wetness_distribution = noisePerlin(cwpos.xz * 0.1) + noisePerlin(cwpos.yz * 0.1) * 0.7;
-			wetness_distribution += 0.5 * (noisePerlin(cwpos.zx * 0.02) + 0.2 * noisePerlin(cwpos.yx * 0.02));
+			wetness_distribution += 0.5 * (noisePerlin(cwpos.zx * 0.02) + 0.2 * noisePerlin(cwpos.yx * 0.02)) + 0.5;
 			wetness_distribution = clamp(smoothstep(0.0, 1.0, wetness_distribution * wetness2), 0.0, 1.0);
-			wetness_distribution *= dot(frag.wnormal, vec3(0.0, 1.0, 0.0));
+			float side = dot(frag.wnormal, vec3(0.0, 1.0, 0.0));
 
 			if (specular.g < 0.000001f) specular.g = 0.4;
-			specular.g = clamp(specular.g - wetness2 * 0.2, 0.003, 0.9999);
+			specular.g = clamp(specular.g - wetness2 * 0.2 * side, 0.003, 0.9999);
 			specular.g = mix(specular.g, 0.01, wetness_distribution);
 
-			specular.r = clamp(specular.r + wetness2 * 0.25, 0.00001, 0.7);
-			specular.r = mix(specular.r, 0.8, wetness_distribution);
+			specular.r = clamp(specular.r + wetness2 * 0.25 * side, 0.00001, 0.7);
+			specular.r = mix(specular.r, 0.8, wetness_distribution * side);
 			//color = specular;
 		}
 
