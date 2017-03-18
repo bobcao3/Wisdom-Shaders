@@ -191,7 +191,7 @@ vec2 mclight = vec2(0.0);
 float OrenNayar(vec3 v, vec3 l, vec3 n, float r) {
 	r *= r;
 
-	float NdotL = dot(n,l);
+	//float NdotL = dot(n,l);
 	float NdotV = dot(n,v);
 
 	float t = max(NdotL,NdotV);
@@ -482,7 +482,7 @@ void main() {
 		#endif
 
 		// AO
-		float simulatedGI = 0.8 * (-1.333 / (3.0 * (mclight.x + 0.1) + 1.0) + 1.333);
+		float simulatedGI = 0.8 * (-1.333 / (3.0 * pow(mclight.y, 5.0) + 1.0) + 1.333);
 
 		vec3 ambient = ambientColor * simulatedGI;
 		#ifdef AO_Enabled
