@@ -300,37 +300,20 @@ float noisePerlin( in vec2 p ) {
 
 float cloudNoise(in vec3 wpos) {
 	vec3 spos = wpos;
-	float total;
-	vec2 ns = spos.xz + cameraPosition.xz + frameTimeCounter * vec2(36.0, 4.0);
+	vec2 ns = spos.xz + cameraPosition.xz + frameTimeCounter * vec2(18.0, 12.0);
 	ns.y *= 0.73;
-	ns *= 0.0004;
+	ns *= 0.00015;
 
 	vec2 coord = ns;
 
 	// Shape
 	float n = noisePerlin(coord) * 0.5; coord *= 3.0; coord += frameTimeCounter * 0.03;
-	n += noisePerlin(coord) * 0.25;     coord *= 3.01;coord += frameTimeCounter * 0.05;
+	n += noisePerlin(coord) * 0.25;     coord *= 3.01;coord += frameTimeCounter * 0.06;
 	n += noisePerlin(coord) * 0.125;    coord *= 3.02;coord += frameTimeCounter * 0.09;
-	n += noisePerlin(coord) * 0.0625;
+	n += noisePerlin(coord) * 0.0625;	coord *= 3.03;coord += frameTimeCounter * 0.11;
+	n += noisePerlin(coord) * 0.0312;
 
-	total = n;
-
-	ns *= 12.0;
-	ns = rotate * ns;
-	ns -= frameTimeCounter * 0.6;
-
-	float weight = 0.4;
-	float f = 0.0; ns *= 3.0;
-	for (int i=0; i<5; i++){
-		f += (weight * noisePerlin(ns + frameTimeCounter * 0.1));
-		ns = 1.4 * rotate * ns + frameTimeCounter * 0.3 * (1.0 - weight);
-		weight *= 0.6;
-	}
-	total += max(0.0, f) * total * 0.5;
-
-	total = clamp(total, 0.0, 1.0);
-
-	return total;
+	return clamp(smoothstep(0.0, 1.0, n), 0.0, 1.0);
 }
 
 #define VOLUMETRIC_CLOUD
@@ -353,7 +336,7 @@ float bayer_8x8(vec2 pos) {
 
 float cloud3D(vec3 wpos) {
 	float h = cloudNoise(wpos);
-	return smoothstep(0.0, 1.0, pow(h, 0.5));;
+	return 1.0 - distance(h, 0.5) * 2.0;
 }
 
 vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
