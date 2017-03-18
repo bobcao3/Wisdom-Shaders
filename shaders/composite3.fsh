@@ -277,9 +277,6 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
 
 #define CLOUDS
 
-#ifdef CLOUDS
-const mat2 rotate = mat2(1.6,1.1,-1.2,1.6);
-
 vec2 hash22( vec2 p ) {
 	p = vec2(dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)));
 	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
@@ -290,7 +287,7 @@ float noisePerlin( in vec2 p ) {
     const float K2 = 0.211324865; // (3-sqrt(3))/6;
 	vec2 i = floor(p + (p.x+p.y)*K1);	
     vec2 a = p - i + (i.x+i.y)*K2;
-    vec2 o = (a.x>a.y) ? vec2(1.0,0.0) : vec2(0.0,1.0); //vec2 of = 0.5 + 0.5*vec2(sign(a.x-a.y), sign(a.y-a.x));
+    vec2 o = (a.x>a.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
     vec2 b = a - o + K2;
 	vec2 c = a - 1.0 + 2.0*K2;
     vec3 h = max(0.5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0.0 );
@@ -298,30 +295,35 @@ float noisePerlin( in vec2 p ) {
     return dot(n, vec3(70.0));	
 }
 
+#ifdef CLOUDS
+const mat2 rotate = mat2(0.86, -0.5, 0.5, 0.86);
+
 float cloudNoise(in vec3 wpos) {
 	vec3 spos = wpos;
-	vec2 ns = spos.xz + cameraPosition.xz + frameTimeCounter * vec2(18.0, 12.0);
+	vec2 ns = spos.xz + cameraPosition.xz + frameTimeCounter * vec2(9.0, 2.0);
 	ns.y *= 0.73;
 	ns *= 0.00015;
 
 	vec2 coord = ns;
 
 	// Shape
-	float n = noisePerlin(coord) * 0.5; coord *= 3.0; coord += frameTimeCounter * 0.03;
-	n += noisePerlin(coord) * 0.25;     coord *= 3.01;coord += frameTimeCounter * 0.06;
-	n += noisePerlin(coord) * 0.125;    coord *= 3.02;coord += frameTimeCounter * 0.09;
-	n += noisePerlin(coord) * 0.0625;	coord *= 3.03;coord += frameTimeCounter * 0.11;
+	vec2 dir = vec2(1.0, 0.1);
+	float n = noisePerlin(coord) * 0.5; coord *= 3.0;  dir *= rotate; coord += dir * frameTimeCounter * 0.03;
+	n += noisePerlin(coord) * 0.25;     coord *= 3.01; dir *= rotate; coord += dir * frameTimeCounter * 0.06;
+	n += noisePerlin(coord) * 0.125;    coord *= 3.02; dir *= rotate; coord += dir * frameTimeCounter * 0.09;
+	n += noisePerlin(coord) * 0.0625;	coord *= 3.03; dir *= rotate; coord += dir * frameTimeCounter * 0.12;
 	n += noisePerlin(coord) * 0.0312;
 
-	return clamp(smoothstep(0.0, 1.0, n), 0.0, 1.0);
+	return smoothstep(0.0, 1.0, clamp(n + rainStrength * 0.3, 0.0, 1.0));
 }
-
-#define VOLUMETRIC_CLOUD
-#ifdef VOLUMETRIC_CLOUD
 
 const float cloudMin = 2800.0;
 const float cloudMax = 3512.0;
+const float cloudThick = cloudMax - cloudMin;
 const float cloudDense = (cloudMin + cloudMax) * 0.5;
+
+#define VOLUMETRIC_CLOUD
+#ifdef VOLUMETRIC_CLOUD
 
 #define g(a) (-4*a.x*a.y+3*a.x+2*a.y)
 float bayer_8x8(vec2 pos) {
@@ -336,7 +338,7 @@ float bayer_8x8(vec2 pos) {
 
 float cloud3D(vec3 wpos) {
 	float h = cloudNoise(wpos);
-	return 1.0 - distance(h, 0.5) * 2.0;
+	return float(h > distance(wpos.y, cloudDense) * 2.0 / cloudThick);
 }
 
 vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
@@ -345,20 +347,18 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	vec3 spos = wpos / wpos.y * 2850.0;
 
 	float total = 0.0;
-	float density = 0.0;
 	for (int i = 0; i < 8; i++) {
-		vec3 dither = wpos / wpos.y * 0.125 * bayer_8x8(texcoord);
+		vec3 dither = wpos / wpos.y * 0.125 * bayer_8x8(texcoord + vec2(i / viewWidth)) * cloudThick;
 		float s = cloud3D(spos + dither);
-		density += cloud3D(spos + dither + worldLightPos * 3.0);
 		spos += wpos / wpos.y * (cloudMax - cloudMin) * 0.125;
 		total += s;
 	}
-	total *= 0.125;
-	density *= 0.125;
+	total *= 0.25;
+	float density = cloud3D(spos + worldLightPos * total * cloudThick);
 
 	vec3 cloud_color = (1.0 - density) * (L * 0.7 + mie * (1.0 - total)) + horizontColor * (1.0 - total * 0.5);
 	cloud_color *= 1.0 - rainStrength * 0.8;
-	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.9) * 10.0);
+	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
 
 	total = clamp(total, 0.0, 1.0);
 
@@ -373,11 +373,11 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	vec3 spos = wpos / wpos.y * 2850.0;
 	float total = cloudNoise(spos);
 
-	float density = cloudNoise(spos + worldLightPos * 3.0);
+	float density = cloudNoise(spos + worldLightPos * total * cloudThick * 0.1);
 
 	vec3 cloud_color = (1.0 - density) * (L * 0.7 + mie * (1.0 - total)) + horizontColor * (1.0 - total * 0.5);
 	cloud_color *= 1.0 - rainStrength * 0.8;
-	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.9) * 10.0);
+	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
 
 	total = clamp(total, 0.0, 1.0);
 
@@ -392,28 +392,26 @@ vec3 mie(float dist, vec3 sunL){
 }
 
 vec3 calcSkyColor(vec3 wpos, float camHeight){
-	float rain = (1.0 - rainStrength * 0.9);
-	vec3 totalSkyLight = vec3(0.038, 0.1, 0.85) * rain;
-
-	float sunDistance = distance(normalize(wpos), worldSunPosition);
-	float moonDistance = distance(normalize(wpos), -worldSunPosition);
+	float rain = 1.0 - rainStrength;
+	vec3 totalSkyLight = mix(vec3(0.038, 0.1, 0.85), vec3(0.85), rainStrength);
+	float sunDistance = distance(wpos, worldSunPosition);
+	float moonDistance = distance(wpos, -worldSunPosition);
 	sunDistance *= 0.5; moonDistance *= 0.5;
 
 	float sunH = worldSunPosition.y * 1.589;
 
 	float sunScatterMult = clamp(sunDistance, 0.0, 1.0);
 	float sun = clamp(1.0 - smoothstep(0.01, 0.018, sunScatterMult), 0.0, 1.0) * rain;
-	vec3 sunFade = clamp(smoothstep(0.0, 0.01, wpos.y), 0.0, 1.0) * pow(vec3(max(0.0, sunH)), vec3(0.1, 0.5, 0.7));
 
 	float moonScatterMult = clamp(moonDistance, 0.0, 1.0);
 	float moon = clamp(1.0 - smoothstep(0.01, 0.011, moonScatterMult), 0.0, 1.0) * rain;
 
-	float horizont = max(0.001, normalize(wpos + vec3(0.0, camHeight, 0.0)).y);
+	float horizont = max(0.001, normalize(wpos * 480.0 + vec3(0.0, camHeight, 0.0)).y);
 	const float coeiff = 0.6785;
 	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
 
-	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * rain) * sunFade;
-	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 1.0) * rain) * 0.05;
+	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984));
+	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 1.0)) * 0.05;
 
 	vec3 sky = horizont * totalSkyLight;
 	sky = max(sky, 0.0);
@@ -422,20 +420,20 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 
 	float underscatter = distance(sunH * 0.5 + 0.7, 1.0);
 	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0)) + sunMieScatter + moonMieScatter;
-
+	
 	#ifdef CLOUDS
-	vec4 cloud = calcCloud(normalize(wpos), sunMieScatter + moonMieScatter, sky);
+	vec4 cloud = calcCloud(wpos, sunMieScatter + moonMieScatter, sky);
 	#endif
-
-	sky += sun + moon;
+	
+	sky = sky + sun + moon;
 	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 10.0;
 	sky *= 1.0 + pow(1.0 - moonScatterMult, 11.0);
-
+	
 	#ifdef CLOUDS
-	sky = mix(sky, cloud.rgb, cloud.a);
-	#endif
-
-	return sky;
+ 	sky = mix(sky, cloud.rgb, cloud.a);
+ 	#endif
+ 
+ 	return sky;
 }
 
 #define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
@@ -664,17 +662,18 @@ void main() {
 			#endif
 		} else {
 			vec3 cwpos = frag.wpos + cameraPosition;
-			float wetness_distribution = texture2D(noisetex, cwpos.xz * 0.01).r + texture2D(noisetex, cwpos.yz  * 0.01).r;
-			wetness_distribution = wetness_distribution * 0.5 + 0.8 * (texture2D(noisetex, cwpos.zx * 0.002).r + texture2D(noisetex, cwpos.yx  * 0.002).r);
-			wetness_distribution *= wetness_distribution * wetness2;
-			wetness_distribution *= wetness_distribution;
-			wetness_distribution = clamp(wetness_distribution, 0.0, 1.0);
+			float wetness_distribution = noisePerlin(cwpos.xz * 0.1) + noisePerlin(cwpos.yz * 0.1) * 0.7;
+			wetness_distribution += 0.5 * (noisePerlin(cwpos.zx * 0.02) + 0.2 * noisePerlin(cwpos.yx * 0.02));
+			wetness_distribution = clamp(smoothstep(0.0, 1.0, wetness_distribution * wetness2), 0.0, 1.0);
+			wetness_distribution *= dot(frag.wnormal, vec3(0.0, 1.0, 0.0));
+
 			if (specular.g < 0.000001f) specular.g = 0.4;
-			specular.g = clamp(specular.g - wetness2 * 0.005, 0.003, 0.9999);
-			specular.g = mix(specular.g, 0.1, wetness_distribution);
+			specular.g = clamp(specular.g - wetness2 * 0.2, 0.003, 0.9999);
+			specular.g = mix(specular.g, 0.01, wetness_distribution);
 
 			specular.r = clamp(specular.r + wetness2 * 0.25, 0.00001, 0.7);
-			specular.r = mix(specular.r, 0.3, wetness_distribution);
+			specular.r = mix(specular.r, 0.8, wetness_distribution);
+			//color = specular;
 		}
 
 		frag.wpos.y -= 1.62;
@@ -703,11 +702,11 @@ void main() {
 				#endif
 
 				#ifdef SKY_REFLECTIONS
-				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal) * 960.0;
+				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal);
 				if (frag_mask.is_water) wref.y = abs(wref.y);
 				ref_color += calcSkyColor(wref, cameraPosition.y + frag.wpos.y) * (1.0 - reflection.a) * specular.r;
 				#else
-				ref_color += skycolor * (1.0 - reflection.a) * specular.r;
+				ref_color += skyColor * (1.0 - reflection.a) * specular.r;
 				#endif
 			}
 
@@ -741,7 +740,7 @@ void main() {
 	} else {
 		vec4 viewPosition = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, 1.0, 1.0f);
 		viewPosition /= viewPosition.w;
-		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * 480.0 * 2.0;
+		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition);
 
 		vec3 skycolor = calcSkyColor(worldPosition.xyz, cameraPosition.y);
 		color = frag_mask.flag > 0.97 ? skycolor * org_specular.rgb : skycolor;
