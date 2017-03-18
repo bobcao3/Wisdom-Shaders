@@ -231,15 +231,16 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 		#else
 			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z);
 		#endif
+		
+		shadowcolor = vec3(1.0 - shade);
 
 		#ifdef COLORED_SHADOW
-		if (shade < 0.95) {
+		if (shade < 0.1) {
 			float d2 = texture2D(shadowtex0, shadowposition.st).x;
 			if (d2 + 0.00002 / distortFactor < shadowposition.z) {
-				shadowcolor = texture2D(shadowcolor0, shadowposition.st).rgb * .773;
+				shadowcolor *= texture2D(shadowcolor0, shadowposition.st).rgb * .773;
 				under_water = luma(shadowcolor) > 0.6;
 				if (under_water) shade = max(shade, 1.0 - pow(2.0 / (2.0 - mclight.y) - 1.0, 2.0));
-				shadowcolor = mix(shadowcolor, vec3(1.0), shade);
 			}
 		}
 		#endif
@@ -482,7 +483,7 @@ void main() {
 		#endif
 
 		// AO
-		float simulatedGI = 0.8 * (-1.333 / (3.0 * pow(mclight.y, 5.0) + 1.0) + 1.333);
+		float simulatedGI = 0.8 * (-1.333 / (3.0 * pow(mclight.y, 4.0) + 1.0) + 1.333);
 
 		vec3 ambient = ambientColor * simulatedGI;
 		#ifdef AO_Enabled
@@ -516,7 +517,7 @@ void main() {
 
 		vl = (2.0 - 2.0 / (1.0 + vl)) * (1.0 - extShadow);
 
-		color = mix(color, fogcolor, (vl * (0.73 - eyebrightness * 0.14)) * dot(nvpos, lightPosition));
+		color += fogcolor * (vl * (0.73 - eyebrightness * 0.14) * dot(nvpos, lightPosition));
 
 		#endif
 	}
