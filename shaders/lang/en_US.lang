@@ -1,0 +1,43 @@
+profile.LITE=Lite
+profile.MIN=Minimum
+profile.LOW=Low
+profile.MEDIUM=Medium
+profile.HIGH=High
+profile.ULTRA=Ultra
+
+screen.RENDERING=Graphics Rendering
+screen.LIGHTING=Lighting/Shading effects
+screen.GEOMETRY=Geometry Rendering
+screen.AFTER_EFFECTS=Post processing effects
+
+option.CAUSTIC=Water Caustics
+option.SMOOTH_TEXTURE=Texture filter (AA)
+option.CrespecularRays=Crespecular Rays (VL)
+option.HIGH_QUALITY_Crespecular=High Quality Crespecular Rays
+option.SKY_REFLECTIONS=Sky dome reflections
+option.CLOUDS=Cloud
+option.VOLUMETRIC_CLOUD=Volumetric cloud
+
+option.Brightness=Exposure
+option.AO_Enabled=Wisdom Ambient Occulution
+option.PLANE_REFLECTION=Screen Space Reflections
+option.SHADOW_FILTER=Soft Shadow
+option.COLORED_SHADOW=Colored Shadow
+option.shadowDistance=Shadow Render Distance
+option.shadowMapResolution=Shadow Resolution
+option.GlobalIllumination=Global Illumination
+option.ambientOcclusionLevel=MC Builtin AO level
+
+option.ENHANCED_WATER=Enhanced Water Rendering
+option.NORMALS=Normal Mapping
+option.WAVING_SHADOW=Grass Waving Shadow
+option.WATER_PARALLAX=Water Parallax
+option.SEA_HEIGHT=Water's wave height
+
+option.BLOOM=Bloom
+option.DOF=Depth of View
+option.DOF_NEARVIEWBLUR=Near View DOF
+option.WHITE_WORLD=Prime render
+option.BLACK_AND_WHITE=Black&White filter
+option.SSEDAA=Screen Space Edge Detect AA
+option.MOTION_BLUR=Motion Blur
