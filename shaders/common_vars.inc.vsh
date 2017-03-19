@@ -47,7 +47,7 @@ void calcCommon() {
 	vec3 skycolor_rain_day = vec3(1.2, 1.6, 2.0) * 0.1 * (TimeSunrise + TimeNoon + TimeSunset) * rainStrength;
 	vec3 skycolor_rain_night = vec3(0.0, 0.0, 0.0) * TimeMidnight * rainStrength;
 	skycolor = skycolor_sunrise + skycolor_noon + skycolor_sunset + skycolor_night + skycolor_rain_day + skycolor_rain_night;
-	skycolor *= 1.0 - rainStrength * 0.6;
+	skycolor *= 1.0 - rainStrength * 0.83;
 
 	vec3 horizontColor_sunrise = vec3(2.1, 1.8, 1.0) * 0.28 * TimeSunrise;
 	vec3 horizontColor_noon = vec3(2.1, 2.18, 2.16) * 0.27 * TimeNoon;
@@ -56,6 +56,7 @@ void calcCommon() {
 	vec3 horizontColor_rain_night = vec3(0.3, 0.7, 1.3) * 0.01 * TimeMidnight * rainStrength;
 
 	horizontColor = horizontColor_sunrise + horizontColor_noon + horizontColor_sunset + horizontColor_night + horizontColor_rain_night;
+	horizontColor *= 1.0 - rainStrength * 0.53;
 
 	vec3 fogclr_sunrise = vec3(0.75, 0.9, 1.27) * 0.5 * TimeSunrise * (1.0 - rainStrength * 1.0);
 	vec3 fogclr_noon = vec3(0.6, 0.8, 1.27) * 0.5 * TimeNoon * (1.0 - rainStrength * 1.0);

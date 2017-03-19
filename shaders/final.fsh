@@ -25,7 +25,7 @@
 
 #pragma optimize(on)
 
-const int RGB8 = 0, RGBA32F = 1, R11F_G11F_B10F = 2, RGBA16 = 3, RGBA8 = 4, RGB8_SNORM = 5;
+const int RGB8 = 0, RGBA32F = 1, RGB16 = 2, RGBA16 = 3, RGBA8 = 4, RGB8_SNORM = 5;
 #define GAlbedo colortex0
 #define GWPos colortex1
 #define GNormals gnormal
@@ -40,7 +40,7 @@ uniform float centerDepthSmooth;
 const int colortex0Format = RGBA8;
 const int colortex1Format = RGBA32F;
 const int gnormalFormat = RGBA16;
-const int compositeFormat = R11F_G11F_B10F;
+const int compositeFormat = RGB16;
 const int gaux1Format = RGBA8;
 const int gaux2Format = RGBA8;
 const int gaux3Format = RGBA32F;
@@ -188,7 +188,7 @@ vec3 Uncharted2Tonemap(in vec3 x) {
 }
 
 void colorAdjust(inout vec3 c) {
-	c *= 3.0;
+	c *= 2.0;
 
 	const float ExposureBias = 2.0f;
 	vec3 curr = Uncharted2Tonemap(ExposureBias * c);
@@ -197,6 +197,41 @@ void colorAdjust(inout vec3 c) {
 	vec3 color = curr * whiteScale;
 
 	c = pow(color, vec3(1.f/2.2f));
+}
+ 
+varying float sunVisibility;
+varying vec2 lf1Pos;
+varying vec2 lf2Pos;
+varying vec2 lf3Pos;
+varying vec2 lf4Pos;
+ 
+#define MANHATTAN_DISTANCE(DELTA) abs(DELTA.x)+abs(DELTA.y)
+ 
+#define LENS_FLARE(COLOR, UV, LFPOS, LFSIZE, LFCOLOR) { \
+                vec2 delta = UV - LFPOS; delta.x *= aspectRatio; \
+                if(MANHATTAN_DISTANCE(delta) < LFSIZE * 2.0) { \
+                    float d = max(LFSIZE - sqrt(dot(delta, delta)), 0.0); \
+                    COLOR += LFCOLOR.rgb * LFCOLOR.a * smoothstep(0.0, LFSIZE, d) * sunVisibility;\
+                } }
+ 
+#define LF1SIZE 0.1
+#define LF2SIZE 0.15
+#define LF3SIZE 0.25
+#define LF4SIZE 0.25
+ 
+const vec4 LF1COLOR = vec4(1.0, 1.0, 1.0, 0.1);
+const vec4 LF2COLOR = vec4(0.42, 0.0, 1.0, 0.1);
+const vec4 LF3COLOR = vec4(0.0, 1.0, 0.0, 0.1);
+const vec4 LF4COLOR = vec4(1.0, 0.0, 0.0, 0.1);
+ 
+vec3 lensFlare(vec3 color) {
+    if(sunVisibility <= 0.0)
+        return color;
+    LENS_FLARE(color, texcoord, lf1Pos, LF1SIZE, LF1COLOR);
+    LENS_FLARE(color, texcoord, lf2Pos, LF2SIZE, LF2COLOR);
+    LENS_FLARE(color, texcoord, lf3Pos, LF3SIZE, LF3COLOR);
+    LENS_FLARE(color, texcoord, lf4Pos, LF4SIZE, LF4COLOR);
+    return color;
 }
 
 void main() {
@@ -221,6 +256,8 @@ void main() {
 	#ifdef BLOOM
 	color += bloom();
 	#endif
+	
+	color = lensFlare(color);
 
 	color = vignette(color);
 	colorAdjust(color);

@@ -60,15 +60,7 @@ out vec4 vtexcoordam;
 
 #define hash(p) fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123)
 
-/*float noise( in vec2 p ) {
-	vec2 i = floor( p );
-	vec2 f = fract( p );
-	vec2 u = f*f*(3.0-2.0*f);
-	return -1.0+2.0*mix( mix( hash( i + vec2(0.0,0.0) ),
-	hash( i + vec2(1.0,0.0) ), u.x),
-	mix( hash( i + vec2(0.0,1.0) ),
-	hash( i + vec2(1.0,1.0) ), u.x), u.y);
-}*/
+varying vec4 texcoordb;
 
 VSH {
 	color = gl_Color;
@@ -140,6 +132,11 @@ VSH {
 	//#endif
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+
+	vec2 midcoord = (gl_TextureMatrix[0] * mc_midTexCoord).st;
+	vec2 tex_dist = texcoord - midcoord;
+	texcoordb.pq = abs(tex_dist)*2;
+	texcoordb.st = min(texcoord,midcoord - tex_dist);
 
 	/*
 	#ifdef ParallaxOcculusion
