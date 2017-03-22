@@ -59,7 +59,7 @@ uniform float viewHeight;
 uniform float far;
 uniform float frameTimeCounter;
 
-const float eyeBrightnessHalflife	 = 8.5f;
+const float eyeBrightnessHalflife = 18.5f;
 uniform ivec2 eyeBrightnessSmooth;
 
 varying vec2 texcoord;

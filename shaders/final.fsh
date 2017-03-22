@@ -22,7 +22,7 @@
 // =============================================================================
 
 #version 120
-
+#extension GL_ARB_shader_texture_lod : require
 #pragma optimize(on)
 
 const int RGB8 = 0, RGBA32F = 1, RGB16 = 2, RGBA16 = 3, RGBA8 = 4, RGB8_SNORM = 5;
@@ -70,34 +70,10 @@ const float gamma = 2.2;
 
 varying float centerDepth;
 
-#define DOF_FADE_RANGE 0.08
-#define DOF_CLEAR_RADIUS 0.1
 #define DOF_NEARVIEWBLUR
-//#define DOF
+#define DOF
 
 #define linearizeDepth(depth) (2.0 * near) / (far + near - depth * (far - near))
-
-#ifdef DOF
-vec3 dof(vec3 color, vec2 uv, float depth, in vec3 blurcolor) {
-	float linearFragDepth = linearizeDepth(depth);
-	float linearCenterDepth = linearizeDepth(centerDepth);
-	float delta = linearFragDepth - linearCenterDepth;
-	#ifdef DOF_NEARVIEWBLUR
-	float fade = smoothstep(0.0, DOF_FADE_RANGE, clamp(abs(delta) - DOF_CLEAR_RADIUS, 0.0, DOF_FADE_RANGE));
-	#else
-	float fade = smoothstep(0.0, DOF_FADE_RANGE, clamp(delta - DOF_CLEAR_RADIUS, 0.0, DOF_FADE_RANGE));
-	#endif
-	#ifdef TILT_SHIFT
-	float vin_dist = distance(texcoord.st, vec2(0.5f));
-	vin_dist = clamp(vin_dist * 1.7 - 0.65, 0.0, 1.0); //各种凑魔数
-	vin_dist = smoothstep(0.0, 1.0, vin_dist);
-	fade = max(vin_dist, fade);
-	#endif
-	if(fade < 0.001) return color;
-	vec2 offset = vec2(1.0 * aspectRatio / viewWidth, 1.0 / viewHeight);
-	return mix(color, blurcolor, fade * 0.6);
-}
-#endif
 
 #define MOTION_BLUR
 
@@ -141,39 +117,36 @@ vec3 vignette(vec3 color) {
 	return color.rgb * (1.0 - dist);
 }
 
+varying vec3 suncolor;
+uniform ivec2 eyeBrightnessSmooth;
+float exposure = 4.0 * clamp(1.0 - clamp(eyeBrightnessSmooth.y / 240.0, 0.0, 1.0) * 0.5 * luma(suncolor), 0.0, 1.0);
+
 #define BLOOM
 
-const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
-const float weight[9] = float[] (0.4210103, 0.191235, 0.06098, 0.0238563, 0.0093547, 0.0030827, 0.000801, 0.000163, 0.000078);
-
-#define blurLoop(i) color += texture2D(gcolor, texcoord + direction * offset[i]).rgb * weight[i]; color += texture2D(gcolor, texcoord - direction * offset[i]).rgb * weight[i];
+#ifdef BLOOM
+#define texture_Bicubic(tex, i) texture2D(tex, i)
 
 vec3 bloom() {
-	vec3 color = texture2D(gcolor, texcoord).rgb * weight[0];
-	vec2 direction = vec2(0.0, 0.0019) / viewHeight * viewWidth;
-	blurLoop(1)
-	blurLoop(2)
-	blurLoop(3)
-	blurLoop(4)
-	blurLoop(5)
-	blurLoop(6)
-	blurLoop(7)
-	blurLoop(8)
+	vec2 tex_offset = vec2(1.0f / viewWidth, 1.0f / viewHeight);
+
+	vec2 tex = (texcoord.st - tex_offset * 0.5f) * 0.25;
+	vec3 color = texture_Bicubic(gcolor, tex).rgb;
+	tex = (texcoord.st - tex_offset * 0.5f) * 0.125      + vec2(0.0f, 0.25f)	  + vec2(0.000f, 0.025f);
+	color +=  texture_Bicubic(gcolor, tex).rgb * 0.95;
+	tex = (texcoord.st - tex_offset * 0.5f) * 0.0625     + vec2(0.125f, 0.25f)  + vec2(0.025f, 0.025f);
+	color +=  texture_Bicubic(gcolor, tex).rgb * 0.85;
+	tex = (texcoord.st - tex_offset * 0.5f) * 0.03125    + vec2(0.1875f, 0.25f)	+ vec2(0.050f, 0.025f);
+	color +=  texture_Bicubic(gcolor, tex).rgb * 0.7;
+	tex = (texcoord.st - tex_offset * 0.5f) * 0.015625   + vec2(0.21875f, 0.25f)+ vec2(0.075f, 0.025f);
+	color +=  texture_Bicubic(gcolor, tex).rgb * 0.5;
+	tex = (texcoord.st - tex_offset * 0.5f) * 0.0078125  + vec2(0.25f, 0.25f)   + vec2(0.100f, 0.025f);
+	color +=  texture_Bicubic(gcolor, tex).rgb * 0.24;
+
+	color *= 0.2;
+	color *= 1.0 + exposure;
 	return color * luma(color);
 }
-
-vec3 blur() {
-	vec3 c = texture2D(composite, texcoord + vec2(-0.0021, 0.0021)).rgb * 0.077847;
-	c += texture2D(composite, texcoord + vec2(0.0, 0.0021)).rgb * 0.123317;
-	c += texture2D(composite, texcoord + vec2(0.0021, 0.0021)).rgb * 0.077847;
-	c += texture2D(composite, texcoord + vec2(-0.0021, 0.0)).rgb * 0.123317;
-	c += texture2D(composite, texcoord).rgb * 0.195346;
-	c += texture2D(composite, texcoord + vec2(0.0021, 0.0)).rgb * 0.123317;
-	c += texture2D(composite, texcoord + vec2(-0.0021, -0.0021)).rgb * 0.077847;
-	c += texture2D(composite, texcoord + vec2(0.0, -0.0021)).rgb * 0.123317;
-	c += texture2D(composite, texcoord + vec2(0.0021, -0.0021)).rgb * 0.077847;
-	return c;
-}
+#endif
 
 const float A = 0.11;
 const float B = 0.50;
@@ -183,12 +156,10 @@ const float E = 0.02;
 const float F = 0.30;
 const float W = 11.2;
 
-vec3 Uncharted2Tonemap(in vec3 x) {
-	return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
-}
+#define Uncharted2Tonemap(x) (((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F)
 
 void colorAdjust(inout vec3 c) {
-	c *= 2.0;
+	c *= 1.5 + exposure;
 
 	const float ExposureBias = 2.0f;
 	vec3 curr = Uncharted2Tonemap(ExposureBias * c);
@@ -198,45 +169,39 @@ void colorAdjust(inout vec3 c) {
 
 	c = pow(color, vec3(1.f/2.2f));
 }
- 
+
 varying float sunVisibility;
 varying vec2 lf1Pos;
 varying vec2 lf2Pos;
 varying vec2 lf3Pos;
 varying vec2 lf4Pos;
- 
+
 #define MANHATTAN_DISTANCE(DELTA) abs(DELTA.x)+abs(DELTA.y)
- 
-#define LENS_FLARE(COLOR, UV, LFPOS, LFSIZE, LFCOLOR) { \
-                vec2 delta = UV - LFPOS; delta.x *= aspectRatio; \
-                if(MANHATTAN_DISTANCE(delta) < LFSIZE * 2.0) { \
-                    float d = max(LFSIZE - sqrt(dot(delta, delta)), 0.0); \
-                    COLOR += LFCOLOR.rgb * LFCOLOR.a * smoothstep(0.0, LFSIZE, d) * sunVisibility;\
-                } }
- 
+
+#define LENS_FLARE(COLOR, UV, LFPOS, LFSIZE, LFCOLOR) { vec2 delta = UV - LFPOS; delta.x *= aspectRatio; if(MANHATTAN_DISTANCE(delta) < LFSIZE * 2.0) { float d = max(LFSIZE - sqrt(dot(delta, delta)), 0.0); COLOR += LFCOLOR.rgb * LFCOLOR.a * smoothstep(0.0, LFSIZE, d) * sunVisibility;} }
+
 #define LF1SIZE 0.1
 #define LF2SIZE 0.15
 #define LF3SIZE 0.25
 #define LF4SIZE 0.25
- 
+
 const vec4 LF1COLOR = vec4(1.0, 1.0, 1.0, 0.1);
 const vec4 LF2COLOR = vec4(0.42, 0.0, 1.0, 0.1);
 const vec4 LF3COLOR = vec4(0.0, 1.0, 0.0, 0.1);
 const vec4 LF4COLOR = vec4(1.0, 0.0, 0.0, 0.1);
- 
+
 vec3 lensFlare(vec3 color) {
-    if(sunVisibility <= 0.0)
-        return color;
-    LENS_FLARE(color, texcoord, lf1Pos, LF1SIZE, LF1COLOR);
-    LENS_FLARE(color, texcoord, lf2Pos, LF2SIZE, LF2COLOR);
-    LENS_FLARE(color, texcoord, lf3Pos, LF3SIZE, LF3COLOR);
-    LENS_FLARE(color, texcoord, lf4Pos, LF4SIZE, LF4COLOR);
-    return color;
+	if(sunVisibility <= 0.0)
+	return color;
+	LENS_FLARE(color, texcoord, lf1Pos, LF1SIZE, LF1COLOR);
+	LENS_FLARE(color, texcoord, lf2Pos, LF2SIZE, LF2COLOR);
+	LENS_FLARE(color, texcoord, lf3Pos, LF3SIZE, LF3COLOR);
+	LENS_FLARE(color, texcoord, lf4Pos, LF4SIZE, LF4COLOR);
+	return color;
 }
 
 void main() {
 	vec3 color = texture2D(Output, texcoord).rgb;
-	vec3 blurcolor = blur();
 
 	#ifdef MOTION_BLUR
 	vec4 viewpos = gbufferProjectionInverse * vec4(texcoord.s * 2.0 - 1.0, texcoord.t * 2.0 - 1.0, texture2D(depthtex0, texcoord).r * 2.0 - 1.0, 1.0f);
@@ -246,17 +211,24 @@ void main() {
 
 	float depth = texture2D(depthtex0, texcoord).r;
 	float ldepthN = linearizeDepth(depth);
-	float blurMin = 0.95f - rainStrength * 0.5;
-	float blurStrength1 = 1.0 / (1.0 - blurMin);
-	if (ldepthN > blurMin) color = mix(color, blurcolor, clamp((ldepthN - blurMin) * blurStrength1, 0.f, 1.f));
 
 	#ifdef DOF
-	color = dof(color, texcoord, depth, blurcolor);
+	vec2 pix_offset = vec2(1.0f / viewWidth, 1.0f / viewHeight) * 0.5f;
+	vec3 blur = texture2D(gcolor, (texcoord.st - pix_offset) * 0.25).rgb;
+
+	#ifdef DOF_NEARVIEWBLUR
+	float pcoc = abs(ldepthN - linearizeDepth(centerDepth));
+	#else
+	float pcoc = max(0.0, ldepthN - linearizeDepth(centerDepth));
 	#endif
+
+	color = mix(color, blur, pcoc);
+	#endif
+
 	#ifdef BLOOM
 	color += bloom();
 	#endif
-	
+
 	color = lensFlare(color);
 
 	color = vignette(color);

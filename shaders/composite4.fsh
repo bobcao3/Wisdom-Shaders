@@ -32,28 +32,52 @@ varying vec2 texcoord;
 
 #define BLOOM
 #ifdef BLOOM
-const bool compositeMipmapEnabled = true;
+#define BLUR
+#endif
 
-#define luma(color)	dot(color,vec3(0.2126, 0.7152, 0.0722))
-const float offset[9] = float[] (0.0, 1.4896, 3.4757, 5.4619, 7.4482, 9.4345, 11.421, 13.4075, 15.3941);
-const float weight[9] = float[] (0.4210103, 0.191235, 0.06098, 0.0238563, 0.0093547, 0.0030827, 0.000801, 0.000163, 0.000078);
+#define DOF
+#ifdef DOF
+#define BLUR
+#endif
 
-#define blurLoop(i) a = texture2DLod(composite, texcoord + vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * weight[i]; a = texture2DLod(composite, texcoord - vec2(0.0019, .0) * offset[i], 1.0).rgb; color += a * weight[i];
+#ifdef BLUR
+uniform float viewWidth;
+uniform float viewHeight;
 
-vec3 bloom() {
-	vec3 color = texture2D(composite, texcoord).rgb * weight[0];
-	vec3 a;
-	blurLoop(1)
-	blurLoop(2)
-	blurLoop(3)
-	blurLoop(4)
-	blurLoop(5)
-	blurLoop(6)
-	blurLoop(7)
-	blurLoop(8)
-	return color;
+vec3 LODblur(in int LOD, in vec2 offset) {
+	float scale = pow(2.0f, float(LOD));
+	vec3 bloom = vec3(0.0);
+	float padding = 0.02f;
+
+	if (	texcoord.s - offset.s + padding < 1.0f / scale + (padding * 2.0f)
+		&&  texcoord.t - offset.t + padding < 1.0f / scale + (padding * 2.0f)
+		&&  texcoord.s - offset.s + padding > 0.0f
+		&&  texcoord.t - offset.t + padding > 0.0f) {
+
+		float allWeights = 0.0f;
+
+		for (int i = 0; i < 5; i++) {
+			for (int j = 0; j < 5; j++) {
+
+				float weight = 1.0f - distance(vec2(i, j), vec2(2.5f)) * 0.72;
+				weight = clamp(weight, 0.0f, 1.0f);
+				weight = 1.0f - cos(weight * 3.1415 * 0.5f);
+				weight = pow(weight, 2.0f);
+				vec2 coord = vec2(i - 2.5, j - 2.5) / vec2(viewWidth, viewHeight);
+
+				vec2 finalCoord = (texcoord.st + coord.st - offset.st) * scale;
+
+				if (weight > 0.0f) {
+					bloom += clamp(texture2D(composite, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight;
+					allWeights += 1.0f * weight;
+				}
+			}
+		}
+
+		bloom /= allWeights;
+	}
+	return bloom;
 }
-
 #endif
 
 //#define SSEDAA
@@ -133,8 +157,14 @@ vec4 EDAA() {
 
 /* DRAWBUFFERS:03 */
 void main() {
-	#ifdef BLOOM
-	gl_FragData[0] = vec4(bloom(), 1.0);
+	#ifdef BLUR
+	vec3 blur;
+	blur  = LODblur(2, vec2(0.0f)           + vec2(0.000f, 0.000f));
+	blur += LODblur(3, vec2(0.0f, 0.25f)    + vec2(0.000f, 0.025f));
+	blur += LODblur(4, vec2(0.125f, 0.25f)  + vec2(0.025f, 0.025f));
+	blur += LODblur(5, vec2(0.1875f, 0.25f) + vec2(0.050f, 0.025f));
+	blur += LODblur(6, vec2(0.21875f, 0.25f)+ vec2(0.075f, 0.025f));
+	gl_FragData[0] = vec4(blur, 1.0);
 	#endif
 
 	#ifdef SSEDAA

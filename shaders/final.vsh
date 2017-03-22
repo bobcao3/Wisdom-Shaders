@@ -25,7 +25,7 @@
 
 #pragma optimize(on)
 
-varying vec2 texcoord;
+//varying vec2 texcoord;
 varying float centerDepth;
 
 uniform sampler2D depthtex0;
@@ -34,27 +34,29 @@ uniform float viewWidth;
 uniform float viewHeight;
 uniform vec3 sunPosition;
 uniform mat4 gbufferProjection;
- 
+
 varying float sunVisibility;
 varying vec2 lf1Pos;
 varying vec2 lf2Pos;
 varying vec2 lf3Pos;
 varying vec2 lf4Pos;
- 
+
 #define LF1POS -0.3
 #define LF2POS 0.2
 #define LF3POS 0.7
 #define LF4POS 0.75
+
+#include "common_vars.inc.vsh"
 
 void main() {
 	gl_Position = ftransform();
 	texcoord = gl_MultiTexCoord0.st;
 
 	centerDepth = min(0.9995, texture2D(depthtex0, vec2(0.5, 0.5)).r);
-	
+
 	vec4 ndcSunPosition = gbufferProjection * vec4(normalize(sunPosition), 1.0);
 	ndcSunPosition /= ndcSunPosition.w;
-	vec2 pixelSize = vec2(1.0 / viewWidth, 1.0 / viewHeight);   
+	vec2 pixelSize = vec2(1.0 / viewWidth, 1.0 / viewHeight);
 	sunVisibility = 0.0f;
 	vec2 screenSunPosition = vec2(-10.0);
 	lf1Pos = lf2Pos = lf3Pos = lf4Pos = vec2(-10.0);
@@ -71,11 +73,13 @@ void main() {
 		}
 		float shortestDis = min( min(screenSunPosition.s, 1.0 - screenSunPosition.s), min(screenSunPosition.t, 1.0 - screenSunPosition.t));
 		sunVisibility *= smoothstep(0.0, 0.2, clamp(shortestDis, 0.0, 0.2));
- 
+
 		vec2 dir = vec2(0.5) - screenSunPosition;
 		lf1Pos = vec2(0.5) + dir * LF1POS;
 		lf2Pos = vec2(0.5) + dir * LF2POS;
 		lf3Pos = vec2(0.5) + dir * LF3POS;
 		lf4Pos = vec2(0.5) + dir * LF4POS;
 	}
+
+  calcCommon();
 }
