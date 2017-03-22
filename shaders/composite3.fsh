@@ -395,12 +395,11 @@ vec3 mie(float dist, vec3 sunL){
 
 vec3 calcSkyColor(vec3 wpos, float camHeight){
 	float rain = 1.0 - rainStrength;
-	vec3 totalSkyLight = mix(vec3(0.168, 0.35, 0.99), vec3(0.85), rainStrength);
-	float sunDistance = distance(wpos, worldSunPosition);
-	float moonDistance = distance(wpos, -worldSunPosition);
-	sunDistance *= 0.5; moonDistance *= 0.5;
+	vec3 totalSkyLight = mix(vec3(0.168, 0.35, 1.4), vec3(0.85), rainStrength);
+	float sunDistance = distance(wpos, worldSunPosition) * 0.5;
+	float moonDistance = distance(wpos, -worldSunPosition) * 0.5;
 
-	float sunH = worldSunPosition.y * 1.589;
+	float sunH = clamp((worldSunPosition.y * 1.589) * 2.0 - 1.0, -2.0, 1.0);
 
 	float sunScatterMult = clamp(sunDistance, 0.0, 1.0);
 	float sun = clamp(1.0 - smoothstep(0.01, 0.018, sunScatterMult), 0.0, 1.0) * rain;
@@ -412,7 +411,7 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	const float coeiff = 0.3785;
 	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
 
-	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984));
+	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * min(1.0, luma(suncolor)));
 	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 1.0)) * 0.05;
 
 	vec3 sky = horizont * totalSkyLight;
@@ -428,7 +427,7 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	#endif
 
 	sky = sky + sun + moon;
-	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 10.0;
+	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 2.0;
 	sky *= 1.0 + pow(1.0 - moonScatterMult, 11.0);
 
 	#ifdef CLOUDS
