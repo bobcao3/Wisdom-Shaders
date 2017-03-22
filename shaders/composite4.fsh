@@ -40,50 +40,48 @@ varying vec2 texcoord;
 #define BLUR
 #endif
 
-#ifdef BLUR
 uniform float viewWidth;
 uniform float viewHeight;
 
+#ifdef BLUR
+const float padding = 0.02f;
+
+bool checkBlur(vec2 offset, float scale) {
+	return
+	(  (texcoord.s - offset.s + padding < 1.0f / scale + (padding * 2.0f))
+	&& (texcoord.t - offset.t + padding < 1.0f / scale + (padding * 2.0f)) );
+}
+
 vec3 LODblur(in int LOD, in vec2 offset) {
-	float scale = pow(2.0f, float(LOD));
+	float scale = exp2(LOD);
 	vec3 bloom = vec3(0.0);
-	float padding = 0.02f;
 
-	if (	texcoord.s - offset.s + padding < 1.0f / scale + (padding * 2.0f)
-		&&  texcoord.t - offset.t + padding < 1.0f / scale + (padding * 2.0f)
-		&&  texcoord.s - offset.s + padding > 0.0f
-		&&  texcoord.t - offset.t + padding > 0.0f) {
+	float allWeights = 0.0f;
 
-		float allWeights = 0.0f;
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 5; j++) {
 
-		for (int i = 0; i < 5; i++) {
-			for (int j = 0; j < 5; j++) {
+			float weight = 1.0f - distance(vec2(i, j), vec2(2.5f)) * 0.72;
+			weight = clamp(weight, 0.0f, 1.0f);
+			weight = 1.0f - cos(weight * 3.1415 * 0.5f);
+			weight = pow(weight, 2.0f);
+			vec2 coord = vec2(i - 2.5, j - 2.5) / vec2(viewWidth, viewHeight);
 
-				float weight = 1.0f - distance(vec2(i, j), vec2(2.5f)) * 0.72;
-				weight = clamp(weight, 0.0f, 1.0f);
-				weight = 1.0f - cos(weight * 3.1415 * 0.5f);
-				weight = pow(weight, 2.0f);
-				vec2 coord = vec2(i - 2.5, j - 2.5) / vec2(viewWidth, viewHeight);
+			vec2 finalCoord = (texcoord.st + coord.st - offset.st) * scale;
 
-				vec2 finalCoord = (texcoord.st + coord.st - offset.st) * scale;
-
-				if (weight > 0.0f) {
-					bloom += clamp(texture2D(composite, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight;
-					allWeights += 1.0f * weight;
-				}
+			if (weight > 0.0f) {
+				bloom += clamp(texture2D(composite, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight;
+				allWeights += 1.0f * weight;
 			}
 		}
-
-		bloom /= allWeights;
 	}
-	return bloom;
+
+	return bloom / allWeights;
 }
 #endif
 
 //#define SSEDAA
 #ifdef SSEDAA
-uniform float viewWidth;
-uniform float viewHeight;
 uniform sampler2D depthtex0;
 uniform sampler2D gdepth;
 uniform float far;
@@ -158,12 +156,18 @@ vec4 EDAA() {
 /* DRAWBUFFERS:03 */
 void main() {
 	#ifdef BLUR
-	vec3 blur;
-	blur  = LODblur(2, vec2(0.0f)           + vec2(0.000f, 0.000f));
-	blur += LODblur(3, vec2(0.0f, 0.25f)    + vec2(0.000f, 0.025f));
-	blur += LODblur(4, vec2(0.125f, 0.25f)  + vec2(0.025f, 0.025f));
-	blur += LODblur(5, vec2(0.1875f, 0.25f) + vec2(0.050f, 0.025f));
-	blur += LODblur(6, vec2(0.21875f, 0.25f)+ vec2(0.075f, 0.025f));
+	vec3 blur = vec3(0.0);
+	float lod = 2.0; vec2 offset = vec2(0.0f);
+	if (texcoord.y < 0.25 + padding * 2.0 + 0.6251 && texcoord.x < 0.0078125 + 0.25f + 0.100f) {
+		if (texcoord.y > 0.25 + padding) {
+			     if (checkBlur(offset = vec2(0.0f, 0.25f)    + vec2(0.000f, 0.025f), exp2(lod = 3.0))) {}
+		 	else if (checkBlur(offset = vec2(0.125f, 0.25f)  + vec2(0.025f, 0.025f), exp2(lod = 4.0))) {}
+			else if (checkBlur(offset = vec2(0.1875f, 0.25f) + vec2(0.050f, 0.025f), exp2(lod = 5.0))) {}
+			else if (checkBlur(offset = vec2(0.21875f, 0.25f)+ vec2(0.075f, 0.025f), exp2(lod = 6.0))) {}
+			else lod = 0.0f;
+		} else if (texcoord.x > 0.25 + padding) lod = 0.0f;
+		if (lod > 1.0f) blur = LODblur(int(lod), offset);
+	}
 	gl_FragData[0] = vec4(blur, 1.0);
 	#endif
 
