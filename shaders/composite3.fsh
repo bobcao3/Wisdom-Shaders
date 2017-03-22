@@ -285,16 +285,16 @@ vec2 hash22( vec2 p ) {
 }
 
 float noisePerlin( in vec2 p ) {
-    const float K1 = 0.366025404; // (sqrt(3)-1)/2;
-    const float K2 = 0.211324865; // (3-sqrt(3))/6;
+	const float K1 = 0.366025404; // (sqrt(3)-1)/2;
+	const float K2 = 0.211324865; // (3-sqrt(3))/6;
 	vec2 i = floor(p + (p.x+p.y)*K1);
-    vec2 a = p - i + (i.x+i.y)*K2;
-    vec2 o = (a.x>a.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
-    vec2 b = a - o + K2;
+	vec2 a = p - i + (i.x+i.y)*K2;
+	vec2 o = (a.x>a.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
+	vec2 b = a - o + K2;
 	vec2 c = a - 1.0 + 2.0*K2;
-    vec3 h = max(0.5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0.0 );
+	vec3 h = max(0.5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0.0 );
 	vec3 n = h*h*h*h*vec3( dot(a,hash22(i+0.0)), dot(b,hash22(i+o)), dot(c,hash22(i+1.0)));
-    return dot(n, vec3(70.0));
+	return dot(n, vec3(70.0));
 }
 
 #ifdef CLOUDS
@@ -395,7 +395,7 @@ vec3 mie(float dist, vec3 sunL){
 
 vec3 calcSkyColor(vec3 wpos, float camHeight){
 	float rain = 1.0 - rainStrength;
-	vec3 totalSkyLight = mix(vec3(0.038, 0.1, 0.85), vec3(0.85), rainStrength);
+	vec3 totalSkyLight = mix(vec3(0.168, 0.35, 0.99), vec3(0.85), rainStrength);
 	float sunDistance = distance(wpos, worldSunPosition);
 	float moonDistance = distance(wpos, -worldSunPosition);
 	sunDistance *= 0.5; moonDistance *= 0.5;
@@ -409,7 +409,7 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	float moon = clamp(1.0 - smoothstep(0.01, 0.011, moonScatterMult), 0.0, 1.0) * rain;
 
 	float horizont = max(0.001, normalize(wpos * 480.0 + vec3(0.0, camHeight, 0.0)).y);
-	const float coeiff = 0.6785;
+	const float coeiff = 0.3785;
 	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
 
 	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984));
@@ -641,8 +641,9 @@ void main() {
 			if (frag.vpos.z > 0.99) color = calcSkyColor(normalize(frag.wpos), cameraPosition.y + frag.wpos.y);
 			#endif
 
-			vec3 watercolor = SEA_WATER_COLOR * vec3(min(luma(skycolor), 1.0));
+			vec3 watercolor = vec3(min(luma(skycolor), 1.0) * (0.02 + pow(org_specular.a, 4.0) * 0.98));
 			watercolor *= (vec3(0.85, 0.72, 0.75) / (vec3(14.0, 8.0, 2.0) * dist_diff_N + 1.0) + vec3(0.15, 0.28, 0.25)) * vec3(0.35, 0.41, 1.0);
+			watercolor = mix(watercolor, SEA_WATER_COLOR * watercolor, pow(org_specular.a, 4.0));
 			color = mix(color, watercolor, 1.0 - pow(2.0 / (dist_diff_N + 1.0) - 1.0, 2.0));
 
 			shade = fast_shadow_map(water_wpos);
@@ -705,12 +706,13 @@ void main() {
 				vec4 reflection = vec4(0.0);
 				#endif
 
+				float skyam = frag_mask.is_water ? pow(org_specular.a, 4.0) : 1.0;
 				#ifdef SKY_REFLECTIONS
 				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal);
 				if (frag_mask.is_water) wref.y = abs(wref.y);
-				ref_color += calcSkyColor(wref, cameraPosition.y + frag.wpos.y) * (1.0 - reflection.a) * specular.r;
+				ref_color += calcSkyColor(wref, cameraPosition.y + frag.wpos.y) * (1.0 - reflection.a) * specular.r * skyam;
 				#else
-				ref_color += skyColor * (1.0 - reflection.a) * specular.r;
+				ref_color += skyColor * (1.0 - reflection.a) * specular.r * skyam;
 				#endif
 			}
 

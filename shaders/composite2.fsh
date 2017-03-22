@@ -187,7 +187,7 @@ vec2 mclight = vec2(0.0);
 #define SHADOW_FILTER
 #define COLORED_SHADOW
 
-float OrenNayar(vec3 v, vec3 l, vec3 n, float r) {
+float diffuse(vec3 v, vec3 l, vec3 n, float r, float NdotL) {
 	r *= r;
 
 	//float NdotL = dot(n,l);
@@ -395,6 +395,8 @@ vec3 blurGI(vec3 c) {
 
 #define CrespecularRays
 
+uniform vec3 upVec;
+
 void main() {
 	vec4 normaltex = texture2D(gnormal, texcoord);
 	normal = normalize(normalDecode(normaltex.xy));
@@ -417,7 +419,7 @@ void main() {
 		bool under_water = false;
 		vec4 specular = texture2D(gaux1, texcoord);
 		mclight = texture2D(gaux2, texcoord).xy;
-		float oren = max(extShadow, 1.0 - OrenNayar(nvpos.xyz, lightPosition, normal, specular.r));
+		float oren = max(extShadow, 1.0 - diffuse(nvpos.xyz, lightPosition, normal, specular.r, NdotL));
 		shade = shadow_map(shadowcolor, under_water);
 
 		#ifdef CAUSTIC
@@ -472,17 +474,17 @@ void main() {
 
 		// PBR specular, Red & Green reversed
 		// Spec is in composite1.fsh
-		diffuse_torch *= 1.0 - specular.r * 0.43;
+		diffuse_torch *= 1.0 - specular.r * 0.23;
 		//diffuse_torch *= 1.0 + specular.b;
-
-		color *= 1.0 + 4.0 * max(0.0, 0.73 - eyebrightness * 0.14 * luma(suncolor));
 
 		#ifdef AO_Enabled
 		float ao = blurAO(compositetex.g, normal);
 		#endif
 
 		// AO
-		float simulatedGI = 0.8 * (-1.333 / (3.0 * pow(mclight.y, 4.0) + 1.0) + 1.333);
+		float simulatedGI = 0.4 * (-1.333 / (3.0 * pow(mclight.y, 4.0) + 1.0) + 1.333);
+		vec3 sunRef = reflect(lightPosition, upVec);
+		simulatedGI *= 1.0 + max(0.0, dot(sunRef, normal));
 
 		vec3 ambient = ambientColor * simulatedGI;
 		#ifdef AO_Enabled
@@ -516,7 +518,7 @@ void main() {
 
 		vl = (2.0 - 2.0 / (1.0 + vl)) * (1.0 - extShadow);
 
-		color += fogcolor * (vl * (0.73 - eyebrightness * 0.14) * dot(nvpos, lightPosition));
+		color += fogcolor * (vl * (0.73 - eyebrightness * 0.14) * max(0.0, dot(nvpos, lightPosition)));
 
 		#endif
 	}
