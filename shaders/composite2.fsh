@@ -53,7 +53,6 @@ uniform float viewHeight;
 uniform float far;
 uniform float near;
 uniform float frameTimeCounter;
-uniform float rainStrength;
 
 uniform bool isEyeInWater;
 
@@ -201,7 +200,7 @@ float OrenNayar(vec3 v, vec3 l, vec3 n, float r) {
 	float a = .285 / (r+.57) + .5;
 	float b = .45 * r / (r+.09);
 
-	return max(0., NdotL) * ( b * c + a);
+	return max(0.0, NdotL) * ( b * c + a);
 }
 
 float shadow_map(out vec3 shadowcolor, inout bool under_water) {
@@ -231,7 +230,7 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 		#else
 			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z);
 		#endif
-		
+
 		shadowcolor = vec3(1.0 - shade);
 
 		#ifdef COLORED_SHADOW
@@ -412,13 +411,13 @@ void main() {
 	vec3 fogColor;
 
 	float eyebrightness = pow(float(eyeBrightnessSmooth.y) / 240.0, 2.0);
-	vec3 ambientColor = vec3(0.135, 0.14, 0.215) * luma(horizontColor) * (1.0 - eyebrightness * 0.2) * 3.0 * (1.0 - rainStrength * 0.7);
+	vec3 ambientColor = vec3(0.135, 0.14, 0.215) * luma(horizontColor) * (1.0 - eyebrightness * 0.2) * 3.0;
 	if (!issky) {
 		vec3 shadowcolor;
 		bool under_water = false;
 		vec4 specular = texture2D(gaux1, texcoord);
 		mclight = texture2D(gaux2, texcoord).xy;
-		float oren = max(extShadow, 1.0 - OrenNayar(vpos.xyz, lightPosition, normal, specular.r));
+		float oren = max(extShadow, 1.0 - OrenNayar(nvpos.xyz, lightPosition, normal, specular.r));
 		shade = shadow_map(shadowcolor, under_water);
 
 		#ifdef CAUSTIC
@@ -449,7 +448,7 @@ void main() {
 		float attenuation = clamp(light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, 0.0, max_light);
 
 		vec3 diffuse_torch = attenuation * torchColor;
-		vec3 diffuse_sun = (1.0 - shade) * (suncolor * luma(horizontColor)) * (3.5 * shadowcolor) * (1.0 - rainStrength * 0.8);
+		vec3 diffuse_sun = (1.0 - shade) * suncolor * (3.5 * shadowcolor);
 
 		if (flag > 0.89) specular = vec4(0.0001);
 
@@ -504,8 +503,8 @@ void main() {
 		vec3 Lo = is_water || flag > 0.89 ? color * diffuse_sun * 0.6 : (kD * color / PI + brdf) * diffuse_sun;
 		color = ambient + Lo + diffuse_torch * color;
 
-		float fog_coord = saturate((512.0 - cdepth) / (512.0 - 32.0 * (1.0 - rainStrength * 0.6)));
-		color = mix(fogcolor * (1.0 - rainStrength * 0.9), color, pow(fog_coord, (1.0 - rainStrength * 0.6)));
+		float fog_coord = saturate((512.0 - cdepth) / (512.0 - 32.0));
+		color = mix(fogcolor, color, fog_coord);
 		#ifdef CrespecularRays
 		float vl = texture2D(composite, texcoord * 0.5).b;
 		vl += texture2DLod(composite, texcoord * 0.5, 1.0).b;

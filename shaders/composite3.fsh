@@ -98,6 +98,7 @@ struct Mask {
 	bool is_water;
 	bool is_trans;
 	bool is_glass;
+	bool is_plant;
 };
 
 struct Material {
@@ -131,6 +132,7 @@ void init_struct() {
 	frag_mask.is_water = (frag_mask.flag > 0.71f && frag_mask.flag < 0.79f);
 	frag_mask.is_glass = (frag_mask.flag > 0.93);
 	frag_mask.is_trans = frag_mask.is_water || frag_mask.is_glass;
+	frag_mask.is_plant = (frag_mask.flag > 0.48 && frag_mask.flag < 0.53);
 }
 
 #define SHADOW_MAP_BIAS 0.9
@@ -285,14 +287,14 @@ vec2 hash22( vec2 p ) {
 float noisePerlin( in vec2 p ) {
     const float K1 = 0.366025404; // (sqrt(3)-1)/2;
     const float K2 = 0.211324865; // (3-sqrt(3))/6;
-	vec2 i = floor(p + (p.x+p.y)*K1);	
+	vec2 i = floor(p + (p.x+p.y)*K1);
     vec2 a = p - i + (i.x+i.y)*K2;
     vec2 o = (a.x>a.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
     vec2 b = a - o + K2;
 	vec2 c = a - 1.0 + 2.0*K2;
     vec3 h = max(0.5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0.0 );
 	vec3 n = h*h*h*h*vec3( dot(a,hash22(i+0.0)), dot(b,hash22(i+o)), dot(c,hash22(i+1.0)));
-    return dot(n, vec3(70.0));	
+    return dot(n, vec3(70.0));
 }
 
 #ifdef CLOUDS
@@ -314,7 +316,7 @@ float cloudNoise(in vec3 wpos) {
 	n += noisePerlin(coord) * 0.0625;	coord *= 3.03; dir *= rotate; coord += dir * frameTimeCounter * 0.12;
 	n += noisePerlin(coord) * 0.0312;
 
-	return smoothstep(0.0, 1.0, clamp(n + rainStrength * 0.3, 0.0, 1.0));
+	return smoothstep(0.0, 1.0, clamp(n + rainStrength * 0.5, 0.0, 1.0));
 }
 
 const float cloudMin = 2800.0;
@@ -357,7 +359,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	float density = cloud3D(spos + worldLightPos * total * cloudThick);
 
 	vec3 cloud_color = (1.0 - density) * (L * 0.7 + mie * (1.0 - total)) + horizontColor * (1.0 - total * 0.5);
-	cloud_color *= 1.0 - rainStrength * 0.8;
+	cloud_color *= 1.0 - rainStrength * 0.34;
 	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
 
 	total = clamp(total, 0.0, 1.0);
@@ -376,7 +378,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	float density = cloudNoise(spos + worldLightPos * total * cloudThick * 0.1);
 
 	vec3 cloud_color = (1.0 - density) * (L * 0.7 + mie * (1.0 - total)) + horizontColor * (1.0 - total * 0.5);
-	cloud_color *= 1.0 - rainStrength * 0.8;
+	cloud_color *= 1.0 - rainStrength * 0.34;
 	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
 
 	total = clamp(total, 0.0, 1.0);
@@ -420,19 +422,19 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 
 	float underscatter = distance(sunH * 0.5 + 0.7, 1.0);
 	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0)) + sunMieScatter + moonMieScatter;
-	
+
 	#ifdef CLOUDS
 	vec4 cloud = calcCloud(wpos, sunMieScatter + moonMieScatter, sky);
 	#endif
-	
+
 	sky = sky + sun + moon;
 	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 10.0;
 	sky *= 1.0 + pow(1.0 - moonScatterMult, 11.0);
-	
+
 	#ifdef CLOUDS
  	sky = mix(sky, cloud.rgb, cloud.a);
  	#endif
- 
+
  	return sky;
 }
 
@@ -560,7 +562,7 @@ void main() {
 
 		if (frag_mask.is_valid) org_specular = vec4(0.1, 0.96, 0.0, 1.0);
 	}
-	
+
 	// Preprocess Specular
 	vec3 specular = vec3(min(org_specular.g, 0.9999), org_specular.rb);
 
@@ -665,19 +667,21 @@ void main() {
 			float wetness_distribution = noisePerlin(cwpos.xz * 0.1) + noisePerlin(cwpos.yz * 0.1) * 0.7;
 			wetness_distribution += 0.5 * (noisePerlin(cwpos.zx * 0.02) + 0.2 * noisePerlin(cwpos.yx * 0.02)) + 0.5;
 			wetness_distribution = clamp(smoothstep(0.0, 1.0, wetness_distribution * wetness2), 0.0, 1.0);
-			float side = dot(frag.wnormal, vec3(0.0, 1.0, 0.0));
+
+			float bias = (frag_mask.is_plant) ? noise(cwpos.xz * 10.0 + cwpos.yz * 9.0) * 0.7 + 0.3 : 1.0;
+			bias *= dot(frag.wnormal, vec3(0.0, 1.0, 0.0));
 
 			if (specular.g < 0.000001f) specular.g = 0.4;
-			specular.g = clamp(specular.g - wetness2 * 0.2 * side, 0.003, 0.9999);
-			specular.g = mix(specular.g, 0.01, wetness_distribution);
+			specular.g = clamp(specular.g - wetness2 * 0.05 * bias, 0.003, 0.9999);
+			specular.g = mix(specular.g, 0.01, wetness_distribution * bias);
 
-			specular.r = clamp(specular.r + wetness2 * 0.25 * side, 0.00001, 0.7);
-			specular.r = mix(specular.r, 0.8, wetness_distribution * side);
+			specular.r = clamp(specular.r + wetness2 * 0.15 * bias, 0.00001, 0.7);
+			specular.r = mix(specular.r, 0.8, wetness_distribution * bias);
 			//color = specular;
 		}
 
 		frag.wpos.y -= 1.62;
-		
+
 		if (!isEyeInWater){
 			// Specular definition:
 			//  specular.g -> Roughness
