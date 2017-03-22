@@ -39,6 +39,7 @@ varying vec3 wpos;
 varying vec2 normal;
 varying float iswater;
 varying vec2 texcoord;
+varying float skyLight;
 
 #include "gbuffers.inc.vsh"
 
@@ -56,4 +57,5 @@ VSH {
 	normal = normalEncode(normalize(gl_NormalMatrix * gl_Normal));
 	gl_Position = gl_ProjectionMatrix * position;
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
+	skyLight = (gl_TextureMatrix[1] * gl_MultiTexCoord1).y;
 }

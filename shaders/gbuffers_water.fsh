@@ -34,13 +34,14 @@ varying vec3 wpos;
 varying vec2 normal;
 varying float iswater;
 varying vec2 texcoord;
+varying float skyLight;
 
 /* DRAWBUFFERS:3467 */
 void main() {
 	gl_FragData[0] = vec4(normal, iswater, 1.0);
 
 	if (iswater < 0.90f) {
-		gl_FragData[1] = vec4(0.14, 0.93, 0.0, 1.0);
+		gl_FragData[1] = vec4(0.14, 0.93, 0.0, skyLight);
 	}
 	gl_FragData[3] = texture2D(texture, texcoord);
 
