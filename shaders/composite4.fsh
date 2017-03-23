@@ -40,11 +40,17 @@ varying vec2 texcoord;
 #define BLUR
 #endif
 
+#define RAINFOG
+#ifdef RAINFOG
+#define BLUR
+#endif
+
 uniform float viewWidth;
 uniform float viewHeight;
 
 #ifdef BLUR
 const float padding = 0.02f;
+const bool compositeMipmapEnabled = true;
 
 bool checkBlur(vec2 offset, float scale) {
 	return
@@ -70,7 +76,7 @@ vec3 LODblur(in int LOD, in vec2 offset) {
 			vec2 finalCoord = (texcoord.st + coord.st - offset.st) * scale;
 
 			if (weight > 0.0f) {
-				bloom += clamp(texture2D(composite, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight;
+				bloom += clamp(texture2DLod(composite, finalCoord, LOD / 2).rgb, vec3(0.0f), vec3(1.0f)) * weight;
 				allWeights += 1.0f * weight;
 			}
 		}
@@ -160,10 +166,10 @@ void main() {
 	float lod = 2.0; vec2 offset = vec2(0.0f);
 	if (texcoord.y < 0.25 + padding * 2.0 + 0.6251 && texcoord.x < 0.0078125 + 0.25f + 0.100f) {
 		if (texcoord.y > 0.25 + padding) {
-			     if (checkBlur(offset = vec2(0.0f, 0.25f)    + vec2(0.000f, 0.025f), exp2(lod = 3.0))) {}
-		 	else if (checkBlur(offset = vec2(0.125f, 0.25f)  + vec2(0.025f, 0.025f), exp2(lod = 4.0))) {}
-			else if (checkBlur(offset = vec2(0.1875f, 0.25f) + vec2(0.050f, 0.025f), exp2(lod = 5.0))) {}
-			else if (checkBlur(offset = vec2(0.21875f, 0.25f)+ vec2(0.075f, 0.025f), exp2(lod = 6.0))) {}
+			     if (checkBlur(offset = vec2(0.0f, 0.25f)     + vec2(0.000f, 0.025f), exp2(lod = 3.0))) {}
+			else if (checkBlur(offset = vec2(0.125f, 0.25f)   + vec2(0.025f, 0.025f), exp2(lod = 4.0))) {}
+			else if (checkBlur(offset = vec2(0.1875f, 0.25f)  + vec2(0.050f, 0.025f), exp2(lod = 5.0))) {}
+			else if (checkBlur(offset = vec2(0.21875f, 0.25f) + vec2(0.075f, 0.025f), exp2(lod = 6.0))) {}
 			else lod = 0.0f;
 		} else if (texcoord.x > 0.25 + padding) lod = 0.0f;
 		if (lod > 1.0f) blur = LODblur(int(lod), offset);

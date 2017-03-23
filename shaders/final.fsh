@@ -25,7 +25,7 @@
 #extension GL_ARB_shader_texture_lod : require
 #pragma optimize(on)
 
-const int RGB8 = 0, RGBA32F = 1, RGB16 = 2, RGBA16 = 3, RGBA8 = 4, RGB8_SNORM = 5;
+const int RGB8 = 0, RGBA32F = 1, RGB16 = 2, RGBA16 = 3, RGBA8 = 4;
 #define GAlbedo colortex0
 #define GWPos colortex1
 #define GNormals gnormal
@@ -37,7 +37,7 @@ const int RGB8 = 0, RGBA32F = 1, RGB16 = 2, RGBA16 = 3, RGBA8 = 4, RGB8_SNORM = 
 const float centerDepthHalflife = 2.5f;
 uniform float centerDepthSmooth;
 
-const int colortex0Format = RGBA8;
+const int colortex0Format = RGBA16;
 const int colortex1Format = RGBA32F;
 const int gnormalFormat = RGBA16;
 const int compositeFormat = RGB16;
@@ -200,6 +200,8 @@ vec3 lensFlare(vec3 color) {
 	return color;
 }
 
+#define RAINFOG
+
 void main() {
 	vec3 color = texture2D(Output, texcoord).rgb;
 
@@ -212,10 +214,9 @@ void main() {
 	float depth = texture2D(depthtex0, texcoord).r;
 	float ldepthN = linearizeDepth(depth);
 
-	#ifdef DOF
 	vec2 pix_offset = vec2(1.0f / viewWidth, 1.0f / viewHeight) * 0.5f;
 	vec3 blur = texture2D(gcolor, (texcoord.st - pix_offset) * 0.25).rgb;
-
+	#ifdef DOF
 	#ifdef DOF_NEARVIEWBLUR
 	float pcoc = abs(ldepthN - linearizeDepth(centerDepth));
 	#else
@@ -223,6 +224,12 @@ void main() {
 	#endif
 
 	color = mix(color, blur, pcoc);
+	#endif
+
+	// Rain scatter fog
+	#ifdef RAINFOG
+	color = mix(color, blur, ldepthN * 0.9 + 0.1);
+	color = mix(color, vec3(luma(color)), ldepthN * 0.4 + 0.1);
 	#endif
 
 	#ifdef BLOOM
