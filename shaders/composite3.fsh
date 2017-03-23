@@ -735,7 +735,6 @@ void main() {
 
 				float reflection_fresnel_mul = frag_mask.is_trans ? 3.0 : 1.5;
 				float fresnel = pow(1.0 - dot(viewRefRay, frag.normal), reflection_fresnel_mul);
-				ref_color = mix(fogcolor, ref_color, clamp((512.0 - frag.cdepth) / (512.0 - 32.0), 0.0, 1.0));
 				color += ref_color * F * fresnel;
 
 				float fog_coord = clamp((512.0 - frag.cdepth) / (512.0 - 32.0), 0.0, 1.0);
