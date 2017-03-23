@@ -17,6 +17,7 @@ option.HIGH_QUALITY_Crespecular=High Quality Crespecular Rays
 option.SKY_REFLECTIONS=Sky dome reflections
 option.CLOUDS=Cloud
 option.VOLUMETRIC_CLOUD=Volumetric cloud
+option.RAINFOG=Rain Scatter Fog
 
 option.Brightness=Exposure
 option.AO_Enabled=Wisdom Ambient Occulution
