@@ -228,8 +228,7 @@ void main() {
 
 	// Rain scatter fog
 	#ifdef RAINFOG
-	color = mix(color, blur, ldepthN * 0.9 + 0.1);
-	color = mix(color, vec3(luma(color)), ldepthN * 0.4 + 0.1);
+	color = mix(color, blur, (ldepthN * 0.9 + 0.1) * rainStrength);
 	#endif
 
 	#ifdef BLOOM
