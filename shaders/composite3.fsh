@@ -343,7 +343,7 @@ float bayer_8x8(vec2 pos) {
 
 float cloud3D(vec3 wpos) {
 	float h = cloudNoise(wpos);
-	return float(h > distance(wpos.y, cloudDense) * 2.0 / cloudThick);
+	return min(1.0, float(h > distance(wpos.y, cloudDense) * 2.0 / cloudThick) * h * 2.0);
 }
 
 vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
@@ -408,14 +408,14 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	float sun = clamp(1.0 - smoothstep(0.01, 0.018, sunScatterMult), 0.0, 1.0) * rain;
 
 	float moonScatterMult = clamp(moonDistance, 0.0, 1.0);
-	float moon = clamp(1.0 - smoothstep(0.01, 0.011, moonScatterMult), 0.0, 1.0) * rain;
+	float moon = clamp(1.0 - smoothstep(0.038, 0.041, moonScatterMult), 0.0, 1.0) * rain;
 
 	float horizont = max(0.001, normalize(wpos * 480.0 + vec3(0.0, camHeight, 0.0)).y);
 	const float coeiff = 0.3785;
 	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
 
 	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * min(1.0, luma(suncolor)));
-	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 1.0)) * 0.05;
+	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 1.0)) * 0.02;
 
 	vec3 sky = horizont * totalSkyLight;
 	sky = max(sky, 0.0);
@@ -426,10 +426,10 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0)) + sunMieScatter + moonMieScatter;
 
 	#ifdef CLOUDS
-	vec4 cloud = calcCloud(wpos, sunMieScatter + moonMieScatter, sky);
+	vec4 cloud = calcCloud(wpos, sunMieScatter + moonMieScatter, fogcolor);
 	#endif
 
-	sky = sky + sun + moon;
+	sky = sky + sun + moon * 0.1;
 	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 2.0;
 	sky *= 1.0 + pow(1.0 - moonScatterMult, 11.0);
 
