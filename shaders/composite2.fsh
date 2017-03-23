@@ -505,8 +505,6 @@ void main() {
 		vec3 Lo = is_water || flag > 0.89 ? color * diffuse_sun * 0.6 : (kD * color / PI + brdf) * diffuse_sun;
 		color = ambient + Lo + diffuse_torch * color;
 
-		float fog_coord = saturate((512.0 - cdepth) / (512.0 - 32.0));
-		color = mix(fogcolor, color, fog_coord);
 		#ifdef CrespecularRays
 		float vl = texture2D(composite, texcoord * 0.5).b;
 		vl += texture2DLod(composite, texcoord * 0.5, 1.0).b;
