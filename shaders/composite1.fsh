@@ -71,7 +71,7 @@ float blurAO(float c) {
 	return a * 0.1629;
 }
 
-#define GlobalIllumination
+//#define GlobalIllumination
 
 #ifdef GlobalIllumination
 uniform sampler2D gaux4;

@@ -370,7 +370,7 @@ float blurAO(float c, vec3 cNormal) {
 }
 #endif
 
-#define GlobalIllumination
+//#define GlobalIllumination
 #ifdef GlobalIllumination
 uniform sampler2D gaux4;
 vec3 blurGI(vec3 c) {
