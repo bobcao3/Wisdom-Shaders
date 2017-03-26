@@ -94,7 +94,7 @@ VSH {
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
 	flag = 0.7;
-	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0) {
+	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 || blockId == 59.0 || blockId == 141 || blockId == 142) {
 		float rand_ang = hash(position.xz) * 0.3 * 3.14159f;
 		position.x += sin(rand_ang) * 0.2;
 		position.z += cos(rand_ang) * 0.2;
@@ -118,7 +118,7 @@ VSH {
 		position.xyz += binormal * sin(hash(gl_Vertex.yz) * 5.0 + time) * 0.07 * reset * maxStrength;
 
 		flag = 0.50;
-	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115 || blockId == 59 || blockId == 141 || blockId == 142) {
+	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115) {
 		flag = 0.51;
 	}
 
