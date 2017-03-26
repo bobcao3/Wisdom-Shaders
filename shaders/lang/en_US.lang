@@ -9,6 +9,7 @@ screen.RENDERING=Graphics Rendering
 screen.LIGHTING=Lighting/Shading effects
 screen.GEOMETRY=Geometry Rendering
 screen.AFTER_EFFECTS=Post processing effects
+screen.TONE_PRESET=Tone (Color)
 
 option.CAUSTIC=Water Caustics
 option.SMOOTH_TEXTURE=Texture filter (AA)
@@ -38,7 +39,10 @@ option.SEA_HEIGHT=Water's wave height
 option.BLOOM=Bloom
 option.DOF=Depth of View
 option.DOF_NEARVIEWBLUR=Near View DOF
-option.WHITE_WORLD=Prime render
-option.BLACK_AND_WHITE=Black&White filter
 option.SSEDAA=Screen Space Edge Detect AA
 option.MOTION_BLUR=Motion Blur
+
+option.WHITE_WORLD=Prime render
+option.BLACK_AND_WHITE=Black&White filter
+option.COLOR_PRESET_TORCH_VIBRANT=Vibrant Torch Color
+option.COLOR_PRESET_STRONG_VIBRANCE=Strong Occulution

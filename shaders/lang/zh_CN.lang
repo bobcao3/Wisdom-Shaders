@@ -9,6 +9,7 @@ screen.RENDERING=渲染
 screen.LIGHTING=光照/遮蔽效果
 screen.GEOMETRY=几何渲染
 screen.AFTER_EFFECTS=后处理特效
+screen.TONE_PRESET=色调
 
 option.CAUSTIC=水体焦散
 option.SMOOTH_TEXTURE=材质过滤（抗锯齿）
@@ -42,3 +43,8 @@ option.WHITE_WORLD=素模渲染
 option.BLACK_AND_WHITE=黑白滤镜
 option.SSEDAA=边缘检测抗锯齿
 option.MOTION_BLUR=动态模糊
+
+option.WHITE_WORLD=素模渲染
+option.BLACK_AND_WHITE=黑白滤镜
+option.COLOR_PRESET_TORCH_VIBRANT=鲜艳火把色调（暖色）
+option.COLOR_PRESET_STRONG_VIBRANCE=强环境光遮蔽
