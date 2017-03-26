@@ -398,6 +398,9 @@ vec3 blurGI(vec3 c) {
 
 #define CrespecularRays
 
+#define COLOR_PRESET_TORCH_VIBRANT
+//#define COLOR_PRESET_STRONG_VIBRANCE
+
 uniform vec3 upVec;
 
 void main() {
@@ -442,7 +445,11 @@ void main() {
 
 		if(is_plant) shade /= 1.0 + mix(0.0, 1.0, pow(max(0.0, dot(nvpos, lightPosition)), 16.0));
 
+		#ifdef COLOR_PRESET_TORCH_VIBRANT
+		const vec3 torchColor = vec3(0.2435, 0.0521, 0.01053);
+		#else
 		const vec3 torchColor = vec3(0.1935, 0.0906, 0.04972);
+		#endif
 
 		float light_distance = clamp((1.0 - pow(mclight.x, 6.6)), 0.08, 1.0);
 		const float light_quadratic = 4.9f;
@@ -478,10 +485,13 @@ void main() {
 		// PBR specular, Red & Green reversed
 		// Spec is in composite1.fsh
 		diffuse_torch *= 1.0 - specular.r * 0.23;
-		//diffuse_torch *= 1.0 + specular.b;
+		diffuse_torch *= 1.0 + specular.b * 0.5;
 
 		#ifdef AO_Enabled
 		float ao = blurAO(compositetex.g, normal);
+		#ifdef COLOR_PRESET_STRONG_VIBRANCE
+		Lo *= ao;
+		#endif
 		#endif
 
 		// AO

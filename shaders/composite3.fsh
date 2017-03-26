@@ -427,7 +427,7 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	const float coeiff = 0.3785;
 	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
 
-	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * min(1.0, luma(suncolor)));
+	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * min(1.0, luma(suncolor) * 0.6 + 0.4));
 	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 1.0)) * 0.02;
 
 	vec3 sky = horizont * totalSkyLight * (1.0 - 0.5 * rainStrength);

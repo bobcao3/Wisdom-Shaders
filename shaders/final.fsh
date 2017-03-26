@@ -132,15 +132,15 @@ vec3 bloom() {
 	vec2 tex = (texcoord.st - tex_offset * 0.5f) * 0.25;
 	vec3 color = texture_Bicubic(gcolor, tex).rgb;
 	tex = (texcoord.st - tex_offset * 0.5f) * 0.125      + vec2(0.0f, 0.25f)	  + vec2(0.000f, 0.025f);
-	color +=  texture_Bicubic(gcolor, tex).rgb * 0.95;
+	color +=  texture_Bicubic(gcolor, tex).rgb * 0.65;
 	tex = (texcoord.st - tex_offset * 0.5f) * 0.0625     + vec2(0.125f, 0.25f)  + vec2(0.025f, 0.025f);
-	color +=  texture_Bicubic(gcolor, tex).rgb * 0.85;
+	color +=  texture_Bicubic(gcolor, tex).rgb * 0.55;
 	tex = (texcoord.st - tex_offset * 0.5f) * 0.03125    + vec2(0.1875f, 0.25f)	+ vec2(0.050f, 0.025f);
-	color +=  texture_Bicubic(gcolor, tex).rgb * 0.7;
+	color +=  texture_Bicubic(gcolor, tex).rgb * 0.35;
 	tex = (texcoord.st - tex_offset * 0.5f) * 0.015625   + vec2(0.21875f, 0.25f)+ vec2(0.075f, 0.025f);
-	color +=  texture_Bicubic(gcolor, tex).rgb * 0.5;
+	color +=  texture_Bicubic(gcolor, tex).rgb * 0.29;
 	tex = (texcoord.st - tex_offset * 0.5f) * 0.0078125  + vec2(0.25f, 0.25f)   + vec2(0.100f, 0.025f);
-	color +=  texture_Bicubic(gcolor, tex).rgb * 0.24;
+	color +=  texture_Bicubic(gcolor, tex).rgb * 0.27;
 
 	color *= 0.2;
 	color *= 1.0 + exposure;
