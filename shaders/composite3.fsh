@@ -636,12 +636,12 @@ void main() {
 			color = mix(color, texture2DLod(composite, shifted, 3.0).rgb, dist_diff_N * 0.4);
 
 			color = mix(color, org_color, pow(length(shifted - vec2(0.5)) / 1.414f, 2.0));
-			if (frag.vpos.z > 0.99) color = calcSkyColor(normalize(frag.wpos), cameraPosition.y + frag.wpos.y);
+			if (frag.vpos.z > water_vpos.z) color = calcSkyColor(normalize(frag.wpos), cameraPosition.y + frag.wpos.y);
 			#endif
 
-			vec3 watercolor = vec3(min(luma(skycolor), 1.0) * (0.02 + pow(org_specular.a, 4.0) * 0.98));
+			vec3 watercolor = vec3(min(luma(skycolor), 1.0) * (isEyeInWater ? 1.0 : (0.02 + pow(org_specular.a, 4.0) * 0.98)));
 			watercolor *= (vec3(0.85, 0.72, 0.75) / (vec3(14.0, 8.0, 2.0) * dist_diff_N + 1.0) + vec3(0.15, 0.28, 0.25)) * vec3(0.35, 0.41, 1.0);
-			watercolor = mix(watercolor, SEA_WATER_COLOR * watercolor, pow(org_specular.a, 4.0));
+			if (!isEyeInWater) watercolor = mix(watercolor, SEA_WATER_COLOR * watercolor, pow(org_specular.a, 4.0));
 			color = mix(color, watercolor, 1.0 - pow(2.0 / (dist_diff_N + 1.0) - 1.0, 2.0));
 
 			shade = fast_shadow_map(water_wpos);
@@ -649,6 +649,8 @@ void main() {
 			frag.wpos = water_wpos;
 			frag.normal = vsnormal;
 			frag.vpos.xyz = water_vpos.xyz;
+			frag.nvpos = normalize(frag.vpos.xyz);
+			frag.cdepth = length(water_vpos.xyz);
 			frag.wnormal = water_normal;
 			#else
 			const vec3 wcolor = vec3(0.1569, 0.5882, 0.783);
@@ -661,6 +663,7 @@ void main() {
 			vec3 vvnormal_plain = normalDecode(g.normaltex.zw);
 			frag.normal = vvnormal_plain;
 			frag.wnormal = mat3(gbufferModelViewInverse) * vvnormal_plain;
+			frag.cdepth = length(water_vpos.xyz);
 			#endif
 		} else {
 			vec3 cwpos = frag.wpos + cameraPosition;
@@ -734,13 +737,13 @@ void main() {
 				}
 
 				float reflection_fresnel_mul = frag_mask.is_trans ? 3.0 : 1.5;
-				float fresnel = pow(1.0 - dot(viewRefRay, frag.normal), reflection_fresnel_mul);
+				float fresnel = pow(1.0 - dot(viewRefRay, frag.normal), 5.0 * specular.g + 1.5);
 				color += ref_color * F * fresnel;
 
-				float fog_coord = clamp((512.0 - frag.cdepth) / (512.0 - 32.0), 0.0, 1.0);
-				color = mix(fogcolor, color, fog_coord);
 			}
 
+			float fog_coord = clamp((512.0 - frag.cdepth) / (512.0 - 32.0), 0.0, 1.0);
+			color = mix(fogcolor, color, fog_coord);
 			frag.cdepth = length(max(frag.wpos, water_wpos));
 		}
 	} else {
