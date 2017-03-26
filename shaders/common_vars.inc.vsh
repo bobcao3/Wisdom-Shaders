@@ -13,6 +13,7 @@ varying float extShadow;
 varying vec3 skycolor;
 varying vec3 fogcolor;
 varying vec3 horizontColor;
+varying vec3 totalSkyLight;
 
 #define SUNRISE 23500
 #define SUNSET 12000
@@ -53,12 +54,13 @@ void calcCommon() {
 
 	horizontColor = horizontColor_sunrise + horizontColor_noon + horizontColor_sunset + horizontColor_night;
 	horizontColor *= 1.0 - rainStrength * 0.53;
+	
+	totalSkyLight = mix(vec3(0.168, 0.35, 1.4), vec3(0.25), rainStrength);
 
 	vec3 fogclr_sunrise = vec3(0.75, 0.9, 1.27) * 0.5 * TimeSunrise;
 	vec3 fogclr_noon = vec3(0.6, 0.8, 1.27) * 0.5 * TimeNoon;
 	vec3 fogclr_sunset = vec3(0.75, 0.9, 1.27) * 0.5 * TimeSunset;
 	vec3 fogclr_midnight = vec3(0.2, 0.6, 1.3) * 0.01 * TimeMidnight;
-	vec3 fogclr_rain_day = vec3(2.1, 2.3, 2.55) * 0.2 * (TimeSunrise + TimeNoon + TimeSunset);
-	vec3 fogclr_rain_night = vec3(0.35, 0.7, 1.3) * 0.01  * TimeMidnight;
-	fogcolor = fogclr_sunrise + fogclr_noon + fogclr_sunset + fogclr_midnight + fogclr_rain_day + fogclr_rain_night;
+	fogcolor = fogclr_sunrise + fogclr_noon + fogclr_sunset + fogclr_midnight;
+	fogcolor = mix(fogcolor, fogcolor * totalSkyLight * 0.5, rainStrength);
 }

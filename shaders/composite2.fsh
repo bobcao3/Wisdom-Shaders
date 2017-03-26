@@ -231,6 +231,10 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 			shade = shadowTexSmooth(shadowtex1, shadowposition.st, shadowposition.z);
 		#endif
 
+		if (is_water || isEyeInWater) {
+			shade = max(shade, 1.0 - pow(2.0 / (2.0 - pow(mclight.y, 0.5)) - 1.0, 2.0));
+			under_water = true;
+		}
 		shadowcolor = vec3(1.0 - shade);
 
 		#ifdef COLORED_SHADOW
@@ -238,8 +242,7 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 			float d2 = texture2D(shadowtex0, shadowposition.st).x;
 			if (d2 + 0.00002 / distortFactor < shadowposition.z) {
 				shadowcolor *= texture2D(shadowcolor0, shadowposition.st).rgb * .773;
-				under_water = luma(shadowcolor) > 0.6;
-				if (under_water) shade = max(shade, 1.0 - pow(2.0 / (2.0 - mclight.y) - 1.0, 2.0));
+				under_water = under_water || luma(shadowcolor) > 0.6;
 			}
 		}
 		#endif
@@ -456,7 +459,7 @@ void main() {
 
 		specular.r = clamp(specular.r, 0.0001, 0.9999);
 		specular.g = clamp(specular.g, 0.0001, 0.9999);
-		vec3 V = -nvpos;
+		#define V -nvpos
 		vec3 F0 = vec3(specular.g + 0.08);
 		F0 = mix(F0, color, specular.g);
 		vec3 F = fresnelSchlickRoughness(max(dot(normal, V), 0.0), F0, specular.r);

@@ -396,9 +396,10 @@ vec3 mie(float dist, vec3 sunL){
 	return max(exp(-pow(dist, 0.25)) * sunL - 0.4, 0.0);
 }
 
+varying vec3 totalSkyLight;
+
 vec3 calcSkyColor(vec3 wpos, float camHeight){
 	float rain = 1.0 - rainStrength;
-	vec3 totalSkyLight = mix(vec3(0.168, 0.35, 1.4), vec3(0.85), rainStrength);
 	float sunDistance = distance(wpos, worldSunPosition) * 0.5;
 	float moonDistance = distance(wpos, -worldSunPosition) * 0.5;
 
@@ -417,21 +418,21 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * min(1.0, luma(suncolor)));
 	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 1.0)) * 0.02;
 
-	vec3 sky = horizont * totalSkyLight;
+	vec3 sky = horizont * totalSkyLight * (1.0 - 0.5 * rainStrength);
 	sky = max(sky, 0.0);
 
 	sky = max(mix(pow(sky, 1.0 - sky), sky / (sky + 0.7), clamp(sunH * 2.0, 0.0, 1.0)),0.0);
 
-	float underscatter = distance(sunH * 0.5 + 0.7, 1.0);
+	float underscatter = distance(sunH * 0.5 + 0.5, 1.0);
 	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0)) + sunMieScatter + moonMieScatter;
 
 	#ifdef CLOUDS
-	vec4 cloud = calcCloud(wpos, sunMieScatter + moonMieScatter, fogcolor);
+	vec4 cloud = calcCloud(wpos, sunMieScatter + moonMieScatter, fogcolor * totalSkyLight);
 	#endif
 
-	sky = sky + sun + moon * 0.1;
-	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 2.0;
-	sky *= 1.0 + pow(1.0 - moonScatterMult, 11.0);
+	sky = sky + (sun + moon * 0.1) * rain;
+	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 2.0 * rain;
+	sky *= 1.0 + pow(1.0 - moonScatterMult, 11.0) * rain;
 
 	#ifdef CLOUDS
  	sky = mix(sky, cloud.rgb, cloud.a);
@@ -626,7 +627,7 @@ void main() {
 			if (shifted_flag < 0.71f || shifted_flag > 0.92f) shifted = texcoord;
 			frag.vpos = vec4(texture2D(gdepth, shifted).xyz, 1.0);
 			float dist_diff = isEyeInWater ? length(water_vpos.xyz) : distance(frag.vpos.xyz, water_vpos.xyz);
-			float dist_diff_N = clamp(abs(dist_diff) / 8.0, 0.0, 1.0);
+			float dist_diff_N = clamp(abs(dist_diff) / 16.0, 0.0, 1.0);
 
 			vec3 org_color = color;
 			color = texture2DLod(composite, shifted, 0.0).rgb;
@@ -636,7 +637,8 @@ void main() {
 			color = mix(color, texture2DLod(composite, shifted, 3.0).rgb, dist_diff_N * 0.4);
 
 			color = mix(color, org_color, pow(length(shifted - vec2(0.5)) / 1.414f, 2.0));
-			if (frag.vpos.z > water_vpos.z) color = calcSkyColor(normalize(frag.wpos), cameraPosition.y + frag.wpos.y);
+
+			if (frag.vpos.z > water_vpos.z && frag.vpos.z > 0.99) color = calcSkyColor(normalize(frag.wpos), cameraPosition.y + frag.wpos.y);
 			#endif
 
 			vec3 watercolor = vec3(min(luma(skycolor), 1.0) * (isEyeInWater ? 1.0 : (0.02 + pow(org_specular.a, 4.0) * 0.98)));
@@ -733,7 +735,7 @@ void main() {
 					float denominator = max(0.0, 4 * max(dot(-frag.nvpos, frag.normal), 0.0) * max(dot(lightPosition, frag.normal), 0.0) + 0.001);
 					vec3 brdf = no / denominator;
 
-					color += brdf * skycolor * (1.0 - shade);
+					color += brdf * skycolor * (1.0 - shade) * (1.0 - rainStrength);
 				}
 
 				float reflection_fresnel_mul = frag_mask.is_trans ? 3.0 : 1.5;
