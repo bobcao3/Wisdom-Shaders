@@ -359,13 +359,18 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 		total += s;
 	}
 	total *= 0.25;
-	float density = cloud3D(spos + worldLightPos * total * cloudThick);
+
+	vec3 core = vec3(spos.xz, cloudThick - total * cloudThick);
+	vec3 r1 = vec3(spos.xz + vec2(20.0, 0.0), cloudThick - total * cloudNoise(vec3(spos.xz + vec2(20.0, 0.0), spos.y)));
+	vec3 r2 = vec3(spos.xz + vec2(0.0, 20.0), cloudThick - total * cloudNoise(vec3(spos.xz + vec2(0.0, 20.0), spos.y)));
+	
+	vec3 n = normalize(cross(r1 - core, r2 - core));
+	
+	float density = dot(worldLightPos, n) * 0.4 + 0.6;
 
 	vec3 cloud_color = (1.0 - density) * (L * 0.7 + mie * (1.0 - total)) + horizontColor * (1.0 - total * 0.5);
 	cloud_color *= 1.0 - rainStrength * 0.34;
-	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
-
-	total = clamp(total, 0.0, 1.0);
+	cloud_color *= 1.0 - total * density * 0.7;
 
 	return vec4(cloud_color, total);
 }
@@ -378,10 +383,17 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	vec3 spos = wpos / wpos.y * 2850.0;
 	float total = cloudNoise(spos);
 
-	float density = cloudNoise(spos + worldLightPos * total * cloudThick * 0.1);
+	vec3 core = vec3(spos.xz, cloudThick - total * cloudThick);
+	vec3 r1 = vec3(spos.xz + vec2(20.0, 0.0), cloudThick - total * cloudNoise(vec3(spos.xz + vec2(20.0, 0.0), spos.y)));
+	vec3 r2 = vec3(spos.xz + vec2(0.0, 20.0), cloudThick - total * cloudNoise(vec3(spos.xz + vec2(0.0, 20.0), spos.y)));
+	
+	vec3 n = normalize(cross(r1 - core, r2 - core));
+	
+	float density = dot(worldLightPos, n) * 0.4 + 0.6;
 
 	vec3 cloud_color = (1.0 - density) * (L * 0.7 + mie * (1.0 - total)) + horizontColor * (1.0 - total * 0.5);
 	cloud_color *= 1.0 - rainStrength * 0.34;
+	cloud_color *= 1.0 - total * density * 0.7;
 	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
 
 	total = clamp(total, 0.0, 1.0);
@@ -427,7 +439,8 @@ vec3 calcSkyColor(vec3 wpos, float camHeight){
 	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0)) + sunMieScatter + moonMieScatter;
 
 	#ifdef CLOUDS
-	vec4 cloud = calcCloud(wpos, sunMieScatter + moonMieScatter, fogcolor * totalSkyLight);
+	vec4 cloud = calcCloud(wpos, sunMieScatter + moonMieScatter, fogcolor);
+	cloud.rgb *= luma(suncolor);
 	#endif
 
 	sky = sky + (sun + moon * 0.1) * rain;
