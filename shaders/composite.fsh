@@ -188,7 +188,6 @@ float AO() {
 #endif
 
 #define SHADOW_MAP_BIAS 0.9
-uniform sampler2D shadowtex0;
 vec3 wpos2shadowpos(in  vec3 wpos) {
 	 vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
 	shadowposition = shadowProjection * shadowposition;
@@ -232,7 +231,7 @@ vec3 GI() {
 			spos += distb * trace_dir;
 			spos = wpos2shadowpos(spos);
 
-			float sample_depth = texture2D(shadowtex0, spos.xy).x;
+			float sample_depth = texture2D(shadowtex1, spos.xy).x;
 			float sam2 = texture2D(shadowtex1, spos.xy).x;
 
 			gi += float(abs(sample_depth - sam2) < 0.001 && sample_depth > spos.z && abs(sample_depth - spos.z) < 0.04) * texture2DLod(shadowcolor0, spos.xy, 1.0).xyz;
@@ -244,7 +243,7 @@ vec3 GI() {
 			spos += distb * trace_dir;
 			spos = wpos2shadowpos(spos);
 
-			sample_depth = texture2D(shadowtex0, spos.xy).x;
+			sample_depth = texture2D(shadowtex1, spos.xy).x;
 			sam2 = texture2D(shadowtex1, spos.xy).x;
 
 			gi += float(abs(sample_depth - sam2) < 0.001 && sample_depth > spos.z && abs(sample_depth - spos.z) < 0.04) * texture2DLod(shadowcolor0, spos.xy, 1.0).xyz;
@@ -286,7 +285,7 @@ float VL() {
 			swpos -= dir;
 			float dither = bayer_8x8(texcoord + vec2(i) * 0.01);
 			vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
-			if (shadowpos.z + 0.0006 < texture2D(shadowtex0, shadowpos.xy).x) {
+			if (shadowpos.z + 0.0006 < texture2D(shadowtex1, shadowpos.xy).x) {
 				total += (prev + 1.0) * length(dir) * (1 + dither) * 0.5;
 				prev = 1.0;
 			}

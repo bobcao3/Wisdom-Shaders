@@ -40,16 +40,6 @@ float cdepthN = cdepth * dFar;
 
 #define saturate(x) clamp(x,0.0,1.0)
 
-vec3 normalDecode(vec2 enc) {
-	vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
-	float l = dot(nn.xyz,-nn.xyw);
-	nn.z = l;
-	nn.xy *= sqrt(l);
-	return normalize(nn.xyz * 2.0 + vec3(0.0, 0.0, -1.0));
-}
-
-vec3 cNormal;
-
 float blurAO(float c) {
 	float a = c;
 	// float rcdepth = texture2D(depthtex0, texcoord).r * 200.0f;
@@ -99,7 +89,6 @@ vec3 blurGI(vec3 c) {
 
 void main() {
 	vec4 ctex = texture2D(composite, texcoord);
-	//cNormal = normalDecode(texture2D(gnormal, texcoord).rg);
 
 	if (ctex.r > 0.21) {
 		ctex.g = blurAO(ctex.g);

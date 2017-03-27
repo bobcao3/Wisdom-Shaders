@@ -634,7 +634,7 @@ void main() {
 			#endif
 
 			vec3 watercolor = vec3(min(luma(skycolor), 1.0) * (isEyeInWater ? 1.0 : (0.02 + pow(org_specular.a, 4.0) * 0.98)));
-			watercolor *= (vec3(0.85, 0.72, 0.75) / (vec3(14.0, 8.0, 2.0) * dist_diff_N + 1.0) + vec3(0.15, 0.28, 0.25)) * vec3(0.35, 0.41, 1.0);
+			watercolor *= (vec3(0.85, 0.72, 0.75) / (vec3(14.0, 6.0, 2.0) * dist_diff_N + 1.0) + vec3(0.15, 0.28, 0.25)) * vec3(0.35, 0.41, 1.0);
 			if (!isEyeInWater) watercolor = mix(watercolor, SEA_WATER_COLOR * watercolor, pow(org_specular.a, 4.0));
 			color = mix(color, watercolor, 1.0 - pow(2.0 / (dist_diff_N + 1.0) - 1.0, 2.0));
 
@@ -747,5 +747,5 @@ void main() {
 	color = vec3(luma(color));
 	#endif
 
-	gl_FragData[0] = vec4(clamp(color, vec3(0.0),vec3(6.0)), 1.0);
+	gl_FragData[0] = vec4(max(color, vec3(0.0)), 1.0);
 }

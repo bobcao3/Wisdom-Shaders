@@ -52,11 +52,11 @@ void main() {
 	float blockId = mc_Entity.x;
 	color = gl_Color.rgb;
 
-	#ifdef WAVING_SHADOW
 	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
 		float rand_ang = hash(position.xz);
 		position.x += rand_ang * 0.2;
 		position.z -= rand_ang * 0.2;
+		#ifdef WAVING_SHADOW
 		float maxStrength = 1.0 + rainStrength * 0.5;
 		float time = frameTimeCounter * 3.0;
 		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
@@ -65,9 +65,8 @@ void main() {
 			position.x += sin(rand_ang * 10.0 + time + position.y) * 0.2 * reset * maxStrength;
 			position.z += sin(rand_ang * 10.0 + time - position.y) * 0.2 * reset * maxStrength;
 		}
-
+		#endif
 	}
-	#endif
 
 	iswater = float(blockId == 8.0 || blockId == 9.0);
 
