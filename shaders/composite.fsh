@@ -65,10 +65,6 @@ uniform ivec2 eyeBrightnessSmooth;
 varying vec2 texcoord;
 varying vec3 suncolor;
 
-varying float TimeSunrise;
-varying float TimeNoon;
-varying float TimeSunset;
-varying float TimeMidnight;
 varying float extShadow;
 
 varying vec3 skycolor;

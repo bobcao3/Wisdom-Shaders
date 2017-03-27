@@ -28,9 +28,11 @@ uniform sampler2D texture;
 
 varying vec4 color;
 varying vec2 normal;
-varying vec2 texcoord;
+varying vec4 coords;
 varying vec3 wpos;
-varying vec2 lmcoord;
+
+#define texcoord coords.rg
+#define lmcoord coords.ba
 
 /* DRAWBUFFERS:01245 */
 void main() {

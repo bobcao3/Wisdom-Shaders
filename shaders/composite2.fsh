@@ -64,10 +64,6 @@ const float hPI = PI / 2;
 varying vec2 texcoord;
 varying vec3 suncolor;
 
-varying float TimeSunrise;
-varying float TimeNoon;
-varying float TimeSunset;
-varying float TimeMidnight;
 varying float extShadow;
 
 varying vec3 skycolor;
@@ -224,7 +220,7 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 		#ifdef SHADOW_FILTER
 			for (int i = 0; i < 25; i++) {
 				float shadowDepth = texture2D(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0008f).x;
-				shade += float(shadowDepth + 0.00002 + cdepthN * 0.01 < shadowposition.z);
+				shade += float(shadowDepth + 0.00002 / distortFactor + cdepthN * float(is_plant) * 0.01 < shadowposition.z);
 			}
 			shade /= 25.0f;
 		#else
@@ -241,9 +237,11 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 		if (shade < 0.1) {
 			float d2 = texture2D(shadowtex0, shadowposition.st).x;
 			if (d2 + 0.00002 / distortFactor < shadowposition.z) {
-				shadowcolor *= texture2D(shadowcolor0, shadowposition.st).rgb * .773;
-				under_water = under_water || luma(shadowcolor) > 0.6;
+				shadowcolor *= texture2D(shadowcolor0, shadowposition.st).rgb * .873;
+				under_water = under_water || luma(shadowcolor) > 0.85;
 			}
+			
+			shadowcolor = mix(shadowcolor, vec3(1.0), smoothstep(0.2, 0.6, 1.0 - distortFactor));
 		}
 		#endif
 
@@ -259,19 +257,19 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 
 #ifdef CAUSTIC
 
-float hash( vec2 p ) {
+float hash(vec2 p) {
 	float h = dot(p,vec2(127.1,311.7));
-	return fract(sin(h)*43758.5453123);
+	return fract(sin(h)*73758.5453123f);
 }
 
 float noise( in vec2 p ) {
-	vec2 i = floor( p );
-	vec2 f = fract( p );
+	vec2 i = floor(p);
+	vec2 f = fract(p);
 	vec2 u = f*f*(3.0-2.0*f);
-	return -1.0+2.0*mix( mix( hash( i + vec2(0.0,0.0) ),
-	hash( i + vec2(1.0,0.0) ), u.x),
-	mix( hash( i + vec2(0.0,1.0) ),
-	hash( i + vec2(1.0,1.0) ), u.x), u.y);
+	return -1.0 + 2.0 * mix(
+		mix(hash(i),                 hash(i + vec2(1.0,0.0)), u.x),
+		mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x),
+	u.y);
 }
 
 // sea
@@ -410,7 +408,7 @@ void main() {
 	vec4 compositetex = texture2D(composite, texcoord);
 	flag = compositetex.r;
 	bool issky = (flag < 0.01);
- 	is_water = (flag > 0.71f && flag < 0.79f);
+ 	is_water = (flag > 0.78f && flag < 0.80f);
 	is_plant = (flag > 0.48 && flag < 0.53);
 	float shade = 0.0;
 	NdotL = dot(lightPosition, normal);
@@ -429,7 +427,7 @@ void main() {
 		shade = shadow_map(shadowcolor, under_water);
 
 		#ifdef CAUSTIC
-		if (under_water) {
+		if (under_water && shade > 0.01) {
 			vec3 caustic_wpos = wpos + cameraPosition;
 			caustic_wpos.xz += (worldLightPos.xz / worldLightPos.y) * (64.0 - caustic_wpos.y);
 			caustic_wpos.y = 64.0;
@@ -462,30 +460,33 @@ void main() {
 		vec3 diffuse_torch = attenuation * torchColor;
 		vec3 diffuse_sun = (1.0 - shade) * suncolor * (3.5 * shadowcolor);
 
-		if (flag > 0.89) specular = vec4(0.0001);
+		if (flag > 0.89) specular.rgb = vec3(0.0001);
 
-		specular.r = clamp(specular.r, 0.0001, 0.9999);
-		specular.g = clamp(specular.g, 0.0001, 0.9999);
+		specular.rg = clamp(specular.rg, vec2(0.0001), vec2(0.9999));
 		#define V -nvpos
-		vec3 F0 = vec3(specular.g + 0.08);
+		vec3 F0 = vec3(specular.g + 0.02);
 		F0 = mix(F0, color, specular.g);
 		vec3 F = fresnelSchlickRoughness(max(dot(normal, V), 0.0), F0, specular.r);
 
 		#define kS F
 		vec3 kD = vec3(1.0) - kS;
-		kD *= 1.0 - specular.g;
 
-		vec3 halfwayDir = normalize(lightPosition + V);
-		float stdNormal = DistributionGGX(normal, halfwayDir, specular.g);
+		vec3 brdf = vec3(0.0);
+		if (!is_water) {
+			kD *= 1.0 - specular.g;
 
-		vec3 no = GeometrySmith(normal, V, lightPosition, specular.r) * stdNormal * F;
-		float denominator = max(0.0, 4 * max(dot(V, normal), 0.0) * max(NdotL, 0.0) + 0.001);
-		vec3 brdf = no / denominator;
+			vec3 halfwayDir = normalize(lightPosition + V);
+			float stdNormal = DistributionGGX(normal, halfwayDir, specular.g);
+
+			vec3 no = GeometrySmith(normal, V, lightPosition, specular.r) * stdNormal * F;
+			float denominator = max(0.0, 4 * max(dot(V, normal), 0.0) * max(NdotL, 0.0) + 0.001);
+			vec3 brdf = no / denominator;
+		}
 
 		// PBR specular, Red & Green reversed
 		// Spec is in composite1.fsh
 		diffuse_torch *= 1.0 - specular.r * 0.23;
-		diffuse_torch *= 1.0 + specular.b * 0.5;
+		//diffuse_torch *= 1.0 + specular.b * 0.5;
 
 		#ifdef AO_Enabled
 		float ao = blurAO(compositetex.g, normal);
@@ -513,10 +514,9 @@ void main() {
 		ambient += gi;
 		#endif
 
-		ambient *= color;
-
-		vec3 Lo = is_water || flag > 0.89 ? color * diffuse_sun * 0.6 : (kD * color / PI + brdf) * diffuse_sun;
-		color = ambient + Lo + diffuse_torch * color;
+		vec3 Lo = (kD * color / PI + brdf) * diffuse_sun;
+		color *= ambient + diffuse_torch;
+		color += Lo;
 
 		#ifdef CrespecularRays
 		float vl = texture2D(composite, texcoord * 0.5).b;

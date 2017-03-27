@@ -4,10 +4,6 @@ uniform float rainStrength;
 varying vec2 texcoord;
 varying vec3 suncolor;
 
-varying float TimeSunrise;
-varying float TimeNoon;
-varying float TimeSunset;
-varying float TimeMidnight;
 varying float extShadow;
 
 varying vec3 skycolor;
@@ -25,10 +21,10 @@ float wTimeF;
 void calcCommon() {
 	wTimeF = float(worldTime);
 
-	TimeSunrise  = ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0) + (1.0 - (clamp(wTimeF, 0.0, 2000.0)/2000.0));
-	TimeNoon     = ((clamp(wTimeF, 0.0, 2000.0)) / 2000.0) - ((clamp(wTimeF, 10000.0, 12000.0) - 10000.0) / 2000.0);
-	TimeSunset   = ((clamp(wTimeF, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(wTimeF, 12000.0, 12750.0) - 12000.0) / 750.0);
-	TimeMidnight = ((clamp(wTimeF, 12000.0, 12750.0) - 12000.0) / 750.0) - ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0);
+	float TimeSunrise  = ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0) + (1.0 - (clamp(wTimeF, 0.0, 2000.0)/2000.0));
+	float TimeNoon     = ((clamp(wTimeF, 0.0, 2000.0)) / 2000.0) - ((clamp(wTimeF, 10000.0, 12000.0) - 10000.0) / 2000.0);
+	float TimeSunset   = ((clamp(wTimeF, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(wTimeF, 12000.0, 12750.0) - 12000.0) / 750.0);
+	float TimeMidnight = ((clamp(wTimeF, 12000.0, 12750.0) - 12000.0) / 750.0) - ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0);
 
 	vec3 suncolor_sunrise = vec3(2.52, 1.4, 0.4) * TimeSunrise;
 	vec3 suncolor_noon = vec3(2.72, 2.35, 2.1) * 0.7 * TimeNoon;

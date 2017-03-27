@@ -38,10 +38,14 @@ uniform sampler2D normals;
 
 varying  vec4 color;
 varying  vec3 normal;
-varying  vec2 texcoord;
-varying  vec3 wpos;
-varying  vec2 lmcoord;
-varying float flag;
+varying  vec4 coords;
+varying  vec4 wdata;
+
+#define wpos wdata.xyz
+#define flag wdata.w
+
+#define texcoord coords.rg
+#define lmcoord coords.ba
 
 #ifdef NORMALS
 varying vec3 tangent;

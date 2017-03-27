@@ -38,9 +38,11 @@ const float PI = 3.14159f;
 varying vec3 wpos;
 
 varying vec2 normal;
-varying float iswater;
-varying vec2 texcoord;
-varying float skyLight;
+varying vec4 coords;
+
+#define texcoord coords.rg
+#define skyLight coords.b
+#define iswater coords.a
 
 #include "gbuffers.inc.vsh"
 

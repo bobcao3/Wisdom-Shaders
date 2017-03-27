@@ -32,9 +32,11 @@ uniform vec3 cameraPosition;
 
 varying vec3 wpos;
 varying vec2 normal;
-varying float iswater;
-varying vec2 texcoord;
-varying float skyLight;
+varying vec4 coords;
+
+#define texcoord coords.rg
+#define skyLight coords.b
+#define iswater coords.a
 
 /* DRAWBUFFERS:3467 */
 void main() {

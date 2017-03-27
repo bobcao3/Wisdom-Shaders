@@ -33,14 +33,16 @@ attribute vec4 mc_midTexCoord;
 uniform float rainStrength;
 uniform float frameTimeCounter;
 
-varying vec2 texcoord;
-varying vec4 color;
-varying float iswater;
-varying float isplant;
+varying vec3 coords;
+varying vec3 color;
 
-#define hash(p) fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123)
+#define texcoord coords.xy
+#define iswater coords.z
 
-#define GlobalIllumination
+float hash(vec2 p) {
+	float h = dot(p,vec2(127.1,311.7));
+	return fract(sin(h)*73758.5453123f);
+}
 
 #define WAVING_SHADOW
 
@@ -48,30 +50,28 @@ void main() {
 
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
-	color = gl_Color;
+	color = gl_Color.rgb;
 
 	#ifdef WAVING_SHADOW
 	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
-		float rand_ang = hash(position.xz) * 0.3 * 3.14159f;
-		position.x += sin(rand_ang) * 0.2;
-		position.z += cos(rand_ang) * 0.2;
-
+		float rand_ang = hash(position.xz);
+		position.x += rand_ang * 0.2;
+		position.z -= rand_ang * 0.2;
+		float maxStrength = 1.0 + rainStrength * 0.5;
+		float time = frameTimeCounter * 3.0;
 		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
-			float blockId = mc_Entity.x;
-			float maxStrength = 1.0 + rainStrength * 0.5;
-			float time = frameTimeCounter * 3.0;
-			float reset = cos(hash(position.xy) * 10.0 + time * 0.1);
+			float reset = cos(rand_ang * 10.0 + time * 0.1);
 			reset = max( reset * reset, max(rainStrength, 0.1));
-			position.x += sin(hash(position.xz) * 10.0 + time) * 0.2 * reset * maxStrength;
-			position.z += sin(hash(position.yz) * 10.0 + time) * 0.2 * reset * maxStrength;
+			position.x += sin(rand_ang * 10.0 + time + position.y) * 0.2 * reset * maxStrength;
+			position.z += sin(rand_ang * 10.0 + time - position.y) * 0.2 * reset * maxStrength;
 		}
+
 	}
 	#endif
 
 	iswater = float(blockId == 8.0 || blockId == 9.0);
 
-	gl_Position = gl_ModelViewMatrix * position;
-	gl_Position = gl_ProjectionMatrix * gl_Position;
+	gl_Position = gl_ProjectionMatrix * (gl_ModelViewMatrix * position);
 
 	float distortFactor = (1.0 - SHADOW_MAP_BIAS) + length(gl_Position.xy) * SHADOW_MAP_BIAS;
 	gl_Position.xy /= distortFactor;

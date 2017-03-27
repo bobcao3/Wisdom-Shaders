@@ -65,10 +65,7 @@ uniform bool isEyeInWater;
 varying vec2 texcoord;
 varying vec3 suncolor;
 
-varying float TimeSunrise;
-varying float TimeNoon;
-varying float TimeSunset;
-varying float TimeMidnight;
+
 varying float extShadow;
 
 varying vec3 skycolor;
@@ -167,19 +164,19 @@ float fast_shadow_map(in vec3 wpos) {
 
 const vec3 SEA_WATER_COLOR = vec3(.55,.92,.99);
 
-float hash( vec2 p ) {
+float hash(vec2 p) {
 	float h = dot(p,vec2(127.1,311.7));
-	return fract(sin(h)*43758.5453123);
+	return fract(sin(h)*73758.5453123f);
 }
 
 float noise( in vec2 p ) {
-	vec2 i = floor( p );
-	vec2 f = fract( p );
+	vec2 i = floor(p);
+	vec2 f = fract(p);
 	vec2 u = f*f*(3.0-2.0*f);
-	return -1.0+2.0*mix( mix( hash( i + vec2(0.0,0.0) ),
-	hash( i + vec2(1.0,0.0) ), u.x),
-	mix( hash( i + vec2(0.0,1.0) ),
-	hash( i + vec2(1.0,1.0) ), u.x), u.y);
+	return -1.0 + 2.0 * mix(
+		mix(hash(i),                 hash(i + vec2(1.0,0.0)), u.x),
+		mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x),
+	u.y);
 }
 
 // sea
@@ -282,24 +279,6 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
 
 #define CLOUDS
 
-vec2 hash22( vec2 p ) {
-	p = vec2(dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)));
-	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
-}
-
-float noisePerlin( in vec2 p ) {
-	const float K1 = 0.366025404; // (sqrt(3)-1)/2;
-	const float K2 = 0.211324865; // (3-sqrt(3))/6;
-	vec2 i = floor(p + (p.x+p.y)*K1);
-	vec2 a = p - i + (i.x+i.y)*K2;
-	vec2 o = (a.x>a.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
-	vec2 b = a - o + K2;
-	vec2 c = a - 1.0 + 2.0*K2;
-	vec3 h = max(0.5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0.0 );
-	vec3 n = h*h*h*h*vec3( dot(a,hash22(i+0.0)), dot(b,hash22(i+o)), dot(c,hash22(i+1.0)));
-	return dot(n, vec3(70.0));
-}
-
 #ifdef CLOUDS
 const mat2 rotate = mat2(0.86, -0.5, 0.5, 0.86);
 
@@ -309,15 +288,15 @@ float cloudNoise(in vec3 wpos) {
 	ns.y *= 0.73;
 	ns *= 0.00015;
 
-	vec2 coord = ns;
+	vec2 coord = ns * 2.0;
 
 	// Shape
 	vec2 dir = vec2(1.0, 0.1);
-	float n = noisePerlin(coord) * 0.5; coord *= 3.0;  dir *= rotate; coord += dir * frameTimeCounter * 0.03;
-	n += noisePerlin(coord) * 0.25;     coord *= 3.01; dir *= rotate; coord += dir * frameTimeCounter * 0.06;
-	n += noisePerlin(coord) * 0.125;    coord *= 3.02; dir *= rotate; coord += dir * frameTimeCounter * 0.09;
-	n += noisePerlin(coord) * 0.0625;	coord *= 3.03; dir *= rotate; coord += dir * frameTimeCounter * 0.12;
-	n += noisePerlin(coord) * 0.0312;
+	float n = noise(coord) * 0.5; coord *= 3.0;  dir *= rotate; coord += dir * frameTimeCounter * 0.03;
+	n += noise(coord) * 0.25;     coord *= 3.01; dir *= rotate; coord += dir * frameTimeCounter * 0.06;
+	n += noise(coord) * 0.125;    coord *= 3.02; dir *= rotate; coord += dir * frameTimeCounter * 0.09;
+	n += noise(coord) * 0.0625;	  coord *= 3.03; dir *= rotate; coord += dir * frameTimeCounter * 0.12;
+	n += noise(coord) * 0.0312;
 
 	return smoothstep(0.0, 1.0, clamp(n + rainStrength * 0.5, 0.0, 1.0));
 }
@@ -629,7 +608,7 @@ void main() {
 			vec4 shifted_vpos = vec4(frag.vpos.xyz + normalize(refract(frag.nvpos, vsnormal, refindex)), 1.0);
 			shifted_vpos = gbufferProjection * shifted_vpos;
 			shifted_vpos /= shifted_vpos.w;
-			shifted_vpos = shifted_vpos * 0.5f + 0.5f;
+			shifted_vpos.st = shifted_vpos.st * 0.5f + 0.5f;
 			vec2 shifted = shifted_vpos.st;
 			#else
 			vec2 shifted = texcoord + water_normal.xz * (0.2 * pow(1.0 - frag.cdepthN, 0.3));
@@ -680,13 +659,13 @@ void main() {
 			frag.wnormal = mat3(gbufferModelViewInverse) * vvnormal_plain;
 			frag.cdepth = length(water_vpos.xyz);
 			#endif
-		} else {
+		} else if (rainStrength > 0.0) {
 			vec3 cwpos = frag.wpos + cameraPosition;
-			float wetness_distribution = noisePerlin(cwpos.xz * 0.1) + noisePerlin(cwpos.yz * 0.1) * 0.7;
-			wetness_distribution += 0.5 * (noisePerlin(cwpos.zx * 0.02) + 0.2 * noisePerlin(cwpos.yx * 0.02)) + 0.5;
+			float wetness_distribution = noise(cwpos.xz * 0.2) + noise(cwpos.yz * 0.2) * 0.7;
+			wetness_distribution += 0.5 * (noise(cwpos.zx * 0.04) + 0.2 * noise(cwpos.yx * 0.04)) + 0.5;
 			wetness_distribution = clamp(smoothstep(0.0, 1.0, wetness_distribution * wetness2), 0.0, 1.0);
 
-			float bias = (frag_mask.is_plant) ? noise(cwpos.xz * 10.0 + cwpos.yz * 9.0) * 0.7 + 0.3 : 1.0;
+			float bias = (frag_mask.is_plant) ? noise(cwpos.xz * 20.0 + cwpos.yz * 18.0) * 0.7 + 0.3 : 1.0;
 			bias *= dot(frag.wnormal, vec3(0.0, 1.0, 0.0));
 
 			if (specular.g < 0.000001f) specular.g = 0.4;
@@ -718,7 +697,7 @@ void main() {
 				vec3 plainRefRay = reflect(frag.nvpos, normalize(refnormal + vec3(rand(texcoord), 0.0, rand(texcoord.yx)) * specular.g * specular.g * 0.05));
 
 				vec4 reflection = waterRayTarcing(frag.vpos.xyz + refnormal * max(0.4, length(frag.vpos.xyz) / far), plainRefRay, color, specular.r);
-				ref_color = reflection.rgb * reflection.a * specular.r;
+				ref_color = reflection.rgb * reflection.a; // * specular.r;
 				#else
 				vec4 reflection = vec4(0.0);
 				#endif
@@ -727,18 +706,17 @@ void main() {
 				#ifdef SKY_REFLECTIONS
 				vec3 wref = reflect(normalize(frag.wpos), frag.wnormal);
 				if (frag_mask.is_water) wref.y = abs(wref.y);
-				ref_color += calcSkyColor(wref, cameraPosition.y + frag.wpos.y) * (1.0 - reflection.a) * specular.r * skyam;
+				ref_color += calcSkyColor(wref, cameraPosition.y + frag.wpos.y) * (1.0 - reflection.a) * skyam; // * specular.r;
 				#else
 				ref_color += skyColor * (1.0 - reflection.a) * specular.r * skyam;
 				#endif
 			}
 
 			if (specular.r > 0.07) {
-				specular.g = clamp(specular.g, 0.0001, 0.9999);
-				specular.r = clamp(specular.r, 0.0001, 0.9999);
-				vec3 F0 = vec3(specular.r + 0.08);
+				vec3 F0 = frag_mask.is_water ? vec3(0.04) : vec3(specular.r * 0.77 + 0.02);
 				F0 = mix(F0, color, 1.0 - specular.r);
-				vec3 F = frag_mask.is_water ? vec3(1.0) : fresnelSchlickRoughness(max(dot(frag.normal, -frag.nvpos), 0.0), F0, specular.g);
+				vec3 F = fresnelSchlickRoughness(max(dot(frag.normal, -frag.nvpos), 0.0), F0, specular.g);
+				color += ref_color * F;
 
 				if (frag_mask.is_trans) {
 					vec3 halfwayDir = normalize(lightPosition - frag.nvpos);
@@ -748,13 +726,8 @@ void main() {
 					float denominator = max(0.0, 4 * max(dot(-frag.nvpos, frag.normal), 0.0) * max(dot(lightPosition, frag.normal), 0.0) + 0.001);
 					vec3 brdf = no / denominator;
 
-					color += brdf * skycolor * (1.0 - shade) * (1.0 - rainStrength);
+					color += brdf * suncolor * ((1.0 - shade) * (1.0 - rainStrength));
 				}
-
-				float reflection_fresnel_mul = frag_mask.is_trans ? 3.0 : 1.5;
-				float fresnel = pow(1.0 - dot(viewRefRay, frag.normal), 5.0 * specular.g + 1.5);
-				color += ref_color * F * fresnel;
-
 			}
 
 			float fog_coord = clamp((512.0 - frag.cdepth) / (512.0 - 32.0), 0.0, 1.0);
