@@ -220,7 +220,7 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 		#ifdef SHADOW_FILTER
 			for (int i = 0; i < 25; i++) {
 				float shadowDepth = texture2D(shadowtex1, shadowposition.st + circle_offsets[i] * 0.0008f).x;
-				shade += float(shadowDepth + 0.00002 / distortFactor + cdepthN * float(is_plant) * 0.01 < shadowposition.z);
+				shade += float(shadowDepth + 0.0001 + cdepthN * (0.003 + float(is_plant) * 0.01) < shadowposition.z);
 			}
 			shade /= 25.0f;
 		#else
@@ -240,9 +240,11 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 				shadowcolor *= texture2D(shadowcolor0, shadowposition.st).rgb * .873;
 				under_water = under_water || luma(shadowcolor) > 0.85;
 			}
-			
+
 			shadowcolor = mix(shadowcolor, vec3(1.0), smoothstep(0.2, 0.6, 1.0 - distortFactor));
 		}
+
+		if (is_water) shadowcolor = vec3(1.0);
 		#endif
 
 		float edgeX = abs(shadowposition.x) - 0.95f;
@@ -258,8 +260,9 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 #ifdef CAUSTIC
 
 float hash(vec2 p) {
-	float h = dot(p,vec2(127.1,311.7));
-	return fract(sin(h)*73758.5453123f);
+	vec3 p3  = fract(vec3(p.xyx) * 0.2031);
+	p3 += dot(p3, p3.yzx + 19.19);
+	return fract((p3.x + p3.y) * p3.z);
 }
 
 float noise( in vec2 p ) {
@@ -433,10 +436,9 @@ void main() {
 			caustic_wpos.y = 64.0;
 
 			vec3 surface_normal = get_water_normal(caustic_wpos, vec3(0.0, getwave(caustic_wpos), 0.0));
-			//shadowcolor *= 0.5 + 0.5 * max(1.0 - dot(surface_normal, worldLightPos), 0.0);
 
-			float index = dot(wnormal, -normalize(refract(worldLightPos, surface_normal, 1.0 / 1.2)));
-			shadowcolor *= 1.9 - 1.5 * pow(index, 3.5);
+			float index = dot(wnormal, normalize(refract(worldLightPos, surface_normal, 1.0 / 1.2)));
+			shadowcolor *= 0.5 + 0.5 * pow(max(0.0, index), 3.5);
 		}
 		#endif
 		shade = max(shade, (1.0 - float(is_plant) * smoothstep(1.0, 0.7, cdepthN)) * oren);
@@ -514,7 +516,7 @@ void main() {
 		ambient += gi;
 		#endif
 
-		vec3 Lo = (kD * color / PI + brdf) * diffuse_sun;
+		vec3 Lo = (is_water ? color * 0.7 : (kD * color / PI + brdf)) * diffuse_sun;
 		color *= ambient + diffuse_torch;
 		color += Lo;
 

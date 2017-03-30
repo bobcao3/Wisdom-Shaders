@@ -27,7 +27,7 @@ void calcCommon() {
 	float TimeMidnight = ((clamp(wTimeF, 12000.0, 12750.0) - 12000.0) / 750.0) - ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0);
 
 	vec3 suncolor_sunrise = vec3(2.52, 1.4, 0.4) * TimeSunrise;
-	vec3 suncolor_noon = vec3(2.72, 2.35, 2.1) * 0.7 * TimeNoon;
+	vec3 suncolor_noon = vec3(2.82, 2.25, 1.8) * 0.7 * TimeNoon;
 	vec3 suncolor_sunset = vec3(2.52, 1.3, 0.8) * 0.85 * TimeSunset;
 	vec3 suncolor_midnight = vec3(0.14, 0.5, 0.9) * 0.02 * TimeMidnight;
 
@@ -50,7 +50,7 @@ void calcCommon() {
 
 	horizontColor = horizontColor_sunrise + horizontColor_noon + horizontColor_sunset + horizontColor_night;
 	horizontColor *= 1.0 - rainStrength * 0.53;
-	
+
 	totalSkyLight = mix(vec3(0.168, 0.35, 1.4), vec3(0.25), rainStrength);
 
 	vec3 fogclr_sunrise = vec3(0.75, 0.9, 1.27) * 0.5 * TimeSunrise;
