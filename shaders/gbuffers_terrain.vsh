@@ -60,18 +60,20 @@ out vec3 TangentFragPos;
 out vec4 vtexcoordam;
 #endif*/
 
-#include "gbuffers.inc.vsh"
-
-float hash(vec2 p) {
-	float h = dot(p,vec2(127.1,311.7));
-	return fract(sin(h)*73758.5453123f);
-}
+#define hash(p) fract(mod(p.x, p.y) * 73758.23f)
 
 varying vec4 texcoordb;
 
-VSH {
+void main() {
 	color = gl_Color;
 
+	tangent.x = (gl_Normal.z * gl_Normal.z > 0.25f) ? sign(gl_Normal.z) : float(gl_Normal.y * gl_Normal.y > 0.25f);
+	tangent.y = 0.0;
+	tangent.z = float(gl_Normal.x * gl_Normal.x > 0.25f) * sign(-gl_Normal.x);
+
+	binormal = (gl_Normal.x * gl_Normal.x + gl_Normal.z * gl_Normal.z > 0.25) ? vec3( 0.0, -1.0,  0.0) : vec3( 0.0,  0.0,  1.0);
+
+	/*
 	if (gl_Normal.x > 0.5) {
 		//  1.0,  0.0,  0.0
 		tangent  = vec3( 0.0,  0.0, -1.0);
@@ -96,7 +98,8 @@ VSH {
 		//  0.0,  0.0, -1.0
 		tangent  = vec3(-1.0,  0.0,  0.0);
 		binormal = vec3( 0.0, -1.0,  0.0);
-	}
+	}*/
+
 	tangent = gl_NormalMatrix * tangent;
 	binormal = gl_NormalMatrix * binormal;
 
@@ -115,7 +118,6 @@ VSH {
 			float reset = cos(rand_ang * 10.0 + time * 0.1);
 			reset = max( reset * reset, max(rainStrength, 0.1));
 			position.x += sin(rand_ang * 10.0 + time + position.y) * 0.2 * reset * maxStrength;
-			position.z += sin(rand_ang * 10.0 + time - position.y) * 0.2 * reset * maxStrength;
 		}
 
 		flag = 0.50;
@@ -124,7 +126,6 @@ VSH {
 		float reset = cos(rand_ang * 10.0 + time * 0.1);
 		reset = max( reset * reset, max(rainStrength, 0.1));
 		position.xyz += tangent * sin(rand_ang * 5.0 + time + position.y) * 0.07 * reset * maxStrength;
-		position.xyz += binormal * sin(rand_ang * 5.0 + time - position.y) * 0.07 * reset * maxStrength;
 
 		flag = 0.50;
 	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115) flag = 0.51;

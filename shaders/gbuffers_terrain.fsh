@@ -92,9 +92,7 @@ vec2 ParallaxMapping(vec2 texc, vec3 viewDir) {
 #endif*/
 
 vec2 normalEncode(vec3 n) {
-	vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
-	enc = enc*0.5+0.5;
-	return enc;
+	return sqrt(-n.z*0.125+0.125) * normalize(n.xy) + 0.5;
 }
 
 /* DRAWBUFFERS:01245 */
