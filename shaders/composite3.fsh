@@ -612,7 +612,7 @@ void main() {
 			vec3 watercolor = min(luma(horizontColor), 1.0) * color;
 			float absorbtion = 2.0 / (dist_diff_N + 1.0) - 1.0;
 			watercolor *= pow(vec3(absorbtion), vec3(1.0, 0.4, 0.5));
-			vec3 waterfog = vec3(min(luma(horizontColor), 1.0)) * vec3(0.01,0.11,0.14);
+			vec3 waterfog = vec3(min(luma(horizontColor), 1.0)) * vec3(0.2f, 0.5f, 0.95f) * 0.15f;
 			color = mix(waterfog, watercolor, smoothstep(0.0, 1.0, absorbtion));
 
 			shade = fast_shadow_map(water_wpos);
