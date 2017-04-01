@@ -63,10 +63,10 @@ const float hPI = PI / 2;
 
 varying vec2 texcoord;
 varying vec3 suncolor;
+varying vec3 ambient;
 
 varying float extShadow;
 
-varying vec3 skycolor;
 varying vec3 fogcolor;
 varying vec3 horizontColor;
 
@@ -238,7 +238,7 @@ float shadow_map(out vec3 shadowcolor, inout bool under_water) {
 			float d2 = texture2D(shadowtex0, shadowposition.st).x;
 			if (d2 + 0.00002 / distortFactor < shadowposition.z) {
 				shadowcolor *= texture2D(shadowcolor0, shadowposition.st).rgb * .873;
-				under_water = under_water || luma(shadowcolor) > 0.85;
+				under_water = under_water || luma(shadowcolor) > 0.75;
 			}
 
 			shadowcolor = mix(shadowcolor, vec3(1.0), smoothstep(0.2, 0.6, 1.0 - distortFactor));
@@ -281,15 +281,15 @@ const float SEA_HEIGHT = 0.43;
 const float SEA_CHOPPY = 4.0;
 const float SEA_SPEED = 0.8;
 const float SEA_FREQ = 0.16;
-mat2 octave_m = mat2(1.6,1.1,-1.2,1.6);
-
+mat2 octave_m = mat2(1.4,1.1,-1.2,1.4);
 
 float sea_octave(vec2 uv, float choppy) {
-	uv += noise(uv);
+	/*uv += noise(uv);
 	vec2 wv = 1.0-abs(sin(uv));
 	vec2 swv = abs(cos(uv));
 	wv = mix(wv,swv,wv);
-	return pow(1.0-pow(wv.x * wv.y,0.75),choppy);
+	return pow(1.0-pow(wv.x * wv.y,0.75),choppy);*/
+	return sin(noise(uv));
 }
 
 float getwave(vec3 p) {
@@ -302,16 +302,13 @@ float getwave(vec3 p) {
 
 	float d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY; i++) {
-		d = sea_octave((uv+wave_speed)*freq,choppy);
-		d += sea_octave((uv-wave_speed)*freq,choppy);
+		d = sea_octave((uv+wave_speed)*freq,choppy) * 2.0;
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.3;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= -1.3;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
-	//float lod = 1.0 - length(p - cameraPosition) / 512.0;
-
-	return (h - SEA_HEIGHT);// * lod;
+	return (h - SEA_HEIGHT);
 }
 
 #define luma(color) dot(color,vec3(0.2126, 0.7152, 0.0722))
@@ -402,7 +399,23 @@ vec3 blurGI(vec3 c) {
 #define COLOR_PRESET_TORCH_VIBRANT
 //#define COLOR_PRESET_STRONG_VIBRANCE
 
+#ifdef CAUSTIC
+#define g(a) (-4*a.x*a.y+3*a.x+2*a.y)
+float bayer_4x4(vec2 pos) {
+	ivec2 p = ivec2(texcoord * vec2(viewWidth, viewHeight));
+
+	ivec2 m0 = ivec2(mod(floor(p * 0.5), 2.0));
+	ivec2 m1 = ivec2(mod(p, 2.0));
+	return float(g(m0)+g(m1)*4) / 15.0f;
+}
+#undef g
+#endif
+
 uniform vec3 upVec;
+
+float mie(float theta){
+	return max(exp(-pow(theta, 0.25)) - 0.4, 0.0);
+}
 
 void main() {
 	vec4 normaltex = texture2D(gnormal, texcoord);
@@ -420,7 +433,7 @@ void main() {
 	vec3 fogColor;
 
 	float eyebrightness = pow(float(eyeBrightnessSmooth.y) / 240.0, 2.0);
-	vec3 ambientColor = vec3(0.135, 0.14, 0.215) * luma(horizontColor) * (1.0 - eyebrightness * 0.2) * 3.0;
+	vec3 ambientColor = ambient * (1.0 - eyebrightness * 0.2);
 	if (!issky) {
 		vec3 shadowcolor;
 		bool under_water = false;
@@ -430,15 +443,26 @@ void main() {
 		shade = shadow_map(shadowcolor, under_water);
 
 		#ifdef CAUSTIC
-		if (under_water && shade > 0.01) {
+		if (under_water && shade > 0.01 && !(isEyeInWater && is_water)) {
 			vec3 caustic_wpos = wpos + cameraPosition;
-			caustic_wpos.xz += (worldLightPos.xz / worldLightPos.y) * (64.0 - caustic_wpos.y);
+			vec2 wL = worldLightPos.xz / worldLightPos.y;
+			caustic_wpos.xz += wL * (64.0 - caustic_wpos.y);
 			caustic_wpos.y = 64.0;
 
 			vec3 surface_normal = get_water_normal(caustic_wpos, vec3(0.0, getwave(caustic_wpos), 0.0));
+			float index = max(0.0, -normalize(refract(worldLightPos, surface_normal, 1.0 / 1.2)).y);
 
-			float index = dot(wnormal, normalize(refract(worldLightPos, surface_normal, 1.0 / 1.2)));
-			shadowcolor *= 0.5 + 0.5 * pow(max(0.0, index), 3.5);
+			vec3 cw = caustic_wpos + vec3(wL, 0.0) * 0.1 * bayer_4x4(texcoord);
+			surface_normal = get_water_normal(cw, vec3(0.0, getwave(cw), 0.0));
+			index += max(0.0, -normalize(refract(worldLightPos, surface_normal, 1.0 / 1.2)).y);
+
+			cw = caustic_wpos - vec3(wL, 0.0) * 0.1 * bayer_4x4(texcoord);
+			surface_normal = get_water_normal(cw, vec3(0.0, getwave(cw), 0.0));
+			index += max(0.0, -normalize(refract(worldLightPos, surface_normal, 1.0 / 1.2)).y);
+
+			index = 1.0 - index * 0.333;
+
+			shadowcolor *= 0.3 + 2.0 * pow(smoothstep(0.0, 0.8, index), 4.0);
 		}
 		#endif
 		shade = max(shade, (1.0 - float(is_plant) * smoothstep(1.0, 0.7, cdepthN)) * oren);
@@ -531,7 +555,8 @@ void main() {
 
 		vl = (2.0 - 2.0 / (1.0 + vl)) * (1.0 - extShadow);
 
-		color += fogcolor * (vl * (0.73 - eyebrightness * 0.14) * max(0.0, dot(nvpos, lightPosition)));
+		color += suncolor * mie(distance(normalize(nvpos), lightPosition)) * pow(vl, 0.5);
+		//(vl * (0.73 - eyebrightness * 0.14) * max(0.0, dot(nvpos, lightPosition)));
 
 		#endif
 	}

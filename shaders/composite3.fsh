@@ -182,13 +182,13 @@ float noise( in vec2 p ) {
 
 // sea
 #define SEA_HEIGHT 0.43 // [0.21 0.33 0.43 0.66]
+
 const int ITER_GEOMETRY = 2;
 const int ITER_GEOMETRY2 = 5;
-const float SEA_CHOPPY = 4.0;
+const float SEA_CHOPPY = 3.0;
 const float SEA_SPEED = 0.8;
 const float SEA_FREQ = 0.16;
-mat2 octave_m = mat2(1.6,1.1,-1.2,1.6);
-
+const mat2 octave_m = mat2(1.4,1.1,-1.2,1.4);
 
 float sea_octave(vec2 uv, float choppy) {
 	uv += noise(uv);
@@ -208,10 +208,9 @@ float getwave(vec3 p) {
 
 	float d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY; i++) {
-		d = sea_octave((uv+wave_speed)*freq,choppy);
-		d += sea_octave((uv-wave_speed)*freq,choppy);
+		d = sea_octave((uv+wave_speed)*freq,choppy) * 2.0;
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.3;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= -1.3;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
@@ -230,10 +229,9 @@ float getwave2(vec3 p) {
 
 	float d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY2; i++) {
-		d = sea_octave((uv+wave_speed)*freq,choppy);
-		d += sea_octave((uv-wave_speed)*freq,choppy);
+		d = sea_octave((uv+wave_speed)*freq,choppy) * 2.0;
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= 1.3;
+		uv *= octave_m; freq *= 1.9; amp *= 0.22; wave_speed *= -1.3;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
@@ -281,34 +279,31 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
 #define CLOUDS
 
 #ifdef CLOUDS
-const mat2 rotate = mat2(0.86, -0.5, 0.5, 0.86);
+const mat2 rotate = mat2(1.86, -1.5, 1.5, 1.86);
 
-float cloudNoise(in vec3 wpos) {
-	vec3 spos = wpos;
-	vec2 ns = spos.xz + cameraPosition.xz + frameTimeCounter * vec2(9.0, 2.0);
-	ns.y *= 0.73;
-	ns *= 0.00032;
-
-	vec2 coord = ns;
+float cloudNoise(in vec2 pos) {
+	vec2 coord = pos + cameraPosition.xz + frameTimeCounter * vec2(9.0, 2.0);
+	coord.y *= 0.73;
+	coord *= 0.00032;
 
 	// Shape
 	vec2 dir = vec2(1.0, 0.1);
-	float n = noise(coord) * 0.25;
-	                            coord *= 3.0;  dir = rotate * dir; coord += dir * frameTimeCounter * 0.03;
-	n += noise(coord) * 0.25;   coord *= 3.01; dir = rotate * dir; coord += dir * frameTimeCounter * 0.06;
-	n += noise(coord) * 0.125;  coord *= 3.02; dir = rotate * dir; coord += dir * frameTimeCounter * 0.09;
-	n += noise(coord) * 0.0625;	coord *= 3.03; dir = rotate * dir; coord += dir * frameTimeCounter * 0.12;
-	n += noise(coord) * 0.0312;
+	float n = noise(coord) * 0.31;
+	                            coord *= 3.0;  dir = rotate * dir; coord += dir * frameTimeCounter * 0.015;
+	n += noise(coord) * 0.25;   coord *= 3.01; dir = rotate * dir; coord += dir * frameTimeCounter * 0.025;
+	n += noise(coord) * 0.125;  coord *= 3.02; dir = rotate * dir; coord += dir * frameTimeCounter * 0.035;
+	n += noise(coord) * 0.0625;	coord *= 3.03; dir = rotate * dir; coord += dir * frameTimeCounter * 0.045;
+	n += pow(noise(coord), 2.0) * 0.0312;
 
 	return smoothstep(0.0, 1.0, n + rainStrength * 0.3);
 }
 
 const float cloudMin = 2800.0;
-const float cloudMax = 3512.0;
+const float cloudMax = 3912.0;
 const float cloudThick = cloudMax - cloudMin;
 const float cloudDense = (cloudMin + cloudMax) * 0.5;
 
-#define VOLUMETRIC_CLOUD
+//#define VOLUMETRIC_CLOUD
 #ifdef VOLUMETRIC_CLOUD
 
 #define g(a) (-4*a.x*a.y+3*a.x+2*a.y)
@@ -323,7 +318,7 @@ float bayer_8x8(vec2 pos) {
 #undef g
 
 float cloud3D(vec3 wpos) {
-	float h = cloudNoise(wpos);
+	float h = cloudNoise(wpos.xz);
 	return min(1.0, float(h > distance(wpos.y, cloudDense) * 2.0 / cloudThick) * h * 2.0);
 }
 
@@ -341,46 +336,53 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 	}
 	total *= 0.25;
 
-	vec3 core = vec3(0.0, 0.0, cloudThick * (1.0 - total));
-	vec3 r1 = vec3(100.0, 0.0, cloudThick * (1.0 - cloudNoise(vec3(spos.xz + vec2(100.0, 0.0), spos.y))));
-	vec3 r2 = vec3(0.0, 100.0, cloudThick * (1.0 - cloudNoise(vec3(spos.xz + vec2(0.0, 100.0), spos.y))));
+	vec3 cloud_color = vec3(0.0);
 
-	vec3 n = normalize(cross(r2 - core, r1 - core));
+	if (total > 0.0) {
+		float coreh = cloudThick * (1.0 - total);
+		vec3 r1 = vec3(20.0, 0.0, cloudThick * (1.0 - cloudNoise(spos.xz + vec2(20.0, 0.0))));
+		r1.y -= coreh;
+		vec3 r2 = vec3(0.0, 20.0, cloudThick * (1.0 - cloudNoise(spos.xz + vec2(0.0, 20.0))));
 
-	float density = max(0.0, dot(worldLightPos, n)) * 0.5 + 0.5;
-	float d2 = max(0.0, -dot(worldLightPos, n));
+		vec3 n = normalize(cross(r1, r2));
 
-	vec3 cloud_color = (1.0 - density) * (L * 0.66 + 0.8 * mie * (1.0 - total)) + horizontColor * (0.8 - total * 0.5) + (1.0 - d2) * suncolor * 0.2;
-	cloud_color *= 0.7;
-	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
+		float density = dot(worldLightPos, n) * 0.5 + 0.5;
+		float d2 = max(0.0, -dot(worldLightPos, n));
 
-	total = clamp(total, 0.0, 1.0);
+		cloud_color = (1.0 - density) * mie + (1.0 - d2) * 0.2 * suncolor;
+		total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
+		total = clamp(total, 0.0, 1.0);
+	}
 
 	return vec4(cloud_color, total);
 }
 
 #else
 
-vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
+vec4 calcCloud(in vec3 wpos, in vec3 mie) {
 	if (wpos.y < 0.03) return vec4(0.0);
 
-	vec3 spos = wpos / wpos.y * 2850.0;
-	float total = cloudNoise(spos);
+	vec3 spos = wpos / wpos.y * cloudMin;
+	float total = cloudNoise(spos.xz);
 
-	vec3 core = vec3(0.0, 0.0, cloudThick * (1.0 - total));
-	vec3 r1 = vec3(100.0, 0.0, cloudThick * (1.0 - cloudNoise(vec3(spos.xz + vec2(100.0, 0.0), spos.y))));
-	vec3 r2 = vec3(0.0, 100.0, cloudThick * (1.0 - cloudNoise(vec3(spos.xz + vec2(0.0, 100.0), spos.y))));
+	vec3 cloud_color = vec3(0.0);
 
-	vec3 n = normalize(cross(r2 - core, r1 - core));
+	if (total > 0.0) {
+		float coreh = cloudThick * (1.0 - total);
+		vec3 r1 = vec3(20.0, 0.0, cloudThick * (1.0 - cloudNoise(spos.xz + vec2(20.0, 0.0))));
+		r1.y -= coreh;
+		vec3 r2 = vec3(0.0, 20.0, cloudThick * (1.0 - cloudNoise(spos.xz + vec2(0.0, 20.0))));
 
-	float density = max(0.0, dot(worldLightPos, n)) * 0.5 + 0.5;
-	float d2 = max(0.0, -dot(worldLightPos, n));
+		vec3 n = normalize(cross(r1, r2));
 
-	vec3 cloud_color = (1.0 - density) * (L * 0.66 + 0.8 * mie * (1.0 - total)) + horizontColor * (0.8 - total * 0.5) + (1.0 - d2) * suncolor * 0.2;
-	cloud_color *= 0.7 - rainStrength * 0.24;
-	total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
+		float density = dot(worldLightPos, n) * 0.5 + 0.5;
+		float d2 = max(0.0, -dot(worldLightPos, n));
 
-	total = clamp(total, 0.0, 1.0);
+		cloud_color = (1.0 - density) * mie + (1.0 - d2) * 0.2 * suncolor;
+		total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
+
+		total = clamp(total, 0.0, 1.0);
+	}
 
 	return vec4(cloud_color, total);
 }
@@ -388,54 +390,21 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 #endif
 #endif
 
-vec3 mie(float dist, vec3 sunL){
-	return max(exp(-pow(dist, 0.25)) * sunL - 0.4, 0.0);
-}
-
 varying vec3 totalSkyLight;
 
-vec3 calcSkyColor(vec3 wpos, float camHeight){
-	float rain = 1.0 - rainStrength;
-	float sunDistance = distance(wpos, worldSunPosition) * 0.5;
-	float moonDistance = distance(wpos, -worldSunPosition) * 0.5;
+vec3 calcSkyColor(vec3 wpos, float camHeight) {
+	float h = sqrt(abs(wpos.y));
 
-	float sunH = clamp((worldSunPosition.y * 1.589) * 2.0 - 1.0, -2.0, 1.0);
+	vec3 sky = mix(vec3(0.8), totalSkyLight, h) * luma(horizontColor);
 
-	float sunScatterMult = clamp(sunDistance, 0.0, 1.0);
-	float sun = clamp(1.0 - smoothstep(0.01, 0.018, sunScatterMult), 0.0, 1.0) * rain;
+	vec4 cloud = calcCloud(wpos, vec3(1.3) * luma(suncolor));
+	sky = mix(sky, cloud.rgb, cloud.a);
 
-	float moonScatterMult = clamp(moonDistance, 0.0, 1.0);
-	float moon = clamp(1.0 - smoothstep(0.038, 0.041, moonScatterMult), 0.0, 1.0) * rain;
+	sky += pow(dot(wpos, worldLightPos), 10.0) * luma(horizontColor);
+	sky += smoothstep(0.99, 0.992, 1.0 - distance(wpos, worldSunPosition) * 0.5);
+	sky += smoothstep(0.98, 0.983, 1.0 - distance(wpos, -worldSunPosition) * 0.5) * 0.5;
 
-	float horizont = max(0.001, normalize(wpos * 480.0 + vec3(0.0, camHeight, 0.0)).y);
-	const float coeiff = 0.3785;
-	horizont = (coeiff * mix(sunScatterMult, 1.0, horizont)) / horizont;
-
-	vec3 sunMieScatter = mie(sunDistance, vec3(1.0, 1.0, 0.984) * min(1.0, luma(suncolor) * 0.6 + 0.4));
-	vec3 moonMieScatter = mie(moonDistance, vec3(1.0, 1.0, 1.0)) * 0.02;
-
-	vec3 sky = horizont * totalSkyLight * (1.0 - 0.5 * rainStrength);
-	sky = max(sky, 0.0);
-
-	sky = max(mix(pow(sky, 1.0 - sky), sky / (sky + 0.7), clamp(sunH * 2.0, 0.0, 1.0)),0.0);
-
-	float underscatter = distance(sunH * 0.5 + 0.5, 1.0);
-	sky = mix(sky, vec3(0.0), clamp(underscatter, 0.0, 1.0)) + sunMieScatter + moonMieScatter;
-
-	#ifdef CLOUDS
-	vec4 cloud = calcCloud(wpos, sunMieScatter + moonMieScatter, fogcolor);
-	cloud.rgb *= luma(suncolor);
-	#endif
-
-	sky = sky + (sun + moon * 0.1) * rain;
-	sky *= 1.0 + pow(1.0 - sunScatterMult, 10.0) * 2.0 * rain;
-	sky *= 1.0 + pow(1.0 - moonScatterMult, 11.0) * rain;
-
-	#ifdef CLOUDS
- 	sky = mix(sky, cloud.rgb, cloud.a);
- 	#endif
-
- 	return sky;
+	return sky;
 }
 
 #define rand(co) fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453)
@@ -591,10 +560,10 @@ void main() {
 			vec3 vvnormal_plain = normalDecode(g.normaltex.zw);
 			water_plain_normal = mat3(gbufferModelViewInverse) * vvnormal_plain;
 
-			float lod = pow(dot(water_plain_normal, vec3(0.0, 1.0, 0.0)), 10.0);
+			float lod = pow(dot(water_plain_normal, vec3(0.0, 1.0, 0.0)), 20.0);
 
 			#ifdef WATER_PARALLAX
-			if (!isEyeInWater) WaterParallax(water_wpos, lod);
+			if (!isEyeInWater && lod > 0.99) WaterParallax(water_wpos, lod);
 			float wave = getwave2(water_wpos + cameraPosition) * lod;
 			#else
 			float wave = getwave2(water_wpos + cameraPosition) * lod;
@@ -640,11 +609,11 @@ void main() {
 			if (frag.vpos.z > water_vpos.z && frag.vpos.z > 0.99) color = calcSkyColor(normalize(frag.wpos), cameraPosition.y + frag.wpos.y);
 			#endif
 
-			vec3 watercolor = min(luma(skycolor), 1.0) * color;
+			vec3 watercolor = min(luma(horizontColor), 1.0) * color;
 			float absorbtion = 2.0 / (dist_diff_N + 1.0) - 1.0;
 			watercolor *= pow(vec3(absorbtion), vec3(1.0, 0.4, 0.5));
-			vec3 waterfog = vec3(min(luma(skycolor), 1.0)) * vec3(0.01,0.11,0.14);
-			color = mix(waterfog, watercolor, absorbtion);
+			vec3 waterfog = vec3(min(luma(horizontColor), 1.0)) * vec3(0.01,0.11,0.14);
+			color = mix(waterfog, watercolor, smoothstep(0.0, 1.0, absorbtion));
 
 			shade = fast_shadow_map(water_wpos);
 
@@ -656,7 +625,7 @@ void main() {
 			frag.wnormal = water_normal;
 			#else
 			const vec3 wcolor = vec3(0.1569, 0.5882, 0.783);
-			vec3 watercolor = wcolor * vec3(min(luma(skycolor), 1.0));
+			vec3 watercolor = wcolor * vec3(min(luma(horizontColor), 1.0));
 			color = mix(color, watercolor, 0.1);
 
 			frag.wpos = water_wpos;

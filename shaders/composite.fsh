@@ -67,7 +67,6 @@ varying vec3 suncolor;
 
 varying float extShadow;
 
-varying vec3 skycolor;
 varying vec3 fogcolor;
 varying vec3 horizontColor;
 

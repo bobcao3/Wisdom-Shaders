@@ -119,7 +119,7 @@ vec3 vignette(vec3 color) {
 
 varying vec3 suncolor;
 uniform ivec2 eyeBrightnessSmooth;
-float exposure = 4.0 * clamp(1.0 - clamp(eyeBrightnessSmooth.y / 240.0, 0.0, 1.0) * 0.5 * luma(suncolor), 0.0, 1.0);
+float exposure = 4.0 * clamp(1.0 - clamp(eyeBrightnessSmooth.y / 240.0 * 0.6 * luma(suncolor), 0.0, 1.0), 0.0, 1.0);
 
 #define BLOOM
 
@@ -148,9 +148,9 @@ vec3 bloom() {
 }
 #endif
 
-const float A = 0.11;
-const float B = 0.50;
-const float C = 0.10;
+const float A = 0.13; // brightness multiplier
+const float B = 0.45; // black level
+const float C = 0.125; // constrast level
 const float D = 0.20;
 const float E = 0.02;
 const float F = 0.30;
@@ -168,6 +168,11 @@ void colorAdjust(inout vec3 c) {
 	vec3 color = curr * whiteScale;
 
 	c = pow(color, vec3(1.f/2.2f));
+
+	// Saturation
+	float l = dot(c, vec3(0.0, 0.3, 0.3));
+	vec3 chroma = c - l;
+	c = (chroma * 1.2) + l;
 }
 
 varying float sunVisibility;

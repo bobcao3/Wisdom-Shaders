@@ -103,11 +103,11 @@ VSH {
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
 	flag = 0.7;
-	
+
 	float maxStrength = 1.0 + rainStrength * 0.5;
 	float time = frameTimeCounter * 3.0;
 
-	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 || blockId == 59.0 || blockId == 141 || blockId == 142) {
+	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 || blockId == 59.0 || blockId == 141.0 || blockId == 142.0) {
 		float rand_ang = hash(position.xz);
 		position.x += rand_ang * 0.2;
 		position.z -= rand_ang * 0.2;

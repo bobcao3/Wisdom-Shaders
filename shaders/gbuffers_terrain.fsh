@@ -105,7 +105,11 @@ void main() {
 	texcoord_adj = fract(texcoord_adj / vtexcoordam.pq) * vtexcoordam.pq + vtexcoordam.st;
 	#endif*/
 
-	gl_FragData[0] = texF(texture, texcoord_adj) * color;
+	vec4 texture = texF(texture, texcoord_adj);
+
+	if (texture.a <= 0.0) discard;
+
+	gl_FragData[0] = texture * color;
 	gl_FragData[1] = vec4(wpos, 1.0);
 	#ifdef NORMALS
 		if (length(wpos) < 96.0) {
@@ -123,6 +127,6 @@ void main() {
 	#else
 		gl_FragData[2] = vec4(normalEncode(normal), flag, 1.0);
 	#endif
-	gl_FragData[3] = texture2D(specular, texcoord_adj);
+	gl_FragData[3] = texF(specular, texcoord_adj);
 	gl_FragData[4] = vec4(lmcoord, 1.0, 1.0);
 }
