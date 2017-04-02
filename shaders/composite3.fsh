@@ -400,8 +400,10 @@ vec3 calcSkyColor(vec3 wpos, float camHeight) {
 	sky += smoothstep(0.99, 0.992, 1.0 - distance(wpos, worldSunPosition) * 0.5) * suncolor;
 	sky += smoothstep(0.96, 0.967, 1.0 - distance(wpos, -worldSunPosition) * 0.5) * 0.5 * (1.0 - rainStrength);
 
+	#ifdef CLOUDS
 	vec4 cloud = calcCloud(wpos, vec3(1.3) * luma(horizontColor));
 	sky = mix(sky, cloud.rgb, cloud.a);
+	#endif
 
 	sky += pow(dot(wpos, worldLightPos), 10.0) * min(0.4, luma(horizontColor)) * suncolor;
 
