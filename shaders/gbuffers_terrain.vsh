@@ -60,7 +60,7 @@ out vec3 TangentFragPos;
 out vec4 vtexcoordam;
 #endif*/
 
-#define hash(p) fract(mod(p.x, p.y) * 73758.23f)
+#define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
 varying vec4 texcoordb;
 
@@ -117,7 +117,7 @@ void main() {
 		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
 			float reset = cos(rand_ang * 10.0 + time * 0.1);
 			reset = max( reset * reset, max(rainStrength, 0.1));
-			position.x += sin(rand_ang * 10.0 + time + position.y) * 0.2 * reset * maxStrength;
+			position.x += (sin(rand_ang * 10.0 + time + position.y) * 0.2) * (reset * maxStrength);
 		}
 
 		flag = 0.50;
@@ -125,7 +125,7 @@ void main() {
 		float rand_ang = hash(position.xz);
 		float reset = cos(rand_ang * 10.0 + time * 0.1);
 		reset = max( reset * reset, max(rainStrength, 0.1));
-		position.xyz += tangent * sin(rand_ang * 5.0 + time + position.y) * 0.07 * reset * maxStrength;
+		position.xyz += (sin(rand_ang * 5.0 + time + position.y) * 0.07) * (reset * maxStrength) * tangent;
 
 		flag = 0.50;
 	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115) flag = 0.51;
@@ -134,10 +134,10 @@ void main() {
 	wpos = gl_Position.xyz;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
 	normal = normalize(gl_NormalMatrix * gl_Normal);
-	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
+	texcoord = gl_MultiTexCoord0.st;
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
-	vec2 midcoord = (gl_TextureMatrix[0] * mc_midTexCoord).st;
+	vec2 midcoord = mc_midTexCoord.st;
 	vec2 tex_dist = texcoord - midcoord;
 	texcoordb.pq = abs(tex_dist)*2;
 	texcoordb.st = min(texcoord,midcoord - tex_dist);

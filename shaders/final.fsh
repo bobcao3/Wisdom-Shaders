@@ -172,7 +172,7 @@ void colorAdjust(inout vec3 c) {
 	// Saturation
 	float l = dot(c, vec3(0.0, 0.3, 0.3));
 	vec3 chroma = c - l;
-	c = (chroma * 1.2) + l;
+	c = (chroma * 1.4) + l;
 }
 
 varying float sunVisibility;
@@ -190,18 +190,13 @@ varying vec2 lf4Pos;
 #define LF3SIZE 0.25
 #define LF4SIZE 0.25
 
-const vec4 LF1COLOR = vec4(1.0, 1.0, 1.0, 0.1);
-const vec4 LF2COLOR = vec4(0.42, 0.0, 1.0, 0.1);
-const vec4 LF3COLOR = vec4(0.0, 1.0, 0.0, 0.1);
-const vec4 LF4COLOR = vec4(1.0, 0.0, 0.0, 0.1);
-
 vec3 lensFlare(vec3 color) {
 	if(sunVisibility <= 0.0)
 	return color;
-	LENS_FLARE(color, texcoord, lf1Pos, LF1SIZE, LF1COLOR);
-	LENS_FLARE(color, texcoord, lf2Pos, LF2SIZE, LF2COLOR);
-	LENS_FLARE(color, texcoord, lf3Pos, LF3SIZE, LF3COLOR);
-	LENS_FLARE(color, texcoord, lf4Pos, LF4SIZE, LF4COLOR);
+	LENS_FLARE(color, texcoord, lf1Pos, LF1SIZE, vec4(suncolor, 0.1));
+	LENS_FLARE(color, texcoord, lf2Pos, LF2SIZE, vec4(suncolor, 0.2));
+	LENS_FLARE(color, texcoord, lf3Pos, LF3SIZE, vec4(suncolor, 0.14));
+	LENS_FLARE(color, texcoord, lf4Pos, LF4SIZE, vec4(suncolor, 0.07));
 	return color;
 }
 

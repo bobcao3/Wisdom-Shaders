@@ -34,13 +34,8 @@ varying vec3 color;
 #define iswater coords.z
 
 void main() {
-	#ifndef NOSHADOW
 	vec4 c = texture2D(texture, texcoord);
 	c.rgb *= color;
-	c.rgb *= 1.0 - float(c.a > 0.9);
 	c = mix(c, vec4(1.0), iswater);
 	gl_FragData[0] = c;
-	#else
-	discard;
-	#endif
 }

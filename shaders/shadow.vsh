@@ -26,6 +26,7 @@
 #pragma optimize(on)
 
 #define SHADOW_MAP_BIAS 0.9
+const float negBias = 1.0f - SHADOW_MAP_BIAS;
 
 attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
@@ -39,15 +40,11 @@ varying vec3 color;
 #define texcoord coords.xy
 #define iswater coords.z
 
-float hash(vec2 p) {
-	float h = dot(p,vec2(127.1,311.7));
-	return fract(sin(h)*73758.5453123f);
-}
+#define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
-#define WAVING_SHADOW
+//#define WAVING_SHADOW
 
 void main() {
-
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
 	color = gl_Color.rgb;
@@ -72,7 +69,7 @@ void main() {
 
 	gl_Position = gl_ProjectionMatrix * (gl_ModelViewMatrix * position);
 
-	float distortFactor = (1.0 - SHADOW_MAP_BIAS) + length(gl_Position.xy) * SHADOW_MAP_BIAS;
+	float distortFactor = negBias + length(gl_Position.xy) * SHADOW_MAP_BIAS;
 	gl_Position.xy /= distortFactor;
 	texcoord = gl_MultiTexCoord0.st;
 }

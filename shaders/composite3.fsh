@@ -322,7 +322,7 @@ float cloud3D(vec3 wpos) {
 	return min(1.0, float(h > distance(wpos.y, cloudDense) * 2.0 / cloudThick) * h * 2.0);
 }
 
-vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
+vec4 calcCloud(in vec3 wpos, in vec3 mie) {
 	if (wpos.y < 0.03) return vec4(0.0);
 
 	vec3 spos = wpos / wpos.y * 2850.0;
@@ -349,7 +349,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie, in vec3 L) {
 		float density = dot(worldLightPos, n) * 0.5 + 0.5;
 		float d2 = max(0.0, -dot(worldLightPos, n));
 
-		cloud_color = (1.0 - density) * mie + (1.0 - d2) * 0.2 * suncolor;
+		cloud_color = (1.0 - density) * mie + (1.0 - d2) * 0.2 * fogcolor;
 		total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
 		total = clamp(total, 0.0, 1.0);
 	}
@@ -378,7 +378,7 @@ vec4 calcCloud(in vec3 wpos, in vec3 mie) {
 		float density = dot(worldLightPos, n) * 0.5 + 0.5;
 		float d2 = max(0.0, -dot(worldLightPos, n));
 
-		cloud_color = (1.0 - density) * mie + (1.0 - d2) * 0.2 * suncolor;
+		cloud_color = (1.0 - density) * mie + (1.0 - d2) * 0.2 * fogcolor;
 		total *= 1.0 - min(1.0, (length(wpos.xz) - 0.96) * 25.0);
 
 		total = clamp(total, 0.0, 1.0);
@@ -397,12 +397,13 @@ vec3 calcSkyColor(vec3 wpos, float camHeight) {
 
 	vec3 sky = mix(vec3(0.8), totalSkyLight, h) * luma(horizontColor);
 
-	vec4 cloud = calcCloud(wpos, vec3(1.3) * luma(suncolor));
+	sky += smoothstep(0.99, 0.992, 1.0 - distance(wpos, worldSunPosition) * 0.5) * suncolor;
+	sky += smoothstep(0.96, 0.967, 1.0 - distance(wpos, -worldSunPosition) * 0.5) * 0.5 * (1.0 - rainStrength);
+
+	vec4 cloud = calcCloud(wpos, vec3(1.3) * luma(horizontColor));
 	sky = mix(sky, cloud.rgb, cloud.a);
 
-	sky += pow(dot(wpos, worldLightPos), 10.0) * luma(horizontColor);
-	sky += smoothstep(0.99, 0.992, 1.0 - distance(wpos, worldSunPosition) * 0.5);
-	sky += smoothstep(0.98, 0.983, 1.0 - distance(wpos, -worldSunPosition) * 0.5) * 0.5;
+	sky += pow(dot(wpos, worldLightPos), 10.0) * min(0.4, luma(horizontColor)) * suncolor;
 
 	return sky;
 }
