@@ -405,7 +405,7 @@ vec3 calcSkyColor(vec3 wpos, float camHeight) {
 	sky = mix(sky, cloud.rgb, cloud.a);
 	#endif
 
-	sky += pow(dot(wpos, worldLightPos), 10.0) * min(0.4, luma(horizontColor)) * suncolor;
+	sky += pow(abs(dot(wpos, worldLightPos)), 10.0) * min(0.4, luma(horizontColor)) * suncolor;
 
 	return sky;
 }
