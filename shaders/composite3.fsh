@@ -480,24 +480,24 @@ vec4 waterRayTarcing(vec3 startPoint, vec3 direction, vec3 color, float metal) {
 #define WATER_PARALLAX
 #ifdef WATER_PARALLAX
 void WaterParallax(inout vec3 wpos, in float lod) {
-	const int maxLayers = 4;
+	const int maxLayers = 6;
 
 	vec3 nwpos = normalize(wpos);
 	vec3 fpos = (nwpos / max(0.1, abs(nwpos.y))) * SEA_HEIGHT;
+	fpos.y = 0.0;
 	float exph = 0.0;
-	float hstep = 1.0 / float(maxLayers);
+	float hstep = SEA_HEIGHT / float(maxLayers);
 
 	float h;
 	for (int i = 0; i < maxLayers; i++) {
 		h = getwave(wpos + cameraPosition) * lod;
-		hstep *= 1.3;
 
-		if (h + 0.05 > exph) break;
+		if (h >= exph) break;
 
 		exph -= hstep;
-		wpos += vec3(fpos.x, 0.0, fpos.z) * hstep;
+		wpos += fpos * hstep;
 	}
-	wpos -= vec3(fpos.x, 0.0, fpos.z) * abs(h - exph) * hstep;
+	wpos -= fpos * abs(h - exph) * 0.5;
 }
 #endif
 // #define BLACK_AND_WHITE
@@ -563,7 +563,7 @@ void main() {
 			vec3 vvnormal_plain = normalDecode(g.normaltex.zw);
 			water_plain_normal = mat3(gbufferModelViewInverse) * vvnormal_plain;
 
-			float lod = pow(dot(water_plain_normal, vec3(0.0, 1.0, 0.0)), 20.0);
+			float lod = smoothstep(0.95, 1.0, abs(dot(water_plain_normal, vec3(0.0, 1.0, 0.0))));
 
 			#ifdef WATER_PARALLAX
 			if (!isEyeInWater && lod > 0.99) WaterParallax(water_wpos, lod);

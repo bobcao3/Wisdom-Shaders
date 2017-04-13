@@ -52,17 +52,14 @@ varying vec3 tangent;
 varying vec3 binormal;
 #endif
 
-varying vec4 texcoordb;
-
-vec2 dcdx = dFdx(texcoordb.st * texcoordb.pq);
-vec2 dcdy = dFdy(texcoordb.st * texcoordb.pq);
+vec2 dcdx = dFdx(texcoord);
+vec2 dcdy = dFdy(texcoord);
 
 #ifdef SMOOTH_TEXTURE
 #define texF(a,b) texSmooth(a,b)
 uniform ivec2 atlasSize;
 
 vec4 texSmooth(in sampler2D s, in vec2 texc) {
-
 	vec2 pix_size = vec2(1.0) / (vec2(atlasSize) * 24.0);
 
 	vec4 texel0 = texture2DGradARB(s, texc + pix_size * vec2(0.1, 0.5), dcdx, dcdy);
@@ -76,34 +73,14 @@ vec4 texSmooth(in sampler2D s, in vec2 texc) {
 #define texF(a,b) texture2DGradARB(a, b, dcdx, dcdy)
 #endif
 
-//#define ParallaxOcculusion
-/*#ifdef ParallaxOcculusion
-in vec2 midTexCoord;
-in vec3 TangentFragPos;
-in vec4 vtexcoordam;
-
-const float height_scale = 0.018;
-
-vec2 ParallaxMapping(vec2 texc, vec3 viewDir) {
-	float height = texture2D(normals, texc).a;
-	vec2 p = viewDir.xy / viewDir.z * (height * height_scale);
-	return texc - p;
-}
-#endif*/
 
 vec2 normalEncode(vec3 n) {return sqrt(-n.z*0.125+0.125) * normalize(n.xy) + 0.5;}
 
 /* DRAWBUFFERS:01245 */
 void main() {
 	vec2 texcoord_adj = texcoord;
-	/*#ifdef ParallaxOcculusion
-	texcoord_adj = ParallaxMapping(texcoord, TangentFragPos);
-	texcoord_adj = fract(texcoord_adj / vtexcoordam.pq) * vtexcoordam.pq + vtexcoordam.st;
-	#endif*/
 
 	vec4 texture = texF(texture, texcoord_adj);
-
-	if (texture.a <= 0.0) discard;
 
 	gl_FragData[0] = texture * color;
 	gl_FragData[1] = vec4(wpos, 1.0);

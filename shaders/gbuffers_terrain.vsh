@@ -30,7 +30,6 @@
 attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
 
-uniform mat4 gbufferModelViewInverse;
 uniform float rainStrength;
 uniform float frameTimeCounter;
 
@@ -53,16 +52,7 @@ vec3 tangent;
 vec3 binormal;
 #endif
 
-//#define ParallaxOcculusion
-/*#ifdef ParallaxOcculusion
-out vec2 midTexCoord;
-out vec3 TangentFragPos;
-out vec4 vtexcoordam;
-#endif*/
-
 #define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
-
-varying vec4 texcoordb;
 
 void main() {
 	color = gl_Color;
@@ -70,35 +60,7 @@ void main() {
 	tangent.x = (gl_Normal.z * gl_Normal.z > 0.25f) ? sign(gl_Normal.z) : float(gl_Normal.y * gl_Normal.y > 0.25f);
 	tangent.y = 0.0;
 	tangent.z = float(gl_Normal.x * gl_Normal.x > 0.25f) * sign(-gl_Normal.x);
-
 	binormal = (gl_Normal.x * gl_Normal.x + gl_Normal.z * gl_Normal.z > 0.25) ? vec3( 0.0, -1.0,  0.0) : vec3( 0.0,  0.0,  1.0);
-
-	/*
-	if (gl_Normal.x > 0.5) {
-		//  1.0,  0.0,  0.0
-		tangent  = vec3( 0.0,  0.0, -1.0);
-		binormal = vec3( 0.0, -1.0,  0.0);
-	} else if (gl_Normal.x < -0.5) {
-		// -1.0,  0.0,  0.0
-		tangent  = vec3( 0.0,  0.0,  1.0);
-		binormal = vec3( 0.0, -1.0,  0.0);
-	} else if (gl_Normal.y > 0.5) {
-		//  0.0,  1.0,  0.0
-		tangent  = vec3( 1.0,  0.0,  0.0);
-		binormal = vec3( 0.0,  0.0,  1.0);
-	} else if (gl_Normal.y < -0.5) {
-		//  0.0, -1.0,  0.0
-		tangent  = vec3( 1.0,  0.0,  0.0);
-		binormal = vec3( 0.0,  0.0,  1.0);
-	} else if (gl_Normal.z > 0.5) {
-		//  0.0,  0.0,  1.0
-		tangent  = vec3( 1.0,  0.0,  0.0);
-		binormal = vec3( 0.0, -1.0,  0.0);
-	} else if (gl_Normal.z < -0.5) {
-		//  0.0,  0.0, -1.0
-		tangent  = vec3(-1.0,  0.0,  0.0);
-		binormal = vec3( 0.0, -1.0,  0.0);
-	}*/
 
 	tangent = gl_NormalMatrix * tangent;
 	binormal = gl_NormalMatrix * binormal;
@@ -134,24 +96,7 @@ void main() {
 	wpos = gl_Position.xyz;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
 	normal = normalize(gl_NormalMatrix * gl_Normal);
-	texcoord = gl_MultiTexCoord0.st;
+	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
-	vec2 midcoord = mc_midTexCoord.st;
-	vec2 tex_dist = texcoord - midcoord;
-	texcoordb.pq = abs(tex_dist)*2;
-	texcoordb.st = min(texcoord,midcoord - tex_dist);
-
-	/*
-	#ifdef ParallaxOcculusion
-	midTexCoord = (gl_TextureMatrix[0] *  mc_midTexCoord).st;
-	vec2 texcoordminusmid = texcoord - midTexCoord;
-	vtexcoordam.pq  = abs(texcoordminusmid) * 2;
-	vtexcoordam.st  = min(texcoord, midTexCoord - texcoordminusmid);
-	mat3 TBN = mat3(
-		tangent.x, binormal.x, normal.x,
-		tangent.y, binormal.y, normal.y,
-		tangent.z, binormal.z, normal.z);
-	TangentFragPos  = normalize(TBN * (wpos.xyz - vec3(0.0, 1.67, 0.0)));
-	#endif*/
 }

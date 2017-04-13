@@ -24,8 +24,6 @@
 #version 120
 #pragma optimize(on)
 
-uniform mat4 gbufferModelViewInverse;
-
 varying vec4 color;
 varying vec2 normal;
 varying vec4 coords;
