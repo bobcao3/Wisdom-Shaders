@@ -1,101 +1,134 @@
-// Copyright 2016 bobcao3 <bobcaocheng@163.com>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Copyright 2017 Cheng Cao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-#version 130
+// =============================================================================
+//  PLEASE FOLLOW THE LICENSE AND PLEASE DO NOT REMOVE THE LICENSE HEADER
+// =============================================================================
+//  ANY USE OF THE SHADER ONLINE OR OFFLINE IS CONSIDERED AS INCLUDING THE CODE
+//  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
+// =============================================================================
 
-uniform float rainStrength;
-uniform float frameTimeCounter;
-uniform sampler2D noisetex;
+#version 120
+
+#include "compat.glsl"
+
+#pragma optimize(on)
+
+#define NORMALS
 
 attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
 
-out vec4 color;
-out vec4 texcoord;
-out vec4 lmcoord;
-flat out vec3 normal;
-flat out vec3 binormal;
-flat out vec3 tangent;
-flat out float entities;
-flat out float iswater;
+uniform mat4 gbufferModelViewInverse;
+uniform float rainStrength;
+uniform float frameTimeCounter;
 
-void main()
-{
+varying vec4 color;
+varying vec4 coords;
+varying vec4 wdata;
+
+#define normal wdata.xyz
+#define flag wdata.w
+
+#define texcoord coords.rg
+#define lmcoord coords.ba
+
+#ifdef NORMALS
+varying vec3 tangent;
+varying vec3 binormal;
+#else
+vec3 tangent;
+vec3 binormal;
+#endif
+
+//#define ParallaxOcculusion
+#ifdef ParallaxOcculusion
+varying vec3 tangentpos;
+#endif
+
+//#define PARALLAX_SELF_SHADOW
+#ifdef PARALLAX_SELF_SHADOW
+varying vec3 sun;
+
+uniform vec3 shadowLightPosition;
+#endif
+
+#define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
+
+varying vec4 texcoordb;
+
+void main() {
+	color = gl_Color;
+
+	tangent.x = (gl_Normal.z * gl_Normal.z > 0.25f) ? sign(gl_Normal.z) : float(gl_Normal.y * gl_Normal.y > 0.25f);
+	tangent.y = 0.0;
+	tangent.z = float(gl_Normal.x * gl_Normal.x > 0.25f) * sign(-gl_Normal.x);
+
+	binormal = (gl_Normal.x * gl_Normal.x + gl_Normal.z * gl_Normal.z > 0.25) ? vec3( 0.0, -1.0,  0.0) : vec3( 0.0,  0.0,  1.0);
+
+	tangent = gl_NormalMatrix * tangent;
+	binormal = gl_NormalMatrix * binormal;
+
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
-  iswater = 0.0;
-	entities = 0.22;
-  if (blockId == 8.0 || blockId == 9.0) {
-    iswater = 1.0;
-  } else {
-	  if((blockId == 31.0 || blockId == 37.0 || blockId == 38.0) && gl_MultiTexCoord0.t < mc_midTexCoord.t) {
-		  float blockId = mc_Entity.x;
-		  vec3 noise = texture2D(noisetex, position.xz / 256.0).rgb;
-		  float maxStrength = 1.0 + rainStrength * 0.5;
-		  float time = frameTimeCounter * 3.0;
-		  float reset = cos(noise.z * 10.0 + time * 0.1);
-  		reset = max( reset * reset, max(rainStrength, 0.1));
-  		position.x += sin(noise.x * 10.0 + time) * 0.2 * reset * maxStrength;
-  		position.z += sin(noise.y * 10.0 + time) * 0.2 * reset * maxStrength;
+	flag = 0.7;
 
-      entities = 0.4;
-    }	else if(blockId == 18.0 || blockId == 106.0 || blockId == 161.0 || blockId == 175.0) {
-		  vec3 noise = texture2D(noisetex, (position.xz + 0.5) / 16.0).rgb;
-		  float maxStrength = 1.0 + rainStrength * 0.5;
-	    float time = frameTimeCounter * 3.0;
-  		float reset = cos(noise.z * 10.0 + time * 0.1);
-  		reset = max( reset * reset, max(rainStrength, 0.1));
-  		position.x += sin(noise.x * 10.0 + time) * 0.07 * reset * maxStrength;
-  		position.z += sin(noise.y * 10.0 + time) * 0.07 * reset * maxStrength;
+	float maxStrength = 1.0 + rainStrength * 0.5;
+	float time = frameTimeCounter * 3.0;
 
-      entities = 0.4;
-    } else if (blockId == 83.0 || blockId == 39 || blockId ==40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115 || blockId == 141 || blockId == 142) {
-      entities = 0.4;
-	  }
-	}
+	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 || blockId == 59.0 || blockId == 141.0 || blockId == 142.0) {
+		float rand_ang = hash(position.xz);
+		position.x += rand_ang * 0.2;
+		position.z -= rand_ang * 0.2;
+		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
+			float reset = cos(rand_ang * 10.0 + time * 0.1);
+			reset = max( reset * reset, max(rainStrength, 0.1));
+			position.x += (sin(rand_ang * 10.0 + time + position.y) * 0.2) * (reset * maxStrength);
+		}
 
-	normal = gl_Normal;
-	if (gl_Normal.x > 0.5) {
-		//  1.0,  0.0,  0.0
-		tangent  = normalize(gl_NormalMatrix * vec3( 0.0,  0.0, -1.0));
-		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
-	} else if (gl_Normal.x < -0.5) {
-		// -1.0,  0.0,  0.0
-		tangent  = normalize(gl_NormalMatrix * vec3( 0.0,  0.0,  1.0));
-		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
-	} else if (gl_Normal.y > 0.5) {
-		//  0.0,  1.0,  0.0
-		tangent  = normalize(gl_NormalMatrix * vec3( 1.0,  0.0,  0.0));
-		binormal = normalize(gl_NormalMatrix * vec3( 0.0,  0.0,  1.0));
-	} else if (gl_Normal.y < -0.5) {
-		//  0.0, -1.0,  0.0
-		tangent  = normalize(gl_NormalMatrix * vec3( 1.0,  0.0,  0.0));
-		binormal = normalize(gl_NormalMatrix * vec3( 0.0,  0.0,  1.0));
-	} else if (gl_Normal.z > 0.5) {
-		//  0.0,  0.0,  1.0
-		tangent  = normalize(gl_NormalMatrix * vec3( 1.0,  0.0,  0.0));
-		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
-	} else if (gl_Normal.z < -0.5) {
-		//  0.0,  0.0, -1.0
-		tangent  = normalize(gl_NormalMatrix * vec3(-1.0,  0.0,  0.0));
-		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
-	}
+		flag = 0.50;
+	} else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0) {
+		float rand_ang = hash(position.xz);
+		float reset = cos(rand_ang * 10.0 + time * 0.1);
+		reset = max( reset * reset, max(rainStrength, 0.1));
+		position.xyz += (sin(rand_ang * 5.0 + time + position.y) * 0.035 + 0.035) * (reset * maxStrength) * tangent;
 
-	position = gl_ModelViewMatrix * position;
-	gl_Position = gl_ProjectionMatrix * position;
-	gl_FogFragCoord = length(position.xyz);
-	color = gl_Color;
-	texcoord = gl_TextureMatrix[0] * gl_MultiTexCoord0;
-	lmcoord = gl_TextureMatrix[1] * gl_MultiTexCoord1;
+		flag = 0.50;
+	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115) flag = 0.51;
+
+	gl_Position = gl_ModelViewMatrix * position;
+	vec3 wpos = gl_Position.xyz;
+	gl_Position = gl_ProjectionMatrix * gl_Position;
+	normal = normalize(gl_NormalMatrix * gl_Normal);
+	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;;
+	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+
+	vec2 midcoord = mc_midTexCoord.st;
+	vec2 tex_dist = abs(texcoord - midcoord);
+	texcoordb.pq = tex_dist * 2.0;
+	texcoordb.st = midcoord - tex_dist;
+
+	#ifdef ParallaxOcculusion
+	mat3 TBN = mat3(
+		tangent.x, binormal.x, normal.x,
+		tangent.y, binormal.y, normal.y,
+		tangent.z, binormal.z, normal.z);
+	tangentpos  = normalize(TBN * wpos);
+	#ifdef PARALLAX_SELF_SHADOW
+	sun = TBN * normalize(shadowLightPosition);
+	#endif
+	#endif
 }

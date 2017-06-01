@@ -1,73 +1,189 @@
-// Copyright 2016 bobcao3 <bobcaocheng@163.com>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Copyright 2017 Cheng Cao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-#version 130
-#extension GL_ARB_shader_texture_lod : enable
+// =============================================================================
+//  PLEASE FOLLOW THE LICENSE AND PLEASE DO NOT REMOVE THE LICENSE HEADER
+// =============================================================================
+//  ANY USE OF THE SHADER ONLINE OR OFFLINE IS CONSIDERED AS INCLUDING THE CODE
+//  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
+// =============================================================================
+
+#version 120
+
+
+#include "compat.glsl"
+
 #pragma optimize(on)
 
-#define NORMAL_MAPPING
+//#define SMOOTH_TEXTURE
 
-const int noiseTextureResolution = 256;
+#define NORMALS
 
-uniform int fogMode;
 uniform sampler2D texture;
-uniform sampler2D lightmap;
 uniform sampler2D specular;
+#ifdef NORMALS
 uniform sampler2D normals;
+#endif
 
-in vec4 color;
-in vec4 texcoord;
-in vec4 lmcoord;
-flat in vec3 normal;
-flat in vec3 binormal;
-flat in vec3 tangent;
-flat in float entities;
-flat in float iswater;
+varying vec4 color;
+varying vec4 coords;
+varying vec4 wdata;
 
-vec2 normalEncode(vec3 n) {
-    vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
-    enc = enc*0.5+0.5;
-    return enc;
+#define normal wdata.xyz
+#define flag wdata.w
+
+#define texcoord coords.rg
+#define lmcoord coords.ba
+
+#ifdef NORMALS
+varying vec3 tangent;
+varying vec3 binormal;
+#endif
+
+varying vec4 texcoordb;
+
+vec2 dcdx = dFdx(texcoordb.st * texcoordb.pq);
+vec2 dcdy = dFdy(texcoordb.st * texcoordb.pq);
+
+uniform ivec2 atlasSize;
+
+#define texF(a,b) texture2DGradARB(a, b, dcdx, dcdy)
+
+//#define ParallaxOcculusion
+#ifdef ParallaxOcculusion
+varying vec3 tangentpos;
+
+#define TILE_RESOLUTION 0 // [32 64 128 256 512 1024]
+
+vec2 atlas_offset(in vec2 coord, in vec2 offset) {
+	const ivec2 atlasTiles = ivec2(16, 8);
+	#if TILE_RESOLUTION == 0
+	int tileResolution = atlasSize.x / atlasTiles.x;
+	#else
+	int tileResolution = TILE_RESOLUTION;
+	#endif
+
+	coord *= atlasSize;
+
+	vec2 offsetCoord = coord + mod(offset.xy * atlasSize, vec2(tileResolution));
+
+	vec2 minCoord = vec2(coord.x - mod(coord.x, tileResolution), coord.y - mod(coord.y, tileResolution));
+	vec2 maxCoord = minCoord + tileResolution;
+
+	if (offsetCoord.x > maxCoord.x)
+		offsetCoord.x -= tileResolution;
+	else if (offsetCoord.x < minCoord.x)
+		offsetCoord.x += tileResolution;
+
+	if (offsetCoord.y > maxCoord.y)
+		offsetCoord.y -= tileResolution;
+	else if (offsetCoord.y < minCoord.y)
+		offsetCoord.y += tileResolution;
+
+	offsetCoord /= atlasSize;
+
+	return offsetCoord;
 }
 
-vec2 dcdx = dFdx(texcoord.st);
-vec2 dcdy = dFdy(texcoord.st);
+//#define PARALLAX_SELF_SHADOW
+#ifdef PARALLAX_SELF_SHADOW
+varying vec3 sun;
+float parallax_lit = 1.0;
+#endif
 
-/* DRAWBUFFERS:0246 */
+vec2 ParallaxMapping(in vec2 coord) {
+	vec2 adjusted = coord.st;
+	#define maxSteps 8 // [4 8 16]
+	#define scale 0.03 // [0.01 0.03 0.05]
+
+	float heightmap = texture2D(normals, coord.st).a - 1.0f;
+
+	vec3 offset = vec3(0.0f, 0.0f, 0.0f);
+	vec3 s = normalize(tangentpos);
+	s = s / s.z * scale / maxSteps;
+
+	float lazyx = 0.5;
+	const float lazyinc = 0.25 / maxSteps;
+
+	if (heightmap < 0.0f) {
+		for (int i = 0; i < maxSteps; i++) {
+			float prev = offset.z;
+			
+			offset += (heightmap - prev) * lazyx * s;
+			lazyx += lazyinc;
+			
+			adjusted = atlas_offset(coord.st, offset.st);
+			heightmap = texture2D(normals, adjusted).a - 1.0f;
+			if (max(0.0, offset.z - heightmap) < 0.05) break;
+		}
+		
+		#ifdef PARALLAX_SELF_SHADOW
+		s = normalize(sun);
+		s = s * scale * 10.0 / maxSteps;
+		vec3 light_offset = offset;
+		
+		for (int i = 0; i < maxSteps; i++) {
+			float prev = offset.z;
+			
+			light_offset += s;
+			lazyx += lazyinc;
+			
+			heightmap = texture2D(normals, atlas_offset(coord.st, light_offset.st)).a - 1.0f;
+			if (heightmap > light_offset.z) {
+				parallax_lit = 0.5;
+				break;
+			}
+		}
+		#endif
+	}
+
+	return adjusted;
+}
+#endif
+
+vec2 normalEncode(vec3 n) {return sqrt(-n.z*0.125+0.125) * normalize(n.xy) + 0.5;}
+
+/* DRAWBUFFERS:0245 */
 void main() {
-	vec4 texcolor = textureProjGrad(texture, texcoord, dcdx, dcdy);
-  vec4 normal_map = textureProjGrad(normals, texcoord, dcdx, dcdy);
-	vec3 normal_r;
-  #ifdef NORMAL_MAPPING
-    if (length(normal_map.rgb) > 0) {
-      vec3 bump = normal_map.rgb * 2.0 - 1.0;
-      bump = bump * vec3(0.5) + vec3(0.0, 0.0, 0.5);
-      mat3 tbnMatrix = mat3(tangent.x, binormal.x, normal.x,
-          tangent.y, binormal.y, normal.y,
-          tangent.z, binormal.z, normal.z);
+	vec2 texcoord_adj = texcoord;
+	#ifdef ParallaxOcculusion
+	texcoord_adj = ParallaxMapping(texcoord);
+	#endif
 
-		  normal_r = normalize(bump * tbnMatrix);
-      normal_r = gl_NormalMatrix * normalize(normal_r);
-	  } else {
-      normal_r = gl_NormalMatrix * normal;
-    }
-  #else
-    normal_r = gl_NormalMatrix * normal;
-  #endif
+	vec4 t = texF(texture, texcoord_adj);
 
-	gl_FragData[0] = texcolor * color;
-	gl_FragData[1] = vec4(normalEncode(normal_r), 0.0, 1.0);
-	gl_FragData[2] = vec4(lmcoord.t, entities, lmcoord.s, 1.0);
-	gl_FragData[3] = vec4(textureProjGrad(specular, texcoord, dcdx, dcdy).rgb, texcolor.a);
+	if (t.a <= 0.0) discard;
+
+	#ifdef PARALLAX_SELF_SHADOW
+	t.rgb *= parallax_lit;
+	#endif
+
+	gl_FragData[0] = t * color;
+	#ifdef NORMALS
+		vec3 normal2 = texF(normals, texcoord_adj).xyz * 2.0 - 1.0;
+		const float bumpmult = 0.5;
+		normal2 = normal2 * vec3(bumpmult, bumpmult, bumpmult) + vec3(0.0f, 0.0f, 1.0f - bumpmult);
+		mat3 tbnMatrix = mat3(
+			tangent.x, binormal.x, normal.x,
+			tangent.y, binormal.y, normal.y,
+			tangent.z, binormal.z, normal.z);
+		gl_FragData[1] = vec4(normalEncode(normal2 * tbnMatrix), flag, 1.0);
+	#else
+		gl_FragData[1] = vec4(normalEncode(normal), flag, 1.0);
+	#endif
+	gl_FragData[2] = texF(specular, texcoord_adj);
+	gl_FragData[3] = vec4(lmcoord, 1.0, 1.0);
 }
