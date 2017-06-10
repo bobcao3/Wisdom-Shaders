@@ -18,12 +18,12 @@ void calc_fog_height(Material mat, in float start, in float end, inout vec3 orig
 
 vec3 calc_atmosphere(in vec3 sphere, in vec3 vsphere) {
 	float h = abs(normalize(sphere).y);
-	vec3 at = vec3(skyRGB * (1.0 - 0.6 * pow(h, 0.75))) * 0.7;
+	vec3 at = vec3(skyRGB * (1.0 - 0.6 * pow(h, 0.75))) * 0.6;
 	at += pow(1.0 - h, 3.0) * 0.5 * (vec3(1.0)) * clamp(length(sphere) / 512.0, 0.0, 1.0);
 	
 	vec3 rain = at;
 	calc_fog(length(sphere), 1.0, 512.0, rain, vec3(0.3));
-	at = mix(at, rain, rainStrength) * luma(ambient);
+	at = mix(at, rain * luma(ambient), rainStrength * 0.8);
 	
 	float VdotS = max(0.0, dot(vsphere, lightPosition));
 	float lSun = luma(suncolor);
