@@ -57,8 +57,8 @@ vec4 calc_clouds(in vec3 sphere, float dotS) {
 		  n += noise_tex(uv) * 0.0625;
 	n = smoothstep(0.0, 1.0, n);
 	
-	vec3 mist_color = vec3(luma(suncolor) * 0.2);
-	mist_color += pow(dotS, 4.0) * (1.0 - n) * suncolor;
+	vec3 mist_color = vec3(luma(suncolor) * 0.16);
+	mist_color += pow(dotS, 4.0) * (1.0 - n) * suncolor * 0.5;
 	
 	n *= smoothstep(50.0, 100.0, sphere.y);
 	
