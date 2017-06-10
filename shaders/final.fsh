@@ -7,6 +7,7 @@ varying vec2 texcoord;
 #include "GlslConfig"
 
 //#define MOTION_BLUR
+#define BLOOM
 
 #include "CompositeUniform.glsl.frag"
 #include "Utilities.glsl.frag"
@@ -38,8 +39,14 @@ void main() {
 	if (texture2D(gaux1, texcoord).a > 0.11) motion_blur(composite, color, texcoord, fetch_vpos(texcoord, depthtex0).xyz);
 	#endif
 
-	// This will turn it into gamma space
-	tonemap(color, get_exposure());//, 1.4);
+	float exposure = get_exposure();
 
+	#ifdef BLOOM
+	color += bloom() * exposure * 0.5;
+	#endif
+
+	// This will turn it into gamma space
+	tonemap(color, exposure);//, 1.4);	
+	
 	gl_FragColor = vec4(color, 1.0f);
 }

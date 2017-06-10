@@ -94,7 +94,7 @@ void main() {
 		vec4 viewPosition = fetch_vpos(texcoord, depthtex0);
 		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * 512.0;
 		// Sky
-		color = calc_sky(worldPosition.xyz, normalize(viewPosition.xyz));
+		color = calc_sky_with_sun(worldPosition.xyz, normalize(viewPosition.xyz));
 		
 		//color = vec3(get_thickness(normalize(worldPosition.xyz)));
 	}

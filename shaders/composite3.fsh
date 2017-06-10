@@ -46,7 +46,7 @@ void main() {
 		material_sample(land, texcoord);
 		
 		// Transperant
-		if (mask.is_trans || isEyeInWater) {
+		if (mask.is_trans) {
 			material_sample_water(glossy, texcoord);
 
 			float water_sky_light = 0.0;
@@ -81,7 +81,7 @@ void main() {
 				// Refraction
 				#ifdef WATER_REFRACTION
 				vec3 refract_vpos = refract(land.vpos - glossy.vpos, glossy.N, 1.0 / 1.3);
-				if (distance(refract_vpos, land.vpos) < 5.0) {
+				if (distance(refract_vpos, land.vpos) < 7.0) {
 					land.vpos = refract_vpos + glossy.vpos;
 					land.nvpos = normalize(land.vpos);
 				}
@@ -103,14 +103,13 @@ void main() {
 		
 			// Render
 			if (mask.is_water || isEyeInWater) {
-				// Refract
 				float dist_diff = isEyeInWater ? min(length(land.vpos), length(glossy.vpos)) : distance(land.vpos, glossy.vpos);
 				float dist_diff_N = min(1.0, dist_diff * 0.125);
 			
 				// Absorbtion
 				float absorbtion = 2.0 / (dist_diff_N + 1.0) - 1.0;
 				vec3 watercolor = color * pow(vec3(absorbtion), vec3(1.0, 0.4, 0.5));
-				vec3 waterfog = luma(suncolor) * water_sky_light * vec3(0.2f, 0.54f, 0.88f) * 0.2;
+				vec3 waterfog = luma(ambient) * water_sky_light * vec3(0.1,0.19,0.22) * 8.0;
 				color = mix(waterfog, watercolor, smoothstep(0.0, 1.0, absorbtion));
 			} else {
 				color *= glossy.albedo;
@@ -148,11 +147,11 @@ void main() {
 		vec4 glossy_reflect = ray_trace_ssr(viewRef, land.vpos, land.roughness);
 		vec3 skyReflect = vec3(0.0);
 		if (glossy_reflect.a < 0.99) {
-			skyReflect = calc_atmosphere(reflect(normalize(land.wpos), mat3(gbufferModelViewInverse) * land.N) * 512.0, land.nvpos);
+			skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
 		}
 		vec3 ibl = mix(skyReflect * mclight.y, glossy_reflect.rgb, glossy_reflect.a);
 		#else
-		vec3 skyReflect = calc_atmosphere(reflect(normalize(land.wpos), mat3(gbufferModelViewInverse) * land.N) * 512.0, land.nvpos) * mclight.y;
+		vec3 skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
 		#endif
 		
 		color += light_calc_PBR_IBL(viewRef, land, ibl);
@@ -165,7 +164,7 @@ void main() {
 		color += VL(land.wpos, mix(suncolor, atmosphere, clamp(land.wpos.y / 256.0, 0.0, 1.0)), worldLightPosition.y * 1.2, land.cdepth);
 		#endif
 
-		calc_fog_height (land, 4.0, 512.0, color, atmosphere);
+		calc_fog_height (land, 4.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere);
 	}
 
 /* DRAWBUFFERS:3 */

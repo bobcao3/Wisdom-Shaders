@@ -344,10 +344,10 @@ float calcAO (vec3 cNormal, float cdepth, vec3 vpos, vec2 uv) {
 			
 		#ifdef HQ_AO
 		const int dcount = 2;
-		#define multi 0.23f
+		#define multi 0.125f
 		#else
 		const int dcount = 1;
-		#define multi 0.53f
+		#define multi 0.265f
 		#endif
 		for (int j = 0; j < dcount; j++) {
 			vec2 h = uv + dir * float(j + 1) / float(dcount);
@@ -356,7 +356,7 @@ float calcAO (vec3 cNormal, float cdepth, vec3 vpos, vec2 uv) {
 			
 			float d = length(nvpos - vpos);
 			
-			ao += max(-0.05, dot(cNormal, nvpos - vpos) / d)
+			ao += max(0.0, dot(cNormal, nvpos - vpos) / d - 0.15)
 			   * max(0.0, 1.0 - d * 0.27)
 			   * float(d > 0.00001);
 		}

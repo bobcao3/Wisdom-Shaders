@@ -33,19 +33,19 @@ void calcCommons() {
 	const vec3 suncolor_sunrise = vec3(0.8843, 0.6, 0.313) * 2.72;
 	const vec3 suncolor_noon = vec3(1.392, 1.3235, 1.1156) * 4.4;
 	const vec3 suncolor_sunset = vec3(0.9943, 0.519, 0.0945) * 2.6;
-	const vec3 suncolor_midnight = vec3(0.14, 0.5, 0.9) * 0.1;
+	const vec3 suncolor_midnight = vec3(0.14, 0.5, 0.9) * 0.2;
 
 	suncolor = suncolor_sunrise * TimeSunrise + suncolor_noon * TimeNoon + suncolor_sunset * TimeSunset + suncolor_midnight * TimeMidnight;
 	suncolor *= 1.0 - rainStrength * 0.97;
 	extShadow = (clamp((wTimeF-12000.0)/300.0,0.0,1.0)-clamp((wTimeF-13000.0)/300.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 
 	const vec3 ambient_sunrise = vec3(0.543, 0.672, 0.886) * 0.1;
-	const vec3 ambient_noon = vec3(0.176, 0.392, 1.0);
+	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0);
 	const vec3 ambient_sunset = vec3(0.443, 0.772, 0.847) * 0.08;
 	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.05;
 
 	ambient = ambient_sunrise * TimeSunrise + ambient_noon * TimeNoon + ambient_sunset * TimeSunset + ambient_midnight * TimeMidnight;
-	ambient *= 1.0 - rainStrength * 0.61;
+	ambient *= 1.0 - rainStrength * 0.51;
 	
 	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition);
 }
@@ -86,21 +86,25 @@ const float circle_count = 25.0;
 
 // Color adjustment
 
-const vec3 agamma = vec3(1.0 / gamma);
+const vec3 agamma = vec3(0.7 / gamma);
 
 float luma(in vec3 color) { return dot(color,vec3(0.2126, 0.7152, 0.0722)); }
 
-#define EXPOSURE 4.0 // [3.0 4.0 5.0]
+#define EXPOSURE 3.0 // [2.0 3.0 4.0]
 
-vec3 HDR2LDR(vec3 c){
-	float l = luma(c) * 0.8;
-	vec3 tc = c / sqrt(c * c + 1.0);
-	return mix(c / sqrt(l * l + 1.0), tc, tc);
-}
+void tonemap(inout vec3 color, float adapted_lum) {
+	color *= adapted_lum;
 
-void tonemap(inout vec3 color, float exposure) {
-	color *= exposure;
-	color = pow(HDR2LDR(color), agamma);
+	color = pow(color, vec3(1.5));
+    color = color / (1.0 + color);
+    color = pow(color, vec3(1.0 / 1.5));
+    
+    color = mix(color, color * color * (3.0 - 2.0 * color), vec3(1.0));
+    color = pow(color, vec3(1.3, 1.20, 1.0));    
+
+	color = clamp(color * 1.01, vec3(0.0), vec3(1.0));
+	
+	color = pow(color, agamma);
 }
 
 //==============================================================================
@@ -108,7 +112,7 @@ void tonemap(inout vec3 color, float exposure) {
 //==============================================================================
 
 float get_exposure() {
-	return EXPOSURE * (1.6 - clamp(pow(eyeBrightnessSmooth.y / 240.0, 3.0) * 0.8 * luma(suncolor), 0.0, 1.0));
+	return EXPOSURE * (1.6 - clamp(pow(eyeBrightnessSmooth.y / 240.0, 6.0) * 0.8 * luma(suncolor), 0.0, 1.0));
 }
 
 //==============================================================================
@@ -164,7 +168,7 @@ float noise(vec2 p) {
 }
 
 float noise_tex(in vec2 p) {
-	return sin(4.0 * texture2D(noisetex, p * 0.0001).r);
+	return texture2D(noisetex, p * 0.002).r * 2.0 - 1.0;
 }
 
 #ifndef HIGH_LEVEL_SHADER

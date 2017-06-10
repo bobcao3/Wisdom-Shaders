@@ -18,29 +18,73 @@ void calc_fog_height(Material mat, in float start, in float end, inout vec3 orig
 
 vec3 calc_atmosphere(in vec3 sphere, in vec3 vsphere) {
 	float h = abs(normalize(sphere).y);
-	vec3 at = vec3(skyRGB * (1.0 - 0.6 * pow(h, 0.75)));
+	vec3 at = vec3(skyRGB * (1.0 - 0.6 * pow(h, 0.75))) * 0.7;
 	at += pow(1.0 - h, 3.0) * 0.5 * (vec3(1.0)) * clamp(length(sphere) / 512.0, 0.0, 1.0);
 	
 	vec3 rain = at;
-	calc_fog(length(sphere), 1.0, 512.0, rain, vec3(2.0));
+	calc_fog(length(sphere), 1.0, 512.0, rain, vec3(0.3));
 	at = mix(at, rain, rainStrength) * luma(ambient);
 	
-	at += luma(suncolor) * 0.01 * max(0.0, dot(vsphere, lightPosition));
-	at += luma(suncolor) * 0.01 * pow(max(0.0, dot(vsphere, lightPosition)), 4.0);
-	at += luma(suncolor) * 0.01 * pow(max(0.0, dot(vsphere, lightPosition)), 8.0);
-	at += luma(suncolor) * 0.1 * pow(abs(dot(vsphere, lightPosition)), 30.0);
+	float VdotS = max(0.0, dot(vsphere, lightPosition));
+	float lSun = luma(suncolor);
+	at += lSun * 0.01 * VdotS;
+	at += lSun * 0.01 * pow(VdotS, 4.0);
+	at += lSun * 0.01 * pow(VdotS, 8.0);
+	at += lSun * 0.1 * pow(VdotS, 30.0);
+	
+	at += lSun * 0.3 * pow(VdotS, 4.0) * rainStrength;
 	
 	return at;
 }
 
-vec3 calc_clouds() {
-	return vec3(0.0);
+const mat2 octave_c = mat2(1.4,1.2,-1.2,1.4);
+
+vec4 calc_clouds(in vec3 sphere, float dotS) {
+	if (sphere.y < 50.0) return vec4(0.0);
+
+	vec3 c = sphere / sphere.y * 768.0;
+	vec2 uv = (c.xz + cameraPosition.xz);
+	
+	uv.x += frameTimeCounter * 10.0;
+	uv *= 0.002;
+	uv.y *= 0.75;
+	float n  = noise_tex(uv) * 0.5;
+		uv += vec2(n * 0.5, 0.3) * octave_c; uv *= 3.0;
+		  n += noise_tex(uv) * 0.35;
+		uv += vec2(n * 0.9, 0.2) * octave_c + vec2(frameTimeCounter * 0.1, 0.2); uv *= 3.01;
+		  n += noise_tex(uv) * 0.105;
+		uv += vec2(n * 0.4, 0.1) * octave_c + vec2(frameTimeCounter * 0.03, 0.1); uv *= 3.02;
+		  n += noise_tex(uv) * 0.0625;
+	n = smoothstep(0.0, 1.0, n);
+	
+	vec3 mist_color = vec3(luma(suncolor) * 0.2);
+	mist_color += pow(dotS, 4.0) * (1.0 - n) * suncolor;
+	
+	n *= smoothstep(50.0, 100.0, sphere.y);
+	
+	return vec4(mist_color, 0.5 * n);
 }
 
 vec3 calc_sky(in vec3 sphere, in vec3 vsphere) {
 	vec3 sky = calc_atmosphere(sphere, vsphere);
 
-	sky += suncolor * smoothstep(0.997, 0.998, abs(dot(vsphere, lightPosition))) * (1.0 - rainStrength);
+	float dotS = dot(vsphere, lightPosition);
+
+	vec4 clouds = calc_clouds(sphere, max(dotS, 0.0));
+	sky = mix(sky, clouds.rgb, clouds.a);
+
+	return sky;
+}
+
+vec3 calc_sky_with_sun(in vec3 sphere, in vec3 vsphere) {
+	vec3 sky = calc_atmosphere(sphere, vsphere);
+
+	float dotS = dot(vsphere, lightPosition);
+
+	sky += suncolor * smoothstep(0.997, 0.998, abs(dotS)) * (1.0 - rainStrength) * 5.0;
+	
+	vec4 clouds = calc_clouds(sphere, max(dotS, 0.0));
+	sky = mix(sky, clouds.rgb, clouds.a);
 
 	return sky;
 }
