@@ -81,11 +81,9 @@ void main() {
 				// Refraction
 				#ifdef WATER_REFRACTION
 				vec3 refract_vpos = refract(land.vpos - glossy.vpos, glossy.N, 1.0 / 1.3);
-				if (distance(refract_vpos, land.vpos) < 7.0) {
-					land.vpos = refract_vpos + glossy.vpos;
-					land.nvpos = normalize(land.vpos);
-				}
-				
+				land.vpos = refract_vpos + glossy.vpos;
+				land.nvpos = normalize(land.vpos);
+								
 				vec2 uv = screen_project(land.vpos);
 				uv = mix(uv, texcoord, pow(abs(uv - vec2(0.5)) * 2.0, vec2(2.0)));
 				color = texture2DLod(composite, uv, 1.0).rgb * 0.5;
