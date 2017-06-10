@@ -40,7 +40,7 @@ void calcCommons() {
 	extShadow = (clamp((wTimeF-12000.0)/300.0,0.0,1.0)-clamp((wTimeF-13000.0)/300.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 
 	const vec3 ambient_sunrise = vec3(0.543, 0.672, 0.886) * 0.1;
-	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0);
+	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.6;
 	const vec3 ambient_sunset = vec3(0.443, 0.772, 0.847) * 0.08;
 	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.05;
 
