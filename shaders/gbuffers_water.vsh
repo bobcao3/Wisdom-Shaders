@@ -46,29 +46,15 @@ varying vec4 coords;
 
 #include "gbuffers.inc.vsh"
 
-#ifdef NOSHADOW
-float getwave(vec3 worldpos) {return 0.06 * sin(2 * PI * (frameTimeCounter*0.55 + worldpos.x /  1.0 + worldpos.z / 3.0)) + 0.06 * sin(2 * PI * (frameTimeCounter*0.4 + worldpos.x / 11.0 + worldpos.z /  5.0));}
-#endif
-
 VSH {
-	vec4 position;
+	iswater = 0.95f;
 	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
 		iswater = 0.79f;
-
-		#ifdef NOSHADOW
-		vec4 viewpos = gbufferModelViewInverse * (gl_ModelViewMatrix * gl_Vertex);
-		vec3 worldpos = viewpos.xyz + cameraPosition;
-		position = gl_ModelViewMatrix * (gl_Vertex - vec4(0.0, getwave(worldpos) + 0.2, 0.0, 0.0));
-		#else
-		position = gl_ModelViewMatrix * gl_Vertex;
-		#endif
-	}	else {
-		iswater = 0.95f;
-		position = gl_ModelViewMatrix * gl_Vertex;
-		//normal = gl_Normal;
 	}
+	gl_Position = ftransform(gl_Vertex);
+	
 	normal = normalEncode(normalize(gl_NormalMatrix * gl_Normal));
-	gl_Position = gl_ProjectionMatrix * position;
+	
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 	skyLight = (gl_TextureMatrix[1] * gl_MultiTexCoord1).y;
 }

@@ -37,10 +37,12 @@ varying vec4 coords;
 
 /* DRAWBUFFERS:71 */
 void main() {
-	if (iswater == 0.79f) {
-		gl_FragData[0] = vec4(vec3(0.1,0.19,0.22) * pow(skyLight, 3.0), 1.0);
-	} else {
-		gl_FragData[0] = texture2D(tex, texcoord);
-	}
+	vec4 color = vec4(0.0);
+	if (iswater > 0.78f && iswater < 0.8f)
+		color = vec4(vec3(0.1,0.19,0.22) * pow(skyLight, 3.0), 1.0);
+	else
+		color = texture2D(tex, texcoord);
+	
+	gl_FragData[0] = color;
 	gl_FragData[1] = vec4(normal, iswater, 1.0);
 }

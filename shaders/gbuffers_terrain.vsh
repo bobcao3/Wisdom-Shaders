@@ -115,7 +115,7 @@ void main() {
 	vec3 wpos = gl_Position.xyz;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
 	normal = normalize(gl_NormalMatrix * gl_Normal);
-	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;;
+	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
 	vec2 midcoord = mc_midTexCoord.st;
