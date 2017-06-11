@@ -5,7 +5,7 @@ const int colortex1Format = RGB16;
 const int gnormalFormat = RGBA16;
 const int compositeFormat = R11F_G11F_B10F;
 const int gaux1Format = RGBA8;
-const int gaux2Format = RGB8;
+const int gaux2Format = RGBA16;
 const int gaux3Format = R11F_G11F_B10F;
 const int gaux4Format = RGBA8;
 

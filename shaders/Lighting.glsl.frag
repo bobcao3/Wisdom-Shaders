@@ -59,7 +59,7 @@ float light_mclightmap_simulated_GI(in float Ld, in vec3 L, in vec3 N) {
 vec3 wpos2shadowpos(in vec3 wpos) {
 	vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
 	shadowposition = shadowProjection * shadowposition;
-	float distb = sqrt(shadowposition.x * shadowposition.x + shadowposition.y * shadowposition.y);
+	float distb = length(shadowposition.xy);
 	float distortFactor = negShadowBias + distb * SHADOW_MAP_BIAS;
 	shadowposition.xy /= distortFactor;
 	shadowposition /= shadowposition.w;

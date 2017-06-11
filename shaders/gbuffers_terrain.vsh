@@ -40,6 +40,8 @@ varying vec4 color;
 varying vec4 coords;
 varying vec4 wdata;
 
+varying float dis;
+
 #define normal wdata.xyz
 #define flag wdata.w
 
@@ -131,4 +133,6 @@ void main() {
 	sun = TBN * normalize(shadowLightPosition);
 	#endif
 	#endif
+	
+	dis = length(wpos);
 }

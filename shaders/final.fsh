@@ -42,7 +42,7 @@ void main() {
 	float exposure = get_exposure();
 
 	#ifdef BLOOM
-	color += bloom() * exposure * 0.5;
+	color += max(vec3(0.0), bloom() * exposure * 0.5 - luma(color) * 0.3);
 	#endif
 
 	// This will turn it into gamma space
