@@ -18,19 +18,19 @@ void calc_fog_height(Material mat, in float start, in float end, inout vec3 orig
 
 vec3 calc_atmosphere(in vec3 sphere, in vec3 vsphere) {
 	float h = abs(normalize(sphere).y);
-	vec3 at = vec3(skyRGB * (1.0 - 0.6 * pow(h, 0.75))) * 0.6;
+	vec3 at = vec3(skyRGB * (1.0 - 0.6 * pow(h, 0.75))) * 0.7;
 	at += pow(1.0 - h, 3.0) * 0.5 * (vec3(1.0)) * clamp(length(sphere) / 512.0, 0.0, 1.0);
 	
 	vec3 rain = at;
 	calc_fog(length(sphere), 1.0, 512.0, rain, vec3(0.3));
-	at = mix(at, rain * luma(ambient), rainStrength * 0.8);
+	at = mix(at, rain, rainStrength * 0.8) * luma(ambient);
 	
 	float VdotS = max(0.0, dot(vsphere, lightPosition));
 	float lSun = luma(suncolor);
-	at += lSun * 0.01 * VdotS;
-	at += lSun * 0.01 * pow(VdotS, 4.0);
-	at += lSun * 0.01 * pow(VdotS, 8.0);
-	at += lSun * 0.1 * pow(VdotS, 30.0);
+	at += lSun * 0.015 * VdotS;
+	at += lSun * 0.015 * pow(VdotS, 4.0);
+	at += lSun * 0.015 * pow(VdotS, 8.0);
+	at += lSun * 0.12 * pow(VdotS, 30.0);
 	
 	at += lSun * 0.3 * pow(VdotS, 4.0) * rainStrength;
 	
@@ -48,14 +48,14 @@ vec4 calc_clouds(in vec3 sphere, float dotS) {
 	uv.x += frameTimeCounter * 10.0;
 	uv *= 0.002;
 	uv.y *= 0.75;
-	float n  = noise_tex(uv) * 0.5;
+	float n  = noise_tex(uv * vec2(0.5, 1.0)) * 0.5;
 		uv += vec2(n * 0.5, 0.3) * octave_c; uv *= 3.0;
 		  n += noise_tex(uv) * 0.35;
 		uv += vec2(n * 0.9, 0.2) * octave_c + vec2(frameTimeCounter * 0.1, 0.2); uv *= 3.01;
 		  n += noise_tex(uv) * 0.105;
 		uv += vec2(n * 0.4, 0.1) * octave_c + vec2(frameTimeCounter * 0.03, 0.1); uv *= 3.02;
 		  n += noise_tex(uv) * 0.0625;
-	n = smoothstep(0.0, 1.0, n);
+	n = smoothstep(0.0, 1.0, n + rainStrength * 0.6);
 	
 	vec3 mist_color = vec3(luma(suncolor) * 0.16);
 	mist_color += pow(dotS, 4.0) * (1.0 - n) * suncolor * 0.5;
