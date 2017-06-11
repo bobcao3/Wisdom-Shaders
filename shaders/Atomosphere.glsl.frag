@@ -101,7 +101,7 @@ const float vl_steps = 4.0;
 const int vl_loop = 5;
 #endif
 
-vec3 VL(in vec3 owpos, in vec3 sunl, in float sunh, in float cdepth) {
+float VL(in vec3 owpos, in float cdepth) {
 	vec3 swpos = owpos;
 	vec3 dir = normalize(owpos) * min(shadowDistance, cdepth) / vl_steps;
 	float prev = 0.0, total = 0.0;
@@ -119,7 +119,7 @@ vec3 VL(in vec3 owpos, in vec3 sunl, in float sunh, in float cdepth) {
 
 	total = min(total, 512.0);
 
-	return ((total + distance(cdepth, min(shadowDistance, cdepth))) / 512.0) * sqrt(1.0 - sunh) * 0.07 * sunl;
+	return (512.0f - min(shadowDistance, cdepth) + total) / 512.0f;
 }
 #endif
 

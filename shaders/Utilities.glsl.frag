@@ -168,7 +168,7 @@ float noise(vec2 p) {
 }
 
 float noise_tex(in vec2 p) {
-	return texture2D(noisetex, p * 0.002).r * 2.0 - 1.0;
+	return texture2D(noisetex, fract(p * 0.002)).r * 2.0 - 1.0;
 }
 
 #ifndef HIGH_LEVEL_SHADER

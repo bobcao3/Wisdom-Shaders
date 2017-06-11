@@ -160,11 +160,12 @@ void main() {
 		// Atmosphere
 		vec3 atmosphere = calc_atmosphere(land.wpos, land.nvpos);
 	
+		float lit_strength = 1.0;
 		#ifdef CrespecularRays
-		color += VL(land.wpos, mix(suncolor, atmosphere, clamp(land.wpos.y / 256.0, 0.0, 1.0)), worldLightPosition.y * 1.2, land.cdepth);
+		lit_strength = VL(land.wpos, land.cdepth);
 		#endif
 
-		calc_fog_height (land, 4.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere);
+		calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + lit_strength * 0.7));
 	}
 
 /* DRAWBUFFERS:3 */
