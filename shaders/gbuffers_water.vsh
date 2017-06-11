@@ -46,10 +46,9 @@ varying vec4 coords;
 
 VSH {
 	iswater = 0.95f;
-	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
-		iswater = 0.79f;
-	}
-	gl_Position = ftransform(gl_Vertex);
+	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) iswater = 0.79f;
+	gl_Position = gl_ModelViewMatrix * gl_Vertex;
+	gl_Position = gl_ProjectionMatrix * gl_Position;
 	
 	normal = normalEncode(normalize(gl_NormalMatrix * gl_Normal));
 	

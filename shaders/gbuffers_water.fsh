@@ -24,7 +24,6 @@
 #version 120
 #pragma optimize(on)
 
-uniform vec3 skyColor;
 uniform sampler2D tex;
 
 varying vec2 normal;
