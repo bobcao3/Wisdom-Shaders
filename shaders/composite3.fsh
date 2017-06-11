@@ -16,7 +16,7 @@ varying vec2 texcoord;
 const bool depthtex1MipmapEnabled = true;
 const bool compositeMipmapEnabled = true;
 
-vec2 mclight = texture2D(gaux2, texcoord).xy;
+vec4 mclight = texture2D(gaux2, texcoord);
 
 Material glossy;
 Material land;
@@ -60,7 +60,7 @@ void main() {
 				
 				vec3 water_plain_normal = mat3(gbufferModelViewInverse) * glossy.N;
 				
-				float lod = pow(dot(water_plain_normal, vec3(0.0, 1.0, 0.0)), 20.0);
+				float lod = pow(water_plain_normal.y, 20.0);
 				
 				#ifdef WATER_PARALLAX
 				if (lod > 0.99) WaterParallax(glossy.wpos);
@@ -73,7 +73,7 @@ void main() {
 				glossy.wpos -= vec3(wp.x, 0.0, wp.y);
 				#endif
 				
-				vec3 water_normal = normalize(mix(water_plain_normal, get_water_normal(glossy.wpos + cameraPosition, wave * water_plain_normal), lod));
+				vec3 water_normal = (lod > 0.99) ? get_water_normal(glossy.wpos + cameraPosition, wave * water_plain_normal) : water_plain_normal;
 				
 				glossy.N = mat3(gbufferModelView) * water_normal;
 				glossy.vpos = (!mask.is_water && isEyeInWater) ? glossy.vpos : (gbufferModelView * vec4(glossy.wpos, 1.0)).xyz;
@@ -97,6 +97,10 @@ void main() {
 				
 				glossy.roughness = 0.05;
 				glossy.metalic = 0.95;
+				
+				color = texture2DLod(composite, texcoord, 1.0).rgb * 0.5;
+				color += texture2DLod(composite, texcoord, 2.0).rgb * 0.3;
+				color += texture2DLod(composite, texcoord, 3.0).rgb * 0.2;
 			}
 		
 			// Render
@@ -132,27 +136,25 @@ void main() {
 				
 				land.roughness = mix(land.roughness, 0.05, wet);
 				land.metalic = mix(land.roughness, 0.95, wet);
-				vec3 flat_normal = normalize(cross(dFdx(land.vpos), dFdy(land.vpos)));
-				if (abs(dot(flat_normal, land.N)) < 0.9) wet = 0.0;
+				vec3 flat_normal = normalDecode(mclight.zw);
 				land.N = mix(land.N, flat_normal, wet);
 			}
 		}
 		
-		// IBL
 		#ifdef IBL
-		vec3 viewRef = reflect(land.nvpos, land.N);
-		#ifdef IBL_SSR
-		vec4 glossy_reflect = ray_trace_ssr(viewRef, land.vpos, land.roughness);
-		vec3 skyReflect = vec3(0.0);
-		if (glossy_reflect.a < 0.99) {
-			skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
+		// IBL
+		if (land.roughness < 0.99) {
+			vec3 viewRef = reflect(land.nvpos, land.N);
+			#ifdef IBL_SSR
+			vec4 glossy_reflect = ray_trace_ssr(viewRef, land.vpos, land.roughness);
+			vec3 skyReflect = vec3(0.0);
+			if (glossy_reflect.a < 0.95) skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
+			vec3 ibl = mix(skyReflect * mclight.y, glossy_reflect.rgb, glossy_reflect.a);
+			#else
+			vec3 skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
+			#endif
+			color += light_calc_PBR_IBL(viewRef, land, ibl);
 		}
-		vec3 ibl = mix(skyReflect * mclight.y, glossy_reflect.rgb, glossy_reflect.a);
-		#else
-		vec3 skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
-		#endif
-		
-		color += light_calc_PBR_IBL(viewRef, land, ibl);
 		#endif
 		
 		// Atmosphere

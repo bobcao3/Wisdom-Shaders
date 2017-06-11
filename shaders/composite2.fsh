@@ -12,7 +12,7 @@ varying vec2 texcoord;
 #include "Lighting.glsl.frag"
 #include "Atomosphere.glsl.frag"
 
-vec2 mclight = texture2D(gaux2, texcoord).xy;
+vec4 mclight = texture2D(gaux2, texcoord);
 
 LightSource torch;
 LightSource amb;
@@ -49,7 +49,7 @@ void main() {
 
 	// build up materials & light sources
 	if (!mask.is_sky) {
-		const vec3 torch_color = vec3(0.2435f, 0.0921f, 0.01053f) * 0.5f;
+		const vec3 torch_color = vec3(0.2435f, 0.0921f, 0.01053f) * 0.3f;
 		torch.color = torch_color;
 		torch.attenuation = light_mclightmap_attenuation(mclight.x);
 
@@ -83,8 +83,7 @@ void main() {
 				
 			land.roughness = mix(land.roughness, 0.05, wet);
 			land.metalic = mix(land.roughness, 0.95, wet * 0.5);
-			vec3 flat_normal = normalize(cross(dFdx(land.vpos), dFdy(land.vpos)));
-			if (abs(dot(flat_normal, land.N)) < 0.9) wet = 0.0;
+			vec3 flat_normal = normalDecode(mclight.zw);
 			land.N = mix(land.N, flat_normal, wet);
 		}
 

@@ -42,6 +42,8 @@ varying vec4 color;
 varying vec4 coords;
 varying vec4 wdata;
 
+varying float dis;
+
 #define normal wdata.xyz
 #define flag wdata.w
 
@@ -109,7 +111,7 @@ vec2 ParallaxMapping(in vec2 coord) {
 	#define maxSteps 8 // [4 8 16]
 	#define scale 0.03 // [0.01 0.03 0.05]
 
-	float heightmap = texture2D(normals, coord.st).a - 1.0f;
+	float heightmap = texF(normals, coord.st).a - 1.0f;
 
 	vec3 offset = vec3(0.0f, 0.0f, 0.0f);
 	vec3 s = normalize(tangentpos);
@@ -126,7 +128,7 @@ vec2 ParallaxMapping(in vec2 coord) {
 			lazyx += lazyinc;
 			
 			adjusted = atlas_offset(coord.st, offset.st);
-			heightmap = texture2D(normals, adjusted).a - 1.0f;
+			heightmap = texF(normals, adjusted).a - 1.0f;
 			if (max(0.0, offset.z - heightmap) < 0.05) break;
 		}
 		
@@ -141,7 +143,7 @@ vec2 ParallaxMapping(in vec2 coord) {
 			light_offset += s;
 			lazyx += lazyinc;
 			
-			heightmap = texture2D(normals, atlas_offset(coord.st, light_offset.st)).a - 1.0f;
+			heightmap = texF(normals, atlas_offset(coord.st, light_offset.st)).a - 1.0f;
 			if (heightmap > light_offset.z) {
 				parallax_lit = 0.5;
 				break;
@@ -160,7 +162,7 @@ vec2 normalEncode(vec3 n) {return sqrt(-n.z*0.125+0.125) * normalize(n.xy) + 0.5
 void main() {
 	vec2 texcoord_adj = texcoord;
 	#ifdef ParallaxOcculusion
-	texcoord_adj = ParallaxMapping(texcoord);
+	if (dis < 64.0) texcoord_adj = ParallaxMapping(texcoord);
 	#endif
 
 	vec4 t = texF(texture, texcoord_adj);
@@ -172,18 +174,23 @@ void main() {
 	#endif
 
 	gl_FragData[0] = t * color;
+	vec2 n2 = normalEncode(normal);
 	#ifdef NORMALS
-		vec3 normal2 = texF(normals, texcoord_adj).xyz * 2.0 - 1.0;
-		const float bumpmult = 0.5;
-		normal2 = normal2 * vec3(bumpmult, bumpmult, bumpmult) + vec3(0.0f, 0.0f, 1.0f - bumpmult);
-		mat3 tbnMatrix = mat3(
-			tangent.x, binormal.x, normal.x,
-			tangent.y, binormal.y, normal.y,
-			tangent.z, binormal.z, normal.z);
-		gl_FragData[1] = vec4(normalEncode(normal2 * tbnMatrix), flag, 1.0);
+		vec3 normal2 = normal;
+		if (dis < 64.0) {
+			normal2 = texF(normals, texcoord_adj).xyz * 2.0 - 1.0;
+			const float bumpmult = 0.5;
+			normal2 = normal2 * vec3(bumpmult) + vec3(0.0f, 0.0f, 1.0f - bumpmult);
+			mat3 tbnMatrix = mat3(
+				tangent.x, binormal.x, normal.x,
+				tangent.y, binormal.y, normal.y,
+				tangent.z, binormal.z, normal.z);
+			normal2 = normal2 * tbnMatrix;
+		}
+		gl_FragData[1] = vec4(normalEncode(normal2), flag, 1.0);
 	#else
-		gl_FragData[1] = vec4(normalEncode(normal), flag, 1.0);
+		gl_FragData[1] = vec4(n2, flag, 1.0);
 	#endif
 	gl_FragData[2] = texF(specular, texcoord_adj);
-	gl_FragData[3] = vec4(lmcoord, 1.0, 1.0);
+	gl_FragData[3] = vec4(lmcoord, n2);
 }
