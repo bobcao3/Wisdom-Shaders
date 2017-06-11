@@ -35,8 +35,6 @@ uniform float frameTimeCounter;
 
 const float PI = 3.14159f;
 
-varying vec3 wpos;
-
 varying vec2 normal;
 varying vec4 coords;
 

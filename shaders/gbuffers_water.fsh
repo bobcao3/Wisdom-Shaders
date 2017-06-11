@@ -27,7 +27,6 @@
 uniform vec3 skyColor;
 uniform sampler2D tex;
 
-//varying vec3 wpos;
 varying vec2 normal;
 varying vec4 coords;
 
