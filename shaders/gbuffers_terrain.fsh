@@ -64,8 +64,8 @@ uniform ivec2 atlasSize;
 
 #define texF(a,b) texture2DGradARB(a, b, dcdx, dcdy)
 
-//#define ParallaxOcculusion
-#ifdef ParallaxOcculusion
+//#define ParallaxOcclusion
+#ifdef ParallaxOcclusion
 varying vec3 tangentpos;
 
 #define TILE_RESOLUTION 0 // [32 64 128 256 512 1024]
@@ -161,7 +161,7 @@ vec2 normalEncode(vec3 n) {return sqrt(-n.z*0.125+0.125) * normalize(n.xy) + 0.5
 /* DRAWBUFFERS:0245 */
 void main() {
 	vec2 texcoord_adj = texcoord;
-	#ifdef ParallaxOcculusion
+	#ifdef ParallaxOcclusion
 	if (dis < 64.0) texcoord_adj = ParallaxMapping(texcoord);
 	#endif
 

@@ -40,7 +40,7 @@ void calcCommons() {
 	extShadow = (clamp((wTimeF-12000.0)/300.0,0.0,1.0)-clamp((wTimeF-13000.0)/300.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 
 	const vec3 ambient_sunrise = vec3(0.543, 0.672, 0.886) * 0.1;
-	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.5;
+	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.3;
 	const vec3 ambient_sunset = vec3(0.443, 0.772, 0.847) * 0.08;
 	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.05;
 
@@ -90,19 +90,33 @@ const vec3 agamma = vec3(0.7 / gamma);
 
 float luma(in vec3 color) { return dot(color,vec3(0.2126, 0.7152, 0.0722)); }
 
-#define EXPOSURE 3.0 // [2.0 3.0 4.0]
+#define EXPOSURE 2.0 // [1.0 2.0 3.0]
+
+#define VIGNETTE
+#ifdef VIGNETTE
+vec3 vignette(vec3 color) {
+    float dist = distance(texcoord, vec2(0.5f));
+    dist = dist * 1.7 - 0.65;
+    dist = smoothstep(0.0, 1.0, dist);
+    return color.rgb * (1.0 - dist);
+}
+#endif
 
 void tonemap(inout vec3 color, float adapted_lum) {
 	color *= adapted_lum;
 
-	color = pow(color, vec3(1.5));
-    color = color / (1.0 + color);
-    color = pow(color, vec3(1.0 / 1.5));
-    
-    color = mix(color, color * color * (3.0 - 2.0 * color), vec3(1.0));
-    color = pow(color, vec3(1.3, 1.20, 1.0));    
-
-	color = clamp(color * 1.01, vec3(0.0), vec3(1.0));
+	const float a = 2.51f;
+	const float b = 0.03f;
+	const float c = 2.43f;
+	const float d = 0.59f;
+	const float e = 0.14f;
+	color = (color*(a*color+b))/(color*(c*color+d)+e);
+	color = clamp(color, vec3(0.0), vec3(1.0));
+	color = pow(color, vec3(1.3, 1.20, 1.0));
+	
+	#ifdef VIGNETTE
+	color = vignette(color);
+	#endif
 	
 	color = pow(color, agamma);
 }

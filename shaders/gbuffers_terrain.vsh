@@ -56,8 +56,8 @@ vec3 tangent;
 vec3 binormal;
 #endif
 
-//#define ParallaxOcculusion
-#ifdef ParallaxOcculusion
+//#define ParallaxOcclusion
+#ifdef ParallaxOcclusion
 varying vec3 tangentpos;
 #endif
 
@@ -123,7 +123,7 @@ void main() {
 	texcoordb.pq = tex_dist * 2.0;
 	texcoordb.st = midcoord - tex_dist;
 
-	#ifdef ParallaxOcculusion
+	#ifdef ParallaxOcclusion
 	mat3 TBN = mat3(
 		tangent.x, binormal.x, normal.x,
 		tangent.y, binormal.y, normal.y,
