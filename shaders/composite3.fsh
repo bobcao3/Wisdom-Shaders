@@ -128,15 +128,17 @@ void main() {
 		} else {
 			// Force ground wetness
 			float wetness2 = wetness * pow(mclight.y, 5.0) * float(!mask.is_plant);
-			if (wetness2 > 0.1 && !mask.is_water) {
+			if (wetness2 > 0.1 && !(mask.is_water || mask.is_hand || mask.is_entity)) {
 				float wet = noise((land.wpos + cameraPosition).xz * 0.15);
 				wet += noise((land.wpos + cameraPosition).xz * 0.3) * 0.5;
 				wet = clamp(smoothstep(0.15, 0.3, wetness2) * wet, 0.0, 1.0);
 				
 				land.roughness = mix(land.roughness, 0.05, wet);
 				land.metalic = mix(land.metalic, 0.15, wet);
-				vec3 flat_normal = normalDecode(mclight.zw);
-				land.N = mix(land.N, flat_normal, wet);
+				if (mclight.w > 0.5) {
+					vec3 flat_normal = normalDecode(mclight.zw);
+					land.N = mix(land.N, flat_normal, wet);
+				}
 			}
 		}
 		
@@ -162,11 +164,11 @@ void main() {
 		float lit_strength = 1.0;
 		#ifdef CrespecularRays
 		float vl = 0.0;
-		lit_strength = VL(land.wpos, land.cdepth, vl) + rainStrength;
+		lit_strength = VL(land.wpos, land.cdepth, vl);
 		color += 0.005 * pow(vl, 0.3) * suncolor;
 		#endif
 
-		calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + lit_strength * 0.7));
+		calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + lit_strength * (0.7 + rainStrength)));
 	}
 
 /* DRAWBUFFERS:3 */

@@ -83,16 +83,16 @@ void main() {
 		
 		// Force ground wetness
 		float wetness2 = wetness * pow(mclight.y, 5.0) * float(!mask.is_plant);
-		if (wetness2 > 0.1 && !mask.is_water) {
+		if (wetness2 > 0.1 && !(mask.is_water || mask.is_hand || mask.is_entity)) {
 			float wet = noise((land.wpos + cameraPosition).xz * 0.15);
 			wet += noise((land.wpos + cameraPosition).xz * 0.3) * 0.5;
 			wet = clamp(smoothstep(0.1, 0.3, wetness2) * wet, 0.0, 1.0);
-				
+			
 			land.roughness = mix(land.roughness, 0.05, wet);
 			land.metalic = mix(land.metalic, 0.15, wet);
 			vec3 flat_normal = normalDecode(mclight.zw);
 			land.N = mix(land.N, flat_normal, wet);
-			
+						
 			land.albedo *= 1.0 - rainStrength * 0.3;
 		}
 

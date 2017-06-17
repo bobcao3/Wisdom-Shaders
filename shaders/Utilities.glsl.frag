@@ -41,7 +41,7 @@ void calcCommons() {
 
 	const vec3 ambient_sunrise = vec3(0.543, 0.672, 0.886) * 0.1;
 	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.3;
-	const vec3 ambient_sunset = vec3(0.443, 0.772, 0.847) * 0.08;
+	const vec3 ambient_sunset = vec3(0.443, 0.772, 0.847) * 0.1;
 	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.2;
 
 	ambient = ambient_sunrise * TimeSunrise + ambient_noon * TimeNoon + ambient_sunset * TimeSunset + ambient_midnight * TimeMidnight;

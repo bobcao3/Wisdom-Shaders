@@ -32,10 +32,10 @@ vec3 calc_atmosphere(in vec3 sphere, in vec3 vsphere) {
 	at = mix(at, suncolor, smoothstep(0.1, 1.0, h2 * pow(VdotS, 3.0)));
 	at *= luma(ambient);
 	
-	at += lSun * 0.006 * VdotS;
-	at += lSun * 0.011 * pow(VdotS, 4.0);
-	at += lSun * 0.015 * pow(VdotS, 8.0);
-	at += lSun * 0.12 * pow(VdotS, 30.0);
+	at += lSun * 0.006 * VdotS * extShadow;
+	at += lSun * 0.011 * pow(VdotS, 4.0) * extShadow;
+	at += lSun * 0.015 * pow(VdotS, 8.0) * extShadow;
+	at += lSun * 0.12 * pow(VdotS, 30.0) * extShadow;
 	
 	at += lSun * 0.3 * pow(VdotS, 4.0) * rainStrength;
 	
@@ -125,7 +125,7 @@ float VL(in vec3 owpos, in float cdepth, out float vl) {
 	total = min(total, 512.0);
 	vl = total / 512.0f;
 
-	return (512.0f - min(shadowDistance, cdepth) + total) / 512.0f;
+	return (max(0.0, cdepth - shadowDistance) + total) / 512.0f;
 }
 #endif
 

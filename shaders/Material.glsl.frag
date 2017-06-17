@@ -92,6 +92,8 @@ struct Mask {
 	bool is_glass;
 	bool is_plant;
 	bool is_sky;
+	bool is_hand;
+	bool is_entity;
 };
 
 void init_mask(inout Mask m, in float flag) {
@@ -103,6 +105,8 @@ void init_mask(inout Mask m, in float flag) {
 	m.is_trans = m.is_water || m.is_glass;
 	m.is_valid = (flag > 0.01 && flag < 0.97) && (!m.is_sky) || m.is_trans;
 	m.is_plant = (flag > 0.48 && flag < 0.53);
+	m.is_hand = m.is_valid && flag < 0.11;
+	m.is_entity = (flag > 0.35 && flag < 0.4);
 }
 
 #endif
