@@ -25,14 +25,10 @@
 #pragma optimize(on)
 
 varying vec4 color;
-varying vec2 normal;
-
-uniform mat4 gbufferModelViewInverse;
 
 #include "gbuffers.inc.vsh"
 
 VSH {
 	color = gl_Color;
 	gl_Position = ftransform();
-	normal = normalEncode(normalize(gl_NormalMatrix * gl_Normal));
 }
