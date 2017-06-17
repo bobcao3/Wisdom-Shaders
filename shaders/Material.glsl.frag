@@ -7,12 +7,11 @@
 // Normals
 //==============================================================================
 
-vec3 normalDecode(vec2 enc) {
-	vec3 nn = vec3(2.0f * enc - 1.0f, 1.0f);
-	float l = dot(nn, vec3(-nn.xy, 1.0));
-	nn.z = l;
-	nn.xy *= sqrt(l);
-	return normalize(nn * 2.0f + vec3(0.0f, 0.0f, -1.0f));
+vec3 normalDecode(vec2 encodedNormal) {
+	encodedNormal = encodedNormal * 4.0 - 2.0;
+	float f = dot(encodedNormal, encodedNormal);
+	float g = sqrt(1.0 - f * 0.25);
+	return vec3(encodedNormal * g, 1.0 - f * 0.5);
 }
 
 //==============================================================================

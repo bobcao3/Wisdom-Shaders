@@ -31,6 +31,7 @@
 
 attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
+attribute vec4 at_tangent;
 
 uniform mat4 gbufferModelViewInverse;
 uniform float rainStrength;
@@ -77,12 +78,8 @@ void main() {
 	
 	normal = normalize(gl_NormalMatrix * gl_Normal);
 
-	tangent.x = (gl_Normal.z * gl_Normal.z > 0.25f) ? sign(gl_Normal.z) : float(gl_Normal.y * gl_Normal.y > 0.25f);
-	tangent.y = 0.0;
-	tangent.z = float(gl_Normal.x * gl_Normal.x > 0.25f) * sign(-gl_Normal.x);
-
-	tangent = normalize(gl_NormalMatrix * tangent);
-	binormal = cross(normal, tangent);
+	tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
+    binormal = cross(tangent, normal);
 
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
@@ -118,7 +115,7 @@ void main() {
 	gl_Position = gl_ModelViewMatrix * position;
 	vec3 wpos = gl_Position.xyz;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
-	texcoord = (gl_MultiTexCoord0).st;
+	texcoord = gl_MultiTexCoord0.st;
 	lmcoord = (gl_TextureMatrix[1] *  gl_MultiTexCoord1).xy;
 
 	#ifdef ParallaxOcclusion

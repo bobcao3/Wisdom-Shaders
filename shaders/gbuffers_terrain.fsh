@@ -175,14 +175,16 @@ void main() {
 		if (dis < 64.0) {
 			normal2 = texture2D(normals, texcoord_adj).xyz * 2.0 - 1.0;
 			const float bumpmult = 0.5;
-			normal2 = normal2 * vec3(bumpmult) + vec3(0.0f, 0.0f, 1.0f - bumpmult);
+			normal2 = normal2 * bumpmult + vec3(0.0f, 0.0f, 1.0f - bumpmult);
 			mat3 tbnMatrix = mat3(
 				tangent.x, binormal.x, normal.x,
 				tangent.y, binormal.y, normal.y,
 				tangent.z, binormal.z, normal.z);
 			normal2 = normal2 * tbnMatrix;
 		}
-		gl_FragData[1] = vec4(normalEncode(normal2), flag, 1.0);
+		vec2 d = normalEncode(normal2);
+		if (!(d.x > 0.0 && d.y > 0.0)) d = n2;
+		gl_FragData[1] = vec4(d, flag, 1.0);
 	#else
 		gl_FragData[1] = vec4(n2, flag, 1.0);
 	#endif
