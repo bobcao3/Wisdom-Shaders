@@ -57,45 +57,37 @@ vec3 applyEffect(float total, float size,
 // http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter20.html
 
 // w0, w1, w2, and w3 are the four cubic B-spline basis functions
-float w0(float a)
-{
+float w0(float a) {
     return (1.0/6.0)*(a*(a*(-a + 3.0) - 3.0) + 1.0);
 }
 
-float w1(float a)
-{
+float w1(float a) {
     return (1.0/6.0)*(a*a*(3.0*a - 6.0) + 4.0);
 }
 
-float w2(float a)
-{
+float w2(float a) {
     return (1.0/6.0)*(a*(a*(-3.0*a + 3.0) + 3.0) + 1.0);
 }
 
-float w3(float a)
-{
+float w3(float a) {
     return (1.0/6.0)*(a*a*a);
 }
 
 // g0 and g1 are the two amplitude functions
-float g0(float a)
-{
+float g0(float a) {
     return w0(a) + w1(a);
 }
 
-float g1(float a)
-{
+float g1(float a) {
     return w2(a) + w3(a);
 }
 
 // h0 and h1 are the two offset functions
-float h0(float a)
-{
+float h0(float a) {
     return -1.0 + w1(a) / (w0(a) + w1(a));
 }
 
-float h1(float a)
-{
+float h1(float a) {
     return 1.0 + w3(a) / (w2(a) + w3(a));
 }
 
@@ -130,18 +122,18 @@ vec3 bloom() {
 
 	vec2 tex = (texcoord.st - tex_offset * 0.5f) * 0.25;
 	vec3 color = texture_Bicubic(gcolor, tex).rgb;
-	tex = texcoord.st * 0.125      + vec2(0.0f, 0.25f)	  + vec2(0.000f, 0.025f);
-	color +=  texture_Bicubic(gcolor, tex).rgb;
-	tex = (texcoord.st - tex_offset) * 0.0625     + vec2(0.125f, 0.25f)  + vec2(0.025f, 0.025f);
-	color +=  texture_Bicubic(gcolor, tex).rgb;
-	tex = (texcoord.st - tex_offset) * 0.03125    + vec2(0.1875f, 0.25f)	+ vec2(0.050f, 0.025f);
-	color +=  texture_Bicubic(gcolor, tex).rgb * 0.8125;
-	tex = (texcoord.st - tex_offset) * 0.015625   + vec2(0.21875f, 0.25f)+ vec2(0.075f, 0.025f);
-	color +=  texture_Bicubic(gcolor, tex).rgb * 0.625;
-	tex = (texcoord.st - tex_offset) * 0.0078125  + vec2(0.25f, 0.25f)   + vec2(0.100f, 0.025f);
-	color +=  texture_Bicubic(gcolor, tex).rgb * 0.5;
+	tex = texcoord.st * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.025f);
+	color += texture_Bicubic(gcolor, tex).rgb;
+	tex = (texcoord.st - tex_offset) * 0.0625 + vec2(0.125f, 0.25f) + vec2(0.025f, 0.025f);
+	color += texture_Bicubic(gcolor, tex).rgb;
+	tex = (texcoord.st - tex_offset) * 0.03125 + vec2(0.1875f, 0.25f) + vec2(0.050f, 0.025f);
+	color += texture_Bicubic(gcolor, tex).rgb;
+	tex = (texcoord.st - tex_offset) * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.075f, 0.025f);
+	color += texture_Bicubic(gcolor, tex).rgb;
+	tex = (texcoord.st - tex_offset) * 0.0078125 + vec2(0.25f, 0.25f) + vec2(0.100f, 0.025f);
+	color += texture_Bicubic(gcolor, tex).rgb;
 
-	color *= 0.2;
+	color *= 0.15;
 	return color * smoothstep(0.0, 1.0, luma(color));
 }
 #endif

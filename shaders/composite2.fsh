@@ -11,6 +11,7 @@ varying vec2 texcoord;
 #include "Material.glsl.frag"
 #include "Lighting.glsl.frag"
 #include "Atomosphere.glsl.frag"
+#include "Water.glsl.frag"
 
 vec4 mclight = texture2D(gaux2, texcoord);
 
@@ -67,6 +68,9 @@ void main() {
 
 		shadow = max(extShadow, shadow);
 		sun.light.attenuation = 1.0 - shadow;
+		if (mask.is_water && shadow < 0.95) {
+			sun.light.attenuation *= 0.2 + get_caustic(land.wpos + cameraPosition);
+		}
 		sun.L = lightPosition;
 
 		amb.color = ambient;
