@@ -176,7 +176,7 @@ float light_PBR_oren_diffuse(in vec3 v, in vec3 l, in vec3 n, in float r, in flo
 	float a = .285 / (r+.57) + .5;
 	float b = .45 * r / (r+.09);
 
-	return max(0.0, NdotL) * ( b * c + a);
+	return Positive(NdotL) * (b * c + a);
 }
 
 vec3 light_PBR_fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
@@ -199,7 +199,7 @@ float GeometrySmith(float NdotV, float NdotL, float k) {
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
 	float a      = roughness*roughness;
 	float a2     = a*a;
-	float NdotH  = max(dot(N, H), 0.0);
+	float NdotH  = Positive(dot(N, H));
 
 	float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
 	denom = PI * denom * denom;
@@ -208,8 +208,8 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 }
 
 vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceThick) {
-	float NdotV = dot(mat.N, -mat.nvpos);
-	float NdotL = dot(mat.N, Li.L);
+	float NdotV = Positive(dot(mat.N, -mat.nvpos));
+	float NdotL = Positive(dot(mat.N, Li.L));
 	
 	float oren = light_PBR_oren_diffuse(-mat.nvpos, Li.L, mat.N, mat.roughness, NdotL, NdotV);
 	//oren = mix(oren, 1.0, 1.0 - min(subSurfaceThick, 1.0));
@@ -221,22 +221,22 @@ vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceTh
 	
 	vec3 H = normalize(Li.L - mat.nvpos);
 	float NDF = DistributionGGX(mat.N, H, mat.roughness);
-	float G = GeometrySmith(max(0.0, NdotV), max(0.0, NdotL), mat.roughness);
-	vec3 F = light_PBR_fresnelSchlickRoughness(max(dot(H, -mat.nvpos), 0.0), F0, mat.roughness);
+	float G = GeometrySmith(NdotV, NdotL, mat.roughness);
+	vec3 F = light_PBR_fresnelSchlickRoughness(Positive(dot(H, -mat.nvpos)), F0, mat.roughness);
 
 	vec3 kD = max(vec3(0.0), vec3(1.0) - F);
 	kD *= 1.0 - mat.metalic;
 
 	vec3 nominator = NDF * G * F;
-	float denominator =  4 * max(NdotV, 0.0) * max(NdotL, 0.0) + 0.001;
+	float denominator =  4 * NdotV * NdotL + 0.001;
 	vec3 specular = nominator / denominator;
 
 	return (kD / PI * mat.albedo + specular) * radiance;
 }
 
 vec3 light_calc_PBR_brdf(LightSourcePBR Li, Material mat) {
-	float NdotV = dot(mat.N, -mat.nvpos);
-	float NdotL = dot(mat.N, Li.L);
+	float NdotV = Positive(dot(mat.N, -mat.nvpos));
+	float NdotL = Positive(dot(mat.N, Li.L));
 	
 	float oren = light_PBR_oren_diffuse(-mat.nvpos, Li.L, mat.N, mat.roughness, NdotL, NdotV);
 	float att = oren * Li.light.attenuation;
@@ -247,25 +247,22 @@ vec3 light_calc_PBR_brdf(LightSourcePBR Li, Material mat) {
 	
 	vec3 H = normalize(Li.L - mat.nvpos);
 	float NDF = DistributionGGX(mat.N, H, mat.roughness);
-	float G = GeometrySmith(max(0.0, NdotV), max(0.0, NdotL), mat.roughness);
-	vec3 F = light_PBR_fresnelSchlickRoughness(max(dot(H, -mat.nvpos), 0.0), F0, mat.roughness);
+	float G = GeometrySmith(NdotV, NdotL, mat.roughness);
+	vec3 F = light_PBR_fresnelSchlickRoughness(Positive(dot(H, -mat.nvpos)), F0, mat.roughness);
 
 	vec3 nominator = NDF * G * F;
-	float denominator = 4 * max(NdotV, 0.0) * max(NdotL, 0.0) + 0.001;
+	float denominator = 4 * Positive(NdotV) * Positive(NdotL);
 	vec3 specular = nominator / denominator;
 
 	return specular * radiance;
 }
 
 vec3 light_calc_PBR_IBL(in vec3 L, Material mat, in vec3 env) {
-	float NdotV = dot(mat.N, -mat.nvpos);
-	float NdotL = dot(mat.N, L);
-
 	vec3 H = normalize(L - mat.nvpos);
 	vec3 F0 = vec3(0.02);
 	F0 = mix(F0, mat.albedo, mat.metalic);
 	
-	vec3 F = light_PBR_fresnelSchlickRoughness(max(dot(H, -mat.nvpos), 0.0), F0, mat.roughness);
+	vec3 F = light_PBR_fresnelSchlickRoughness(max(dot(H, -mat.nvpos), 0.00001), F0, mat.roughness);
 
 	return (1.0 - mat.roughness) * F * env;
 }

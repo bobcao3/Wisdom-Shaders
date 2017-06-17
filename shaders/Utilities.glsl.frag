@@ -207,3 +207,5 @@ float bayer_16x16(in vec2 pos, in vec2 view) {
 }
 
 #endif
+
+#define Positive(a) max(0.0000001, a)
