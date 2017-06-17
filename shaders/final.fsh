@@ -14,6 +14,7 @@ varying vec2 texcoord;
 #include "Effects.glsl.frag"
 
 //#define SSEDAA
+//#define BLACK_AND_WHITE
 
 void main() {
 
@@ -46,7 +47,15 @@ void main() {
 	#endif
 
 	// This will turn it into gamma space
-	tonemap(color, exposure);//, 1.4);	
+	#ifdef BLACK_AND_WHITE
+	color = vec3(luma(color));
+	#endif
+	
+	#ifdef NOISE_AND_GRAIN
+	noise_and_grain(color);
+	#endif
+	
+	tonemap(color, exposure);
 	
 	gl_FragColor = vec4(color, 1.0f);
 }

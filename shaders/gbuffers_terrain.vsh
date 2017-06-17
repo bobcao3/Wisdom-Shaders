@@ -68,6 +68,8 @@ varying vec3 sun;
 uniform vec3 shadowLightPosition;
 #endif
 
+#define WAVING_FOILAGE
+
 #define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
 void main() {
@@ -86,10 +88,13 @@ void main() {
 	float blockId = mc_Entity.x;
 	flag = 0.7;
 
+	#ifdef WAVING_FOILAGE
 	float maxStrength = 1.0 + rainStrength * 0.5;
 	float time = frameTimeCounter * 3.0;
+	#endif
 
 	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 || blockId == 59.0 || blockId == 141.0 || blockId == 142.0) {
+		#ifdef WAVING_FOILAGE
 		float rand_ang = hash(position.xz);
 		position.x += rand_ang * 0.2;
 		position.z -= rand_ang * 0.2;
@@ -98,22 +103,23 @@ void main() {
 			reset = max( reset * reset, max(rainStrength, 0.1));
 			position.x += (sin(rand_ang * 10.0 + time + position.y) * 0.2) * (reset * maxStrength);
 		}
-
+		#endif
 		flag = 0.50;
 	} else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0) {
+		#ifdef WAVING_FOILAGE
 		float rand_ang = hash(position.xz);
 		float reset = cos(rand_ang * 10.0 + time * 0.1);
 		reset = max( reset * reset, max(rainStrength, 0.1));
 		position.xyz += (sin(rand_ang * 5.0 + time + position.y) * 0.035 + 0.035) * (reset * maxStrength) * tangent;
-
+		#endif
 		flag = 0.50;
 	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115) flag = 0.51;
 
 	gl_Position = gl_ModelViewMatrix * position;
 	vec3 wpos = gl_Position.xyz;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
-	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
-	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+	texcoord = (gl_MultiTexCoord0).st;
+	lmcoord = (gl_TextureMatrix[1] *  gl_MultiTexCoord1).xy;
 
 	#ifdef ParallaxOcclusion
 	mat3 TBN = mat3(

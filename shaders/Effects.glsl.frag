@@ -1,6 +1,20 @@
 #ifndef _INCLUDE_EFFECTS
 #define _INCLUDE_EFFECTS
 
+//#define NOISE_AND_GRAIN
+#ifdef NOISE_AND_GRAIN
+void noise_and_grain(inout vec3 color) {
+	float r = hash(texcoord * viewWidth);
+	float g = hash(texcoord * viewWidth + 1000.0);
+	float b = hash(texcoord * viewWidth + 4000.0);
+	float w = hash(texcoord * viewWidth - 1000.0);
+	w *= hash(texcoord * viewWidth - 2000.0);
+	w *= hash(texcoord * viewWidth - 3000.0);
+	
+	color = mix(color, vec3(r,g,b), pow(w, 2.0));
+}
+#endif
+
 #ifdef MOTION_BLUR
 
 #define MOTIONBLUR_MAX 0.1

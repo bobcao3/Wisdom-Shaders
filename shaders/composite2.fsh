@@ -38,6 +38,8 @@ float blurAO (vec2 uv, vec3 N) {
 #endif
 #endif
 
+//#define PRIME_RENDER
+
 void main() {
 	// rebuild hybrid flag
 	vec4 speculardata = texture2D(gaux1, texcoord);
@@ -55,6 +57,9 @@ void main() {
 		torch.attenuation = light_mclightmap_attenuation(mclight.x);
 
 		material_sample(land, texcoord);
+		#ifdef PRIME_RENDER
+		land.albedo = vec3(0.7);
+		#endif
 
 		sun.light.color = suncolor;
 		float thickness;
