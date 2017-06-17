@@ -21,7 +21,8 @@ const int noiseTextureResolution = 512;
 #define SHADOW_MAP_BIAS 0.9f
 const float negShadowBias = 1.0f - SHADOW_MAP_BIAS;
 const float eyeBrightnessHalflife = 18.5f;
-const float wetnessHalflife = 200.0f;
+const float wetnessHalflife = 40.0f;
+const float drynessHalflife = 200.0f;
 
 const float gamma = 2.2f;
 
