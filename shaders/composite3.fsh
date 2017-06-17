@@ -63,17 +63,16 @@ void main() {
 				float lod = pow(max(water_plain_normal.y, 0.0), 20.0);
 				
 				#ifdef WATER_PARALLAX
-				if (lod > 0.99) WaterParallax(glossy.wpos);
-				float wave = getwave2(glossy.wpos + cameraPosition);
+				if (lod > 0.99) WaterParallax(glossy.wpos, lod);
+				float wave = getwave2(glossy.wpos + cameraPosition, lod);
 				#else
-				float wave = getwave2(glossy.wpos + cameraPosition);
+				float wave = getwave2(glossy.wpos + cameraPosition, lod);
 				vec2 p = glossy.vpos.xy / glossy.vpos.z * wave;
-				wave = getwave2(glossy.wpos + cameraPosition - vec3(p.x, 0.0, p.y));
-				vec2 wp = length(p) * normalize(glossy.wpos).xz;
+				vec2 wp = length(p) * normalize(glossy.wpos).xz * 0.1;
 				glossy.wpos -= vec3(wp.x, 0.0, wp.y);
 				#endif
 				
-				vec3 water_normal = (lod > 0.99) ? get_water_normal(glossy.wpos + cameraPosition, wave * water_plain_normal) : water_plain_normal;
+				vec3 water_normal = (lod > 0.99) ? get_water_normal(glossy.wpos + cameraPosition, wave * water_plain_normal, lod) : water_plain_normal;
 				
 				glossy.N = mat3(gbufferModelView) * water_normal;
 				glossy.vpos = (!mask.is_water && isEyeInWater) ? glossy.vpos : (gbufferModelView * vec4(glossy.wpos, 1.0)).xyz;
@@ -93,10 +92,10 @@ void main() {
 				
 				glossy.nvpos = normalize(glossy.vpos);
 			} else {
-				glossy.albedo = mix(glossy.albedo, vec3(1.0), 0.2);
+				glossy.albedo = mix(glossy.albedo, vec3(1.0), glossy.opaque * 0.5);
 				
-				glossy.roughness = 0.05;
-				glossy.metalic = 0.95;
+				glossy.roughness = 0.04;
+				glossy.metalic = 0.25;
 				
 				color = texture2DLod(composite, texcoord, 1.0).rgb * 0.5;
 				color += texture2DLod(composite, texcoord, 2.0).rgb * 0.3;
@@ -105,7 +104,7 @@ void main() {
 		
 			// Render
 			if (mask.is_water || isEyeInWater) {
-				float dist_diff = isEyeInWater ? min(length(land.vpos), length(glossy.vpos)) : distance(land.vpos, glossy.vpos);
+				float dist_diff = isEyeInWater ? length(land.vpos) : distance(land.vpos, glossy.vpos);
 				float dist_diff_N = min(1.0, dist_diff * 0.125);
 			
 				// Absorbtion
@@ -114,13 +113,13 @@ void main() {
 				vec3 waterfog = luma(ambient) * water_sky_light * vec3(0.1,0.19,0.22) * 8.0;
 				color = mix(waterfog, watercolor, smoothstep(0.0, 1.0, absorbtion));
 			} else {
-				color *= glossy.albedo;
+				color = mix(color * glossy.albedo, glossy.albedo, glossy.opaque * glossy.opaque);
 			}
 			
 			sun.light.color = suncolor;
 			float shadow = light_fetch_shadow_fast(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(glossy.wpos));
 			shadow = max(extShadow, shadow);
-			sun.light.attenuation = 1.0 - extShadow - shadow;
+			sun.light.attenuation = 1.0 - shadow;
 			sun.L = lightPosition;
 			
 			color += light_calc_PBR_brdf(sun, glossy);
@@ -129,13 +128,13 @@ void main() {
 		} else {
 			// Force ground wetness
 			float wetness2 = wetness * pow(mclight.y, 5.0) * float(!mask.is_plant);
-			if (wetness2 > 0.1) {
+			if (wetness2 > 0.1 && !mask.is_water) {
 				float wet = noise((land.wpos + cameraPosition).xz * 0.15);
 				wet += noise((land.wpos + cameraPosition).xz * 0.3) * 0.5;
-				wet = sqrt(clamp(smoothstep(0.15, 0.3, wetness2) * wet * 2.0, 0.0, 1.0));
+				wet = clamp(smoothstep(0.15, 0.3, wetness2) * wet, 0.0, 1.0);
 				
 				land.roughness = mix(land.roughness, 0.05, wet);
-				land.metalic = mix(land.roughness, 0.95, wet);
+				land.metalic = mix(land.metalic, 0.15, wet);
 				vec3 flat_normal = normalDecode(mclight.zw);
 				land.N = mix(land.N, flat_normal, wet);
 			}
@@ -151,7 +150,7 @@ void main() {
 			if (glossy_reflect.a < 0.95) skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
 			vec3 ibl = mix(skyReflect * mclight.y, glossy_reflect.rgb, glossy_reflect.a);
 			#else
-			vec3 skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
+			vec3 ibl = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
 			#endif
 			color += light_calc_PBR_IBL(viewRef, land, ibl);
 		}
@@ -162,7 +161,9 @@ void main() {
 	
 		float lit_strength = 1.0;
 		#ifdef CrespecularRays
-		lit_strength = VL(land.wpos, land.cdepth);
+		float vl = 0.0;
+		lit_strength = VL(land.wpos, land.cdepth, vl) + rainStrength;
+		color += 0.005 * pow(vl, 0.3) * suncolor;
 		#endif
 
 		calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + lit_strength * 0.7));

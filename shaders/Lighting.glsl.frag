@@ -27,7 +27,7 @@ vec3 light_calc_diffuse(LightSource Li, Material mat) {
 }
 
 float light_mclightmap_attenuation(in float l) {
-	float light_distance = clamp((1.0 - pow(l, 6.6)), 0.08, 1.0);
+	float light_distance = clamp((1.0 - pow(l, 4.6)), 0.08, 1.0);
 	float max_light = 80.5 * pow(l, 2.0);
 
 	const float light_quadratic = 4.9f;
@@ -71,22 +71,22 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 const vec2 shadowPixSize = vec2(1.0 / shadowMapResolution);
 
 float shadowTexSmooth(in sampler2D s, in vec3 spos, in float bias, out float depth) {
-	vec2 px0 = vec2(spos.xy + shadowPixSize * vec2(0.25, 0.25));
+	vec2 px0 = vec2(spos.xy + shadowPixSize * vec2(0.5, 0.25));
 	depth = 0.0;
 	float texel = texture2D(s, px0).x; depth += texel;
-	float res1 = float(texel + bias < spos.z && texel < 0.999);
+	float res1 = float(texel + bias < spos.z);
 
-	vec2 px1 = vec2(spos.xy + shadowPixSize * vec2(0.25, -0.25));
+	vec2 px1 = vec2(spos.xy + shadowPixSize * vec2(0.5, -0.5));
 	texel = texture2D(s, px1).x; depth += texel;
-	float res2 = float(texel + bias < spos.z && texel < 0.999);
+	float res2 = float(texel + bias < spos.z);
 
-	vec2 px2 = vec2(spos.xy + shadowPixSize * vec2(-0.25, -0.25));
+	vec2 px2 = vec2(spos.xy + shadowPixSize * vec2(-0.5, -0.5));
 	texel = texture2D(s, px2).x; depth += texel;
-	float res3 = float(texel + bias < spos.z && texel < 0.999);
+	float res3 = float(texel + bias < spos.z);
 
-	vec2 px3 = vec2(spos.xy + shadowPixSize * vec2(-0.25, 0.25));
+	vec2 px3 = vec2(spos.xy + shadowPixSize * vec2(-0.5, 0.5));
 	texel = texture2D(s, px3).x; depth += texel;
-	float res4 = float(texel + bias < spos.z && texel < 0.999);
+	float res4 = float(texel + bias < spos.z);
 	depth *= 0.25;
 
 	return (res1 + res2 + res3 + res4) * 0.25;
@@ -103,7 +103,7 @@ float light_fetch_shadow(sampler2D shadowmap, in float bias, in vec3 spos, out f
 		float a = 0.0;
 		float xs = 0.0;
 		for (int i = 0; i < 25; i++) {
-			float n = bayer_4x4(float(i * 0.001) + texcoord.st, vec2(viewWidth, viewHeight));
+			float n = bayer_4x4(float(i * 0.001) + texcoord.st, vec2(viewWidth, viewHeight)) * (1.0 + rainStrength * 2.0);
 			a = texture2D(shadowmap, spos.st + circle_offsets[i] * 0.004f * n).x + bias * (1.0 + n);
 			M2 += a * a;
 			M1 += a;
@@ -120,16 +120,16 @@ float light_fetch_shadow(sampler2D shadowmap, in float bias, in vec3 spos, out f
 			shade = max(xs, 1.0 - v / (v + t_M1 * t_M1));
 		}
 		
-		thickness = distance(spos.z, M1) * 64.0;
+		thickness = distance(spos.z, M1) * 64.0 * shade;
 		#else
 		float avd = 0.0;
 		for (int i = 0; i < 25; i++) {
-			float shadowDepth = texture2D(shadowmap, spos.st + circle_offsets[i] * 0.0008f).x;
+			float shadowDepth = texture2D(shadowmap, spos.st + circle_offsets[i] * 0.0008f * (1.0 + rainStrength * 2.0)).x;
 			avd += shadowDepth;
-			shade += float(shadowDepth + bias < spos.z && shadowDepth > 0.0);
+			shade += float(shadowDepth + bias < spos.z);
 		}
 		shade /= 25.0f; avd / 25.0f;
-		thickness = distance(spos.z, avd) * 64.0;
+		thickness = distance(spos.z, avd) * 64.0 * shade;
 		#endif
 	#else
 		float M1;

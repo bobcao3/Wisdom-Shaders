@@ -1,14 +1,19 @@
 // sea
-#define SEA_HEIGHT 0.43 // [0.21 0.33 0.43 0.66]
+#define SEA_HEIGHT 0.21 // [0.11 0.21 0.33 0.43]
 
+#define NATURAL_WAVE_GENERATOR
+
+#ifdef NATURAL_WAVE_GENERATOR
 const int ITER_GEOMETRY = 3;
 const int ITER_GEOMETRY2 = 5;
+#else
+const int ITER_GEOMETRY = 2;
+const int ITER_GEOMETRY2 = 3;
+#endif
 const float SEA_CHOPPY = 4.0;
-const float SEA_SPEED = 0.8;
+const float SEA_SPEED = 1.2;
 const float SEA_FREQ = 0.12;
 const mat2 octave_m = mat2(1.4,1.1,-1.2,1.4);
-
-//#define NATURAL_WAVE_GENERATOR
 
 float sea_octave_micro(vec2 uv, float choppy) {
 	uv += noise(uv);
@@ -32,10 +37,10 @@ float sea_octave(vec2 uv, float choppy) {
 #endif
 
 const float height_mul[5] = float[5] (
-	0.32, 0.24, 0.18, 0.18, 0.16
+	0.52, 0.34, 0.20, 0.22, 0.16
 );
 
-float getwave(vec3 p) {
+float getwave(vec3 p, in float lod) {
 	float freq = SEA_FREQ;
 	float amp = SEA_HEIGHT;
 	float choppy = SEA_CHOPPY;
@@ -51,12 +56,10 @@ float getwave(vec3 p) {
 		choppy = mix(choppy,1.0,0.2);
 	}
 
-	float lod = pow(1.0 - length(p - cameraPosition) / 512.0, 0.5);
-
 	return (h - SEA_HEIGHT) * lod;
 }
 
-float getwave2(vec3 p) {
+float getwave2(vec3 p, in float lod) {
 	float freq = SEA_FREQ;
 	float amp = SEA_HEIGHT;
 	float choppy = SEA_CHOPPY;
@@ -79,14 +82,12 @@ float getwave2(vec3 p) {
 		choppy = mix(choppy,1.0,0.2);
 	}
 
-	float lod = pow(1.0 - length(p - cameraPosition) / 512.0, 0.5);
-
 	return (h - SEA_HEIGHT) * lod;
 }
 
-vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
-	vec3 w1 = vec3(0.01, getwave2(wwpos + vec3(0.01, 0.0, 0.0)), 0.0);
-	vec3 w2 = vec3(0.0, getwave2(wwpos + vec3(0.0, 0.0, 0.01)), 0.01);
+vec3 get_water_normal(in vec3 wwpos, in vec3 displacement, in float lod) {
+	vec3 w1 = vec3(0.01, getwave2(wwpos + vec3(0.01, 0.0, 0.0), lod), 0.0);
+	vec3 w2 = vec3(0.0, getwave2(wwpos + vec3(0.0, 0.0, 0.01), lod), 0.01);
 	#define w0 displacement
 	#define tangent w1 - w0
 	#define bitangent w2 - w0
@@ -96,7 +97,7 @@ vec3 get_water_normal(in vec3 wwpos, in vec3 displacement) {
 #define ENHANCED_WATER
 #define WATER_PARALLAX
 #ifdef WATER_PARALLAX
-void WaterParallax(inout vec3 wpos) {
+void WaterParallax(inout vec3 wpos, in float lod) {
 	const int maxLayers = 4;
 
 	vec3 nwpos = normalize(wpos);
@@ -106,8 +107,8 @@ void WaterParallax(inout vec3 wpos) {
 
 	float h;
 	for (int i = 0; i < maxLayers; i++) {
-		h = getwave(wpos + cameraPosition);
-		hstep = (exph - h) * 0.5;//(0.5 + 0.125 * float(i));
+		h = getwave(wpos + cameraPosition, lod);
+		hstep = (exph - h) * (0.5 + 0.125 * float(i));
 
 		if (h + 0.02 > exph) break;
 

@@ -18,15 +18,20 @@ void calc_fog_height(Material mat, in float start, in float end, inout vec3 orig
 
 vec3 calc_atmosphere(in vec3 sphere, in vec3 vsphere) {
 	float h = max(normalize(sphere).y, 0.0);
-	vec3 at = vec3(skyRGB * (1.0 - 0.6 * pow(h, 0.75))) * 0.7;
-	at += pow(max(0.0, 1.0 - h * 1.5), 3.0) * vec3(0.8) * clamp(length(sphere) / 512.0, 0.0, 1.0);
+	vec3 at = vec3(skyRGB * (1.0 - 0.6 * pow(h, 0.75))) * 0.8;
 	
 	vec3 rain = at;
 	calc_fog(length(sphere), 1.0, 512.0, rain, vec3(0.3));
-	at = mix(at, rain, rainStrength * 0.8) * luma(ambient);
+	at = mix(at, rain, rainStrength * 0.8);
+	
+	float h2 = pow(max(0.0, 1.0 - h * 1.4), 3.0);
+	at += h2 * vec3(0.7) * clamp(length(sphere) / 512.0, 0.0, 1.0);
 	
 	float VdotS = max(0.0, dot(vsphere, lightPosition));
 	float lSun = luma(suncolor);
+	at = mix(at, suncolor, smoothstep(0.1, 1.0, h2 * pow(VdotS, 3.0)));
+	at *= luma(ambient);
+	
 	at += lSun * 0.006 * VdotS;
 	at += lSun * 0.011 * pow(VdotS, 4.0);
 	at += lSun * 0.015 * pow(VdotS, 8.0);
@@ -40,7 +45,7 @@ vec3 calc_atmosphere(in vec3 sphere, in vec3 vsphere) {
 const mat2 octave_c = mat2(1.4,1.2,-1.2,1.4);
 
 vec4 calc_clouds(in vec3 sphere, float dotS) {
-	if (sphere.y < 50.0) return vec4(0.0);
+	if (sphere.y < 40.0) return vec4(0.0);
 
 	vec3 c = sphere / sphere.y * 768.0;
 	vec2 uv = (c.xz + cameraPosition.xz);
@@ -60,7 +65,7 @@ vec4 calc_clouds(in vec3 sphere, float dotS) {
 	vec3 mist_color = vec3(luma(suncolor) * 0.1);
 	mist_color += pow(dotS, 4.0) * (1.0 - n) * suncolor * 0.3;
 	
-	n *= smoothstep(50.0, 100.0, sphere.y);
+	n *= smoothstep(40.0, 80.0, sphere.y);
 	
 	return vec4(mist_color, 0.5 * n);
 }
@@ -101,14 +106,14 @@ const float vl_steps = 4.0;
 const int vl_loop = 5;
 #endif
 
-float VL(in vec3 owpos, in float cdepth) {
+float VL(in vec3 owpos, in float cdepth, out float vl) {
 	vec3 swpos = owpos;
 	vec3 dir = normalize(owpos) * min(shadowDistance, cdepth) / vl_steps;
 	float prev = 0.0, total = 0.0;
 
 	for (int i = 0; i < vl_loop; i++) {
 		swpos -= dir;
-		float dither = bayer_8x8(texcoord + vec2(i) * 0.01, vec2(viewWidth, viewHeight));
+		float dither = bayer_16x16(texcoord + vec2(i) * 0.01, vec2(viewWidth, viewHeight));
 		vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
 		float sdepth = texture2D(shadowtex1, shadowpos.xy).x;
 		if (shadowpos.z + 0.0006 < sdepth && sdepth < 0.9999) {
@@ -118,6 +123,7 @@ float VL(in vec3 owpos, in float cdepth) {
 	}
 
 	total = min(total, 512.0);
+	vl = total / 512.0f;
 
 	return (512.0f - min(shadowDistance, cdepth) + total) / 512.0f;
 }

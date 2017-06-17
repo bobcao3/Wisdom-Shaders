@@ -33,19 +33,19 @@ void calcCommons() {
 	const vec3 suncolor_sunrise = vec3(0.8843, 0.6, 0.313) * 2.72;
 	const vec3 suncolor_noon = vec3(1.392, 1.3235, 1.1156) * 4.4;
 	const vec3 suncolor_sunset = vec3(0.9943, 0.519, 0.0945) * 2.6;
-	const vec3 suncolor_midnight = vec3(0.14, 0.5, 0.9) * 0.2;
+	const vec3 suncolor_midnight = vec3(0.34, 0.5, 0.6) * 0.4;
 
 	suncolor = suncolor_sunrise * TimeSunrise + suncolor_noon * TimeNoon + suncolor_sunset * TimeSunset + suncolor_midnight * TimeMidnight;
-	suncolor *= 1.0 - rainStrength * 0.97;
+	suncolor *= 1.0 - rainStrength * 0.67;
 	extShadow = (clamp((wTimeF-12000.0)/300.0,0.0,1.0)-clamp((wTimeF-13000.0)/300.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 
 	const vec3 ambient_sunrise = vec3(0.543, 0.672, 0.886) * 0.1;
 	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.3;
 	const vec3 ambient_sunset = vec3(0.443, 0.772, 0.847) * 0.08;
-	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.05;
+	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.2;
 
 	ambient = ambient_sunrise * TimeSunrise + ambient_noon * TimeNoon + ambient_sunset * TimeSunset + ambient_midnight * TimeMidnight;
-	ambient *= 1.0 - rainStrength * 0.51;
+	ambient *= 1.0 - rainStrength * 0.41;
 	
 	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition);
 }
@@ -182,7 +182,7 @@ float noise(vec2 p) {
 }
 
 float noise_tex(in vec2 p) {
-	return texture2D(noisetex, fract(p * 0.002)).r * 2.0 - 1.0;
+	return texture2D(noisetex, fract(p * 0.0020173)).r * 2.0 - 1.0;
 }
 
 #ifndef HIGH_LEVEL_SHADER
@@ -212,7 +212,7 @@ float bayer_16x16(in vec2 pos, in vec2 view) {
 	ivec2 m1 = ivec2(mod(floor(p * 0.25), 2.0));
 	ivec2 m2 = ivec2(mod(floor(p * 0.5), 2.0));
 	ivec2 m3 = ivec2(mod(p, 2.0));
-	return float(g(m0)+g(m1)*4+g(m2)*16+g(m3)*32) / 1023.0f;
+	return float(g(m0)+g(m1)*4+g(m2)*16+g(m3)*32) / 255.0f;
 }
 #undef g
 
@@ -246,7 +246,7 @@ float bayer_16x16(in vec2 pos, in vec2 view) {
         (g(p>>2&1)<<2)+
         (g(p>>1&1)<<4)+
         (g(p   &1)<<6)
-    )/1023.;
+    )/255.;
 }
 #undef g
 

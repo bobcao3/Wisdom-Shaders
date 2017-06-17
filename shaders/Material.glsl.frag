@@ -32,6 +32,7 @@ struct Material {
 	float metalic;
 	float roughness;
 	float emmisive;
+	float opaque; 
 };
 
 void material_build(
@@ -49,29 +50,33 @@ void material_build(
 	mat.cdepth = length(vpos);
 	mat.cdepthN = length(vpos) / far;
 
-	mat.roughness = clamp(1.0 - specular.r, 0.001f, 0.999f);
-	mat.metalic = clamp(specular.g, 0.001f, 0.999f);
-	mat.emmisive = clamp(specular.b, 0.001f, 0.999f);
+	mat.roughness = clamp(1.0 - specular.r, 0.002f, 0.99f);
+	mat.metalic = clamp(specular.g, 0.002f, 0.999f);
+	mat.emmisive = clamp(specular.b, 0.0f, 1.0f);
 }
 
 void material_sample(out Material mat, in vec2 uv) {
 	vec4 vpos = fetch_vpos(uv, depthtex1);
 	vec3 normal = normalDecode(texture2D(gnormal, uv).rg);
+	vec4 spec = texture2D(gaux1, uv);
 	material_build(
 		mat,
 		vpos.xyz, (gbufferModelViewInverse * vpos).xyz, normal,
-		pow(texture2D(gcolor, uv).rgb, vec3(2.2f)), texture2D(gaux1, uv).rgb
+		pow(texture2D(gcolor, uv).rgb, vec3(2.2f)), spec.rgb
 	);
+	mat.opaque = spec.b;
 }
 
 void material_sample_water(out Material mat, in vec2 uv) {
 	vec4 vpos = fetch_vpos(uv, depthtex0);
 	vec3 normal = normalDecode(texture2D(gnormal, uv).ba);
+	vec4 spec = texture2D(gaux1, uv);
 	material_build(
 		mat,
 		vpos.xyz, (gbufferModelViewInverse * vpos).xyz, normal,
-		pow(texture2D(gaux4, uv).rgb, vec3(2.2f)), texture2D(gaux1, uv).rgb
+		pow(texture2D(gaux4, uv).rgb, vec3(2.2f)), spec.rgb
 	);
+	mat.opaque = spec.b;
 }
 
 //==============================================================================

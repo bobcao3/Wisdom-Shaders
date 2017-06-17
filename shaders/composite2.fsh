@@ -49,7 +49,7 @@ void main() {
 
 	// build up materials & light sources
 	if (!mask.is_sky) {
-		const vec3 torch_color = vec3(0.2435f, 0.0921f, 0.01053f) * 0.3f;
+		const vec3 torch_color = vec3(0.2435f, 0.0921f, 0.01053f) * 0.1f;
 		torch.color = torch_color;
 		torch.attenuation = light_mclightmap_attenuation(mclight.x);
 
@@ -57,7 +57,14 @@ void main() {
 
 		sun.light.color = suncolor;
 		float thickness;
-		float shadow = light_fetch_shadow(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(land.wpos), thickness);
+		float shadow = 0.0;
+		if (isEyeInWater) {
+			shadow = 1.0 - smoothstep(0.0, 1.0, mclight.y);
+			thickness = 1.0;
+		} else {
+			shadow = light_fetch_shadow(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(land.wpos), thickness);
+		}
+
 		shadow = max(extShadow, shadow);
 		sun.light.attenuation = 1.0 - shadow;
 		sun.L = lightPosition;
@@ -79,18 +86,20 @@ void main() {
 		if (wetness2 > 0.1 && !mask.is_water) {
 			float wet = noise((land.wpos + cameraPosition).xz * 0.15);
 			wet += noise((land.wpos + cameraPosition).xz * 0.3) * 0.5;
-			wet = sqrt(clamp(smoothstep(0.1, 0.3, wetness2) * wet * 4.0, 0.0, 1.0));
+			wet = clamp(smoothstep(0.1, 0.3, wetness2) * wet, 0.0, 1.0);
 				
 			land.roughness = mix(land.roughness, 0.05, wet);
-			land.metalic = mix(land.roughness, 0.95, wet * 0.5);
+			land.metalic = mix(land.metalic, 0.15, wet);
 			vec3 flat_normal = normalDecode(mclight.zw);
 			land.N = mix(land.N, flat_normal, wet);
+			
+			land.albedo *= 1.0 - rainStrength * 0.3;
 		}
 
 		// Light composite
 		color += light_calc_PBR(sun, land, mask.is_plant ? thickness : 1.0) + light_calc_diffuse(torch, land) + light_calc_diffuse(amb, land);
 	} else {
-		vec4 viewPosition = fetch_vpos(texcoord, depthtex0);
+		vec4 viewPosition = fetch_vpos(texcoord, depthtex1);
 		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * 512.0;
 		// Sky
 		color = calc_sky_with_sun(worldPosition.xyz, normalize(viewPosition.xyz));

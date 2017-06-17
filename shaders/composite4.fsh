@@ -35,7 +35,7 @@ varying vec2 texcoord;
 #define BLUR
 #endif
 
-#define DOF
+//#define DOF
 #ifdef DOF
 #define BLUR
 #endif
