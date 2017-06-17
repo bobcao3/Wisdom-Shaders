@@ -32,9 +32,15 @@ varying vec2 texcoord;
 
 #include "gbuffers.inc.vsh"
 
+#define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
+
 VSH {
 	color = gl_Color;
-	gl_Position = gl_ModelViewMatrix * gl_Vertex;
+	vec4 position = gl_Vertex;
+	float rand_ang = hash(position.xz);
+	position.x += rand_ang - position.y * 0.3;
+	position.z -= rand_ang;
+	gl_Position = gl_ModelViewMatrix * position;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
 	normal = normalEncode(gl_NormalMatrix * vec3(0.0, 1.0, 0.0));
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
