@@ -158,6 +158,8 @@ vec2 ParallaxMapping(in vec2 coord) {
 
 vec2 normalEncode(vec3 n) {return sqrt(-n.z*0.125+0.125) * normalize(n.xy) + 0.5;}
 
+//#define SPECULAR_TO_PBR_CONVERSION
+
 /* DRAWBUFFERS:0245 */
 void main() {
 	vec2 texcoord_adj = texcoord;
@@ -191,6 +193,12 @@ void main() {
 	#else
 		gl_FragData[1] = vec4(n2, flag, 1.0);
 	#endif
+	#ifdef SPECULAR_TO_PBR_CONVERSION
+	vec3 spec = texF(specular, texcoord_adj).rgb;
+	float spec_strength = dot(spec, vec3(0.3, 0.6, 0.1));
+	gl_FragData[2] = vec4(spec_strength, spec_strength, 0.0, 0.0);
+	#else
 	gl_FragData[2] = texF(specular, texcoord_adj);
+	#endif
 	gl_FragData[3] = vec4(lmcoord, n2);
 }

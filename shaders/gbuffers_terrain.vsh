@@ -79,7 +79,7 @@ void main() {
 	tangent.y = 0.0;
 	tangent.z = float(gl_Normal.x * gl_Normal.x > 0.25f) * sign(-gl_Normal.x);
 
-	binormal = (gl_Normal.x * gl_Normal.x + gl_Normal.z * gl_Normal.z > 0.25) ? vec3( 0.0, -1.0,  0.0) : vec3( 0.0,  0.0,  1.0);
+	binormal = (length(gl_Normal.xz) > 0.25) ? vec3(0.0, -1.0, 0.0) : vec3(0.0, 0.0, 1.0);
 
 	tangent = gl_NormalMatrix * tangent;
 	binormal = gl_NormalMatrix * binormal;
