@@ -17,7 +17,10 @@ varying vec2 texcoord;
 //#define BLACK_AND_WHITE
 
 void main() {
-
+	#ifdef EIGHT_BIT
+	vec3 color;
+	bit8(color);
+	#else
 	#ifdef SSEDAA
 	vec3 color = texture2D(composite, texcoord).rgb;
 	float size = 1.0 / length(fetch_vpos(texcoord, depthtex0).xyz);
@@ -34,6 +37,7 @@ void main() {
 	color = mix(color, blur, edge);
 	#else
 	vec3 color = texture2D(composite, texcoord).rgb;
+	#endif
 	#endif
 
 	#ifdef MOTION_BLUR
@@ -53,6 +57,10 @@ void main() {
 	
 	#ifdef NOISE_AND_GRAIN
 	noise_and_grain(color);
+	#endif
+	
+	#ifdef FILMIC_CINEMATIC
+	filmic_cinematic(color);
 	#endif
 	
 	tonemap(color, exposure);

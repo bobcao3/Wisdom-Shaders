@@ -11,7 +11,41 @@ void noise_and_grain(inout vec3 color) {
 	w *= hash(texcoord * viewWidth - 2000.0);
 	w *= hash(texcoord * viewWidth - 3000.0);
 	
-	color = mix(color, vec3(r,g,b), pow(w, 2.0));
+	color = mix(color, vec3(r,g,b) * luma(color), pow(w, 3.0));
+}
+#endif
+
+//#define EIGHT_BIT
+#ifdef EIGHT_BIT
+void bit8(out vec3 color) {
+	vec2 grid = vec2(viewWidth / viewHeight, 1.0) * 120.0;
+	vec2 texc = floor(texcoord * grid) / grid;
+	
+	float dither = bayer_16x16(texc, grid);
+	vec3 c = texture2D(composite, texc).rgb * 16.0;
+	color = floor(c + dither) / 16.0;
+}
+#endif
+
+//#define FILMIC_CINEMATIC
+#ifdef FILMIC_CINEMATIC
+void filmic_cinematic(inout vec3 color) {
+	float w = luma(color);
+	
+	color = mix(vec3(w), max(color - vec3(w * 0.1), vec3(0.0)), 0.4 + w * 0.8);
+	
+	#ifdef BLOOM
+	const vec2 center_avr = vec2(0.5) * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.025f);
+	#define AVR_SOURCE gcolor
+	#else
+	const vec2 center_avr = vec2(0.5);
+	#define AVR_SOURCE composite
+	#endif
+	color /= luma(texture2D(AVR_SOURCE, center_avr).rgb) * 0.5 + 0.5;
+	
+	// 21:9
+	if (viewHeight * distance(texcoord.y, 0.5) > viewWidth * 0.4285714 * 0.5)
+		color *= 0.0;
 }
 #endif
 
@@ -144,8 +178,8 @@ vec3 bloom() {
 	color += texture_Bicubic(gcolor, tex).rgb;
 	tex = (texcoord.st - tex_offset) * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.075f, 0.025f);
 	color += texture_Bicubic(gcolor, tex).rgb;
-	tex = (texcoord.st - tex_offset) * 0.0078125 + vec2(0.25f, 0.25f) + vec2(0.100f, 0.025f);
-	color += texture_Bicubic(gcolor, tex).rgb;
+	/*tex = (texcoord.st - tex_offset) * 0.0078125 + vec2(0.25f, 0.25f) + vec2(0.100f, 0.025f);
+	color += texture_Bicubic(gcolor, tex).rgb;*/
 
 	color *= 0.15;
 	return color * smoothstep(0.0, 1.0, luma(color));

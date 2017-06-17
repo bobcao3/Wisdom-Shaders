@@ -224,8 +224,7 @@ vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceTh
 	float G = GeometrySmith(max(0.0, NdotV), max(0.0, NdotL), mat.roughness);
 	vec3 F = light_PBR_fresnelSchlickRoughness(max(dot(H, -mat.nvpos), 0.0), F0, mat.roughness);
 
-	vec3 kS = F;
-	vec3 kD = max(vec3(0.0), vec3(1.0) - kS);
+	vec3 kD = max(vec3(0.0), vec3(1.0) - F);
 	kD *= 1.0 - mat.metalic;
 
 	vec3 nominator = NDF * G * F;

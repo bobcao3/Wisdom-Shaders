@@ -134,7 +134,7 @@ float get_exposure() {
 //==============================================================================
 
 vec4 fetch_vpos (vec2 uv, float z) {
-	vec4 v = gbufferProjectionInverse * vec4(uv * 2.0 - 1.0, z * 2.0 - 1.0, 1.0);
+	vec4 v = gbufferProjectionInverse * vec4(vec3(uv, z) * 2.0 - 1.0, 1.0);
 	v /= v.w;
 	
 	return v;
@@ -185,71 +185,25 @@ float noise_tex(in vec2 p) {
 	return texture2D(noisetex, fract(p * 0.0020173)).r * 2.0 - 1.0;
 }
 
-#ifndef HIGH_LEVEL_SHADER
+float bayer2(vec2 a){
+    a = floor(a);
+    return fract( dot(a, vec2(.5, a.y * .75)) );
+}
 
-#define g(a) (-4*a.x*a.y+3*a.x+2*a.y)
+#define bayer4(a)   (bayer2( .5*(a))*.25+bayer2(a))
+#define bayer8(a)   (bayer4( .5*(a))*.25+bayer2(a))
+#define bayer16(a)  (bayer8( .5*(a))*.25+bayer2(a))
+
 float bayer_4x4(in vec2 pos, in vec2 view) {
-	ivec2 p = ivec2(pos * view);
-
-	ivec2 m0 = ivec2(mod(floor(p * 0.5), 2.0));
-	ivec2 m1 = ivec2(mod(p, 2.0));
-	return float(g(m0)+g(m1)*4) / 15.0f;
+	return bayer4(pos * view);
 }
 
 float bayer_8x8(in vec2 pos, in vec2 view) {
-	ivec2 p = ivec2(pos * view);
-
-	ivec2 m0 = ivec2(mod(floor(p * 0.25), 2.0));
-	ivec2 m1 = ivec2(mod(floor(p * 0.5), 2.0));
-	ivec2 m2 = ivec2(mod(p, 2.0));
-	return float(g(m0)+g(m1)*4+g(m2)*16) / 63.0f;
+	return bayer8(pos * view);
 }
 
 float bayer_16x16(in vec2 pos, in vec2 view) {
-	ivec2 p = ivec2(pos * view);
-
-	ivec2 m0 = ivec2(mod(floor(p * 0.125), 2.0));
-	ivec2 m1 = ivec2(mod(floor(p * 0.25), 2.0));
-	ivec2 m2 = ivec2(mod(floor(p * 0.5), 2.0));
-	ivec2 m3 = ivec2(mod(p, 2.0));
-	return float(g(m0)+g(m1)*4+g(m2)*16+g(m3)*32) / 255.0f;
+	return bayer16(pos * view);
 }
-#undef g
-
-#else
-
-#define g(a) (4-(a).x-((a).y<<1))%4
-float bayer_4x4(in vec2 pos, in vec2 view) {
-	ivec2 p = ivec2(pos * view);
-
-    return float(
-         g(p>>1&1)    +
-        (g(p   &1)<<2)
-    )/15.;
-}
-
-float bayer_8x8(in vec2 pos, in vec2 view) {
-	ivec2 p = ivec2(pos * view);
-
-    return float(
-         g(p>>2&1)    +
-        (g(p>>1&1)<<2)+
-        (g(p   &1)<<4)
-    )/63.;
-}
-
-float bayer_16x16(in vec2 pos, in vec2 view) {
-	ivec2 p = ivec2(pos * view);
-
-    return float(
-         g(p>>3&1)    +
-        (g(p>>2&1)<<2)+
-        (g(p>>1&1)<<4)+
-        (g(p   &1)<<6)
-    )/255.;
-}
-#undef g
-
-#endif
 
 #endif
