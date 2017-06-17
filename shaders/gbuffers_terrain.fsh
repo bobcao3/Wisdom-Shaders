@@ -55,14 +55,7 @@ varying vec3 tangent;
 varying vec3 binormal;
 #endif
 
-varying vec4 texcoordb;
-
-vec2 dcdx = dFdx(texcoordb.st * texcoordb.pq);
-vec2 dcdy = dFdy(texcoordb.st * texcoordb.pq);
-
 uniform ivec2 atlasSize;
-
-#define texF(a,b) texture2DGradARB(a, b, dcdx, dcdy)
 
 //#define ParallaxOcclusion
 #ifdef ParallaxOcclusion
@@ -111,7 +104,7 @@ vec2 ParallaxMapping(in vec2 coord) {
 	#define maxSteps 8 // [4 8 16]
 	#define scale 0.03 // [0.01 0.03 0.05]
 
-	float heightmap = texF(normals, coord.st).a - 1.0f;
+	float heightmap = texture2D(normals, coord.st).a - 1.0f;
 
 	vec3 offset = vec3(0.0f, 0.0f, 0.0f);
 	vec3 s = normalize(tangentpos);
@@ -128,7 +121,7 @@ vec2 ParallaxMapping(in vec2 coord) {
 			lazyx += lazyinc;
 			
 			adjusted = atlas_offset(coord.st, offset.st);
-			heightmap = texF(normals, adjusted).a - 1.0f;
+			heightmap = texture2D(normals, adjusted).a - 1.0f;
 			if (max(0.0, offset.z - heightmap) < 0.05) break;
 		}
 		
@@ -143,7 +136,7 @@ vec2 ParallaxMapping(in vec2 coord) {
 			light_offset += s;
 			lazyx += lazyinc;
 			
-			heightmap = texF(normals, atlas_offset(coord.st, light_offset.st)).a - 1.0f;
+			heightmap = texture2D(normals, atlas_offset(coord.st, light_offset.st)).a - 1.0f;
 			if (heightmap > light_offset.z) {
 				parallax_lit = 0.5;
 				break;
@@ -167,7 +160,7 @@ void main() {
 	if (dis < 64.0) texcoord_adj = ParallaxMapping(texcoord);
 	#endif
 
-	vec4 t = texF(texture, texcoord_adj);
+	vec4 t = texture2D(texture, texcoord_adj);
 
 	if (t.a <= 0.0) discard;
 
@@ -180,7 +173,7 @@ void main() {
 	#ifdef NORMALS
 		vec3 normal2 = normal;
 		if (dis < 64.0) {
-			normal2 = texF(normals, texcoord_adj).xyz * 2.0 - 1.0;
+			normal2 = texture2D(normals, texcoord_adj).xyz * 2.0 - 1.0;
 			const float bumpmult = 0.5;
 			normal2 = normal2 * vec3(bumpmult) + vec3(0.0f, 0.0f, 1.0f - bumpmult);
 			mat3 tbnMatrix = mat3(
@@ -194,11 +187,11 @@ void main() {
 		gl_FragData[1] = vec4(n2, flag, 1.0);
 	#endif
 	#ifdef SPECULAR_TO_PBR_CONVERSION
-	vec3 spec = texF(specular, texcoord_adj).rgb;
+	vec3 spec = texture2D(specular, texcoord_adj).rgb;
 	float spec_strength = dot(spec, vec3(0.3, 0.6, 0.1));
 	gl_FragData[2] = vec4(spec_strength, spec_strength, 0.0, 0.0);
 	#else
-	gl_FragData[2] = texF(specular, texcoord_adj);
+	gl_FragData[2] = texture2D(specular, texcoord_adj);
 	#endif
 	gl_FragData[3] = vec4(lmcoord, n2);
 }

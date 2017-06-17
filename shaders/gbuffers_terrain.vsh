@@ -70,19 +70,17 @@ uniform vec3 shadowLightPosition;
 
 #define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
-varying vec4 texcoordb;
-
 void main() {
 	color = gl_Color;
+	
+	normal = normalize(gl_NormalMatrix * gl_Normal);
 
 	tangent.x = (gl_Normal.z * gl_Normal.z > 0.25f) ? sign(gl_Normal.z) : float(gl_Normal.y * gl_Normal.y > 0.25f);
 	tangent.y = 0.0;
 	tangent.z = float(gl_Normal.x * gl_Normal.x > 0.25f) * sign(-gl_Normal.x);
 
-	binormal = (length(gl_Normal.xz) > 0.25) ? vec3(0.0, -1.0, 0.0) : vec3(0.0, 0.0, 1.0);
-
-	tangent = gl_NormalMatrix * tangent;
-	binormal = gl_NormalMatrix * binormal;
+	tangent = normalize(gl_NormalMatrix * tangent);
+	binormal = cross(normal, tangent);
 
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
@@ -114,14 +112,8 @@ void main() {
 	gl_Position = gl_ModelViewMatrix * position;
 	vec3 wpos = gl_Position.xyz;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
-	normal = normalize(gl_NormalMatrix * gl_Normal);
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
-
-	vec2 midcoord = mc_midTexCoord.st;
-	vec2 tex_dist = abs(texcoord - midcoord);
-	texcoordb.pq = tex_dist * 2.0;
-	texcoordb.st = midcoord - tex_dist;
 
 	#ifdef ParallaxOcclusion
 	mat3 TBN = mat3(
