@@ -112,9 +112,9 @@ void main() {
 		flag = 0.50;
 	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115) flag = 0.51;
 
-	gl_Position = gl_ModelViewMatrix * position;
-	vec3 wpos = gl_Position.xyz;
-	gl_Position = gl_ProjectionMatrix * gl_Position;
+	position = gl_ModelViewMatrix * position;
+	vec3 wpos = position.xyz;
+	gl_Position = gl_ProjectionMatrix * position;
 	texcoord = gl_MultiTexCoord0.st;
 	lmcoord = (gl_TextureMatrix[1] *  gl_MultiTexCoord1).xy;
 
