@@ -45,7 +45,7 @@ void filmic_cinematic(inout vec3 color) {
 	vec3 center = texture2D(AVR_SOURCE, center_avr).rgb;
 	color = pow(color, 0.3 * center + 1.0);
 	color /= luma(center) * 0.5 + 0.5;
-	color *= (normalize(center) * 0.3 + 0.7);
+	color *= (normalize(max(vec3(0.1), center)) * 0.3 + 0.7);
 	
 	#ifdef FILMIC_CINEMATIC_ANAMORPHIC
 	// 21:9
