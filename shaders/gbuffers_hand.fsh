@@ -32,11 +32,10 @@ varying vec2 normal;
 varying vec2 texcoord;
 varying vec2 lmcoord;
 
-/* DRAWBUFFERS:02456 */
+/* DRAWBUFFERS:0245 */
 void main() {
 	gl_FragData[0] = texture2D(texture, texcoord) * color;
 	gl_FragData[1] = vec4(normal, 0.1, 1.0);
-	gl_FragData[2] = texture2D(specular, texcoord);
+	gl_FragData[2] = vec4(texture2D(specular, texcoord).rgb, 1.0);
 	gl_FragData[3] = vec4(lmcoord, 1.0, 1.0);
-	gl_FragData[4] = vec4(0.0);
 }

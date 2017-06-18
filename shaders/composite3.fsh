@@ -165,7 +165,7 @@ void main() {
 		#ifdef CrespecularRays
 		float vl = 0.0;
 		lit_strength = VL(land.wpos, land.cdepth, vl);
-		color += 0.005 * pow(vl, 0.3) * suncolor;
+		color += 0.006 * pow(vl, 0.3) * suncolor;
 		#endif
 
 		calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + lit_strength * (0.7 + rainStrength)));

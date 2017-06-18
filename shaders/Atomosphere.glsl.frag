@@ -103,24 +103,25 @@ vec3 calc_sky_with_sun(in vec3 sphere, in vec3 vsphere) {
 
 #ifdef HIGH_QUALITY_Crespecular
 const float vl_steps = 48.0;
-const int vl_loop = 47;
+const int vl_loop = 48;
 #else
-const float vl_steps = 4.0;
-const int vl_loop = 5;
+const float vl_steps = 8.0;
+const int vl_loop = 8;
 #endif
 
 float VL(in vec3 owpos, in float cdepth, out float vl) {
 	vec3 swpos = owpos;
-	vec3 dir = normalize(owpos) * min(shadowDistance, cdepth) / vl_steps;
+	float step_length = min(shadowDistance, cdepth) / vl_steps;
+	vec3 dir = normalize(owpos) * step_length;
 	float prev = 0.0, total = 0.0;
 
 	for (int i = 0; i < vl_loop; i++) {
 		swpos -= dir;
-		float dither = bayer_16x16(texcoord + vec2(i) * 0.01, vec2(viewWidth, viewHeight));
+		float dither = bayer_16x16(texcoord + vec2(i * 0.01), vec2(viewWidth, viewHeight));
 		vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
-		float sdepth = texture2D(shadowtex1, shadowpos.xy).x;
-		if (shadowpos.z + 0.0006 < sdepth && sdepth < 0.9999) {
-			total += (prev + 1.0) * length(dir) * (1 + dither) * 0.5;
+		float sdepth = texture2DLod(shadowtex1, shadowpos.xy, 2).x;
+		if (shadowpos.z + 0.0006 < sdepth) {
+			total += (prev + 1.0) * step_length * (1 + dither) * 0.5;
 			prev = 1.0;
 		}
 	}
