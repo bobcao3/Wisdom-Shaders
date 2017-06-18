@@ -103,12 +103,15 @@ void main() {
 			land.metalic = mix(land.metalic, 0.15, wet);
 			vec3 flat_normal = normalDecode(mclight.zw);
 			land.N = mix(land.N, flat_normal, wet);
-						
+			
 			land.albedo *= 1.0 - rainStrength * 0.3;
 		}
 
 		// Light composite
 		color += light_calc_PBR(sun, land, mask.is_plant ? thickness : 1.0) + light_calc_diffuse(torch, land) + light_calc_diffuse(amb, land);
+		
+		// Emmisive
+		color = mix(color, land.albedo * 2.0, land.emmisive);
 	} else {
 		vec4 viewPosition = fetch_vpos(texcoord, depthtex1);
 		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * 512.0;

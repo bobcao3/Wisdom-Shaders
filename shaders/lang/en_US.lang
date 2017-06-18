@@ -27,6 +27,7 @@ option.SPECULAR_TO_PBR_CONVERSION=Specular2PBR Conversion
 option.SPECULAR_TO_PBR_CONVERSION.comment=Convert traditional specular textures to PBR textures for compatibility.
 option.ParallaxOcclusion=Parallax Occlusion Mapping
 option.maxSteps=Max POM Steps
+option.maxSteps.comment=The higher steps it has, higher quality it got, with lower performance.
 option.scale=POM Scale
 option.TILE_RESOLUTION=Texture Resolution
 
