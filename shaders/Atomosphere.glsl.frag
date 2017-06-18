@@ -28,7 +28,7 @@ vec3 calc_atmosphere(in vec3 sphere, in vec3 vsphere) {
 	at += h2 * vec3(0.7) * clamp(length(sphere) / 512.0, 0.0, 1.0);
 	
 	float VdotS = dot(vsphere, lightPosition);
-	VdotS = mix(max(VdotS, 0.0), abs(VdotS), extShadow);
+	VdotS = max(VdotS, 0.0) * pow(1.0 - extShadow, 0.33);
 	//float lSun = luma(suncolor);
 	at = mix(at, suncolor, smoothstep(0.1, 1.0, h2 * pow(VdotS, 3.0)));
 	at *= luma(ambient);
@@ -48,6 +48,7 @@ const mat2 octave_c = mat2(1.4,1.2,-1.2,1.4);
 vec4 calc_clouds(in vec3 sphere, float dotS) {
 	if (sphere.y < 40.0) return vec4(0.0);
 
+	sphere.y -= cameraPosition.y;
 	vec3 c = sphere / sphere.y * 768.0;
 	vec2 uv = (c.xz + cameraPosition.xz);
 	
@@ -87,7 +88,8 @@ vec3 calc_sky_with_sun(in vec3 sphere, in vec3 vsphere) {
 
 	float dotS = dot(vsphere, lightPosition);
 
-	sky += suncolor * smoothstep(0.997, 0.998, abs(dotS)) * (1.0 - rainStrength) * 5.0;
+	float ground_cover = smoothstep(70.0, 100.0, sphere.y);
+	sky += suncolor * smoothstep(0.997, 0.998, abs(dotS)) * (1.0 - rainStrength) * 5.0 * ground_cover;
 	
 	vec4 clouds = calc_clouds(sphere, max(dotS, 0.0));
 	sky = mix(sky, clouds.rgb, clouds.a);
