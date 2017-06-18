@@ -125,6 +125,6 @@ float get_caustic (in vec3 wpos) {
 	wpos += (64.0 - wpos.y) * (worldLightPosition / worldLightPosition.y);
 	float w1 = getwave2(wpos, 1.0);
 	vec3 n = get_water_normal(wpos, vec3(0.0, w1, 0.0), 1.0);
-	return abs(dot(n, worldLightPosition));
+	return abs(dot(n, worldLightPosition) * 2.0 - 1.0);
 }
 #endif

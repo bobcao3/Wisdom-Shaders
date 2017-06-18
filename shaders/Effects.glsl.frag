@@ -28,6 +28,7 @@ void bit8(out vec3 color) {
 #endif
 
 //#define FILMIC_CINEMATIC
+#define FILMIC_CINEMATIC_ANAMORPHIC
 #ifdef FILMIC_CINEMATIC
 void filmic_cinematic(inout vec3 color) {
 	float w = luma(color);
@@ -41,11 +42,16 @@ void filmic_cinematic(inout vec3 color) {
 	const vec2 center_avr = vec2(0.5);
 	#define AVR_SOURCE composite
 	#endif
-	color /= luma(texture2D(AVR_SOURCE, center_avr).rgb) * 0.5 + 0.5;
+	vec3 center = texture2D(AVR_SOURCE, center_avr).rgb;
+	color = pow(color, 0.3 * center + 1.0);
+	color /= luma(center) * 0.5 + 0.5;
+	color *= (normalize(center) * 0.3 + 0.7);
 	
+	#ifdef FILMIC_CINEMATIC_ANAMORPHIC
 	// 21:9
 	if (viewHeight * distance(texcoord.y, 0.5) > viewWidth * 0.4285714 * 0.5)
 		color *= 0.0;
+	#endif
 }
 #endif
 
@@ -142,9 +148,9 @@ float h1(float a) {
 vec4 texture_Bicubic(sampler2D tex, vec2 uv)
 {
 
-	uv = uv * vec2(viewWidth, viewHeight) + 0.5;
+	uv = uv * vec2(viewWidth, viewHeight) - 1.0;
 	vec2 iuv = floor( uv );
-	vec2 fuv = fract( uv );
+	vec2 fuv = uv - iuv;
 
     float g0x = g0(fuv.x);
     float g1x = g1(fuv.x);
@@ -166,22 +172,18 @@ vec4 texture_Bicubic(sampler2D tex, vec2 uv)
 }
 
 vec3 bloom() {
-	vec2 tex_offset = vec2(1.0f / viewWidth, 1.0f / viewHeight);
-
-	vec2 tex = (texcoord.st - tex_offset * 0.5f) * 0.25;
+	vec2 tex = texcoord * 0.25;
 	vec3 color = texture_Bicubic(gcolor, tex).rgb;
 	tex = texcoord.st * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.025f);
 	color += texture_Bicubic(gcolor, tex).rgb;
-	tex = (texcoord.st - tex_offset) * 0.0625 + vec2(0.125f, 0.25f) + vec2(0.025f, 0.025f);
+	tex = texcoord * 0.0625 + vec2(0.125f, 0.25f) + vec2(0.025f, 0.025f);
 	color += texture_Bicubic(gcolor, tex).rgb;
-	tex = (texcoord.st - tex_offset) * 0.03125 + vec2(0.1875f, 0.25f) + vec2(0.050f, 0.025f);
+	tex = texcoord * 0.03125 + vec2(0.1875f, 0.25f) + vec2(0.050f, 0.025f);
 	color += texture_Bicubic(gcolor, tex).rgb;
-	tex = (texcoord.st - tex_offset) * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.075f, 0.025f);
+	tex = texcoord * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.075f, 0.025f);
 	color += texture_Bicubic(gcolor, tex).rgb;
-	/*tex = (texcoord.st - tex_offset) * 0.0078125 + vec2(0.25f, 0.25f) + vec2(0.100f, 0.025f);
-	color += texture_Bicubic(gcolor, tex).rgb;*/
-
-	color *= 0.15;
+	
+	color *= 0.2;
 	return color * smoothstep(0.0, 1.0, luma(color));
 }
 #endif
