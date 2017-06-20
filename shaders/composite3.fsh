@@ -55,7 +55,7 @@ void main() {
 				water_sky_light = glossy.albedo.b * 2.0;
 				mclight.y = water_sky_light * 8.5;
 				glossy.albedo = vec3(1.0);
-				glossy.roughness = 0.1;
+				glossy.roughness = 0.05;
 				glossy.metalic = 0.03;
 				
 				vec3 water_plain_normal = mat3(gbufferModelViewInverse) * glossy.N;
@@ -110,7 +110,7 @@ void main() {
 				// Absorbtion
 				float absorbtion = 2.0 / (dist_diff_N + 1.0) - 1.0;
 				vec3 watercolor = color * pow(vec3(absorbtion), vec3(1.0, 0.4, 0.5));
-				vec3 waterfog = luma(ambient) * water_sky_light * vec3(0.1,0.19,0.22) * 8.0;
+				vec3 waterfog = luma(ambient) * water_sky_light * vec3(0.2,0.8,1.0) * 3.5;
 				color = mix(waterfog, watercolor, smoothstep(0.0, 1.0, absorbtion));
 			} else {
 				color = mix(color * glossy.albedo, glossy.albedo, glossy.opaque * glossy.opaque);

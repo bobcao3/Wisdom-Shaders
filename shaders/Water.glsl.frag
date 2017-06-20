@@ -1,5 +1,5 @@
 // sea
-#define SEA_HEIGHT 0.21 // [0.11 0.21 0.33 0.43]
+#define SEA_HEIGHT 0.33 // [0.11 0.21 0.33 0.43]
 
 #define NATURAL_WAVE_GENERATOR
 
@@ -23,22 +23,11 @@ float sea_octave_micro(vec2 uv, float choppy) {
 	return pow(1.0-pow(wv.x * wv.y,0.75),choppy);
 }
 
-#ifdef NATURAL_WAVE_GENERATOR
-#define sea_octave sea_octave_micro
-#else
-float sea_octave(vec2 uv, float choppy) {
-	uv += noise_tex(uv);
-	vec2 wv = 1.0-abs(sin(uv));
-	vec2 swv = abs(cos(uv));
-	wv = mix(wv,swv,wv);
-	return pow(1.0-pow(wv.x * wv.y,0.75),choppy);
-}
-
-#endif
-
 const float height_mul[5] = float[5] (
 	0.52, 0.34, 0.20, 0.22, 0.16
 );
+const float total_height = 1.44f;
+const float rcp_total_height = 1.0 / total_height;
 
 float getwave(vec3 p, in float lod) {
 	float freq = SEA_FREQ;
@@ -50,13 +39,13 @@ float getwave(vec3 p, in float lod) {
 
 	float d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY; i++) {
-		d = sea_octave((uv+wave_speed)*freq,choppy) * 2.0;
+		d = sea_octave_micro((uv+wave_speed)*freq,choppy);
 		h += d * amp;
 		uv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= -1.3;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
-	return (h - SEA_HEIGHT) * lod;
+	return (h * rcp_total_height - SEA_HEIGHT) * lod;
 }
 
 float getwave2(vec3 p, in float lod) {
@@ -68,21 +57,14 @@ float getwave2(vec3 p, in float lod) {
 	float wave_speed = frameTimeCounter * SEA_SPEED;
 
 	float d, h = 0.0;
-	for(int i = 0; i < ITER_GEOMETRY; i++) {
-		d = sea_octave((uv+wave_speed)*freq,choppy) * 2.0;
-		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= -1.3;
-		choppy = mix(choppy,1.0,0.2);
-	}
-	
-	for(int i = ITER_GEOMETRY; i < ITER_GEOMETRY2; i++) {
-		d = sea_octave_micro((uv+wave_speed)*freq,choppy) * 2.0;
+	for(int i = 0; i < ITER_GEOMETRY2; i++) {
+		d = sea_octave_micro((uv+wave_speed)*freq,choppy);
 		h += d * amp;
 		uv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= -1.3;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
-	return (h - SEA_HEIGHT) * lod;
+	return (h * rcp_total_height - SEA_HEIGHT) * lod;
 }
 
 vec3 get_water_normal(in vec3 wwpos, in vec3 displacement, in float lod) {
@@ -108,7 +90,7 @@ void WaterParallax(inout vec3 wpos, in float lod) {
 	float h;
 	for (int i = 0; i < maxLayers; i++) {
 		h = getwave(wpos + cameraPosition, lod);
-		hstep = (exph - h) * (0.5 + 0.125 * float(i));
+		hstep = (exph - h) * (1.0 - 0.125 * float(i));
 
 		if (h + 0.02 > exph) break;
 
