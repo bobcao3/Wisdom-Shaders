@@ -100,6 +100,8 @@ void main() {
 				color = texture2DLod(composite, texcoord, 1.0).rgb * 0.5;
 				color += texture2DLod(composite, texcoord, 2.0).rgb * 0.3;
 				color += texture2DLod(composite, texcoord, 3.0).rgb * 0.2;
+				
+				color = color * glossy.albedo;
 			}
 		
 			// Render
@@ -112,8 +114,6 @@ void main() {
 				vec3 watercolor = color * pow(vec3(absorbtion), vec3(1.0, 0.4, 0.5));
 				vec3 waterfog = luma(ambient) * water_sky_light * vec3(0.2,0.8,1.0) * 3.5;
 				color = mix(waterfog, watercolor, smoothstep(0.0, 1.0, absorbtion));
-			} else {
-				color = mix(color * glossy.albedo, glossy.albedo, glossy.opaque * glossy.opaque);
 			}
 			
 			sun.light.color = suncolor;
@@ -124,7 +124,7 @@ void main() {
 			
 			color += light_calc_PBR_brdf(sun, glossy);
 			
-			land = glossy;
+			if (!isEyeInWater) land = glossy;
 		} else {
 			// Force ground wetness
 			float wetness2 = wetness * pow(mclight.y, 5.0) * float(!mask.is_plant);
@@ -144,7 +144,7 @@ void main() {
 		
 		#ifdef IBL
 		// IBL
-		if (land.roughness < 0.99) {
+		if (land.roughness < 0.9) {
 			vec3 viewRef = reflect(land.nvpos, land.N);
 			#ifdef IBL_SSR
 			vec4 glossy_reflect = ray_trace_ssr(viewRef, land.vpos, land.roughness);

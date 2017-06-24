@@ -1,5 +1,5 @@
 // sea
-#define SEA_HEIGHT 0.33 // [0.11 0.21 0.33 0.43]
+#define SEA_HEIGHT 0.54 // [0.21 0.32 0.43 0.54 0.65]
 
 #define NATURAL_WAVE_GENERATOR
 
@@ -83,7 +83,7 @@ void WaterParallax(inout vec3 wpos, in float lod) {
 	const int maxLayers = 4;
 
 	vec3 nwpos = normalize(wpos);
-	vec3 fpos = nwpos / max(0.1, abs(nwpos.y));
+	//vec3 fpos = nwpos / max(0.1, abs(nwpos.y));
 	float exph = 0.0;
 	float hstep = 1.0 / float(maxLayers);
 
@@ -95,9 +95,9 @@ void WaterParallax(inout vec3 wpos, in float lod) {
 		if (h + 0.02 > exph) break;
 
 		exph -= hstep;
-		wpos += vec3(fpos.x, 0.0, fpos.z) * hstep;
+		wpos += vec3(nwpos.x, 0.0, nwpos.z) * hstep;
 	}
-	wpos -= vec3(fpos.x, 0.0, fpos.z) * abs(h - exph) * hstep;
+	wpos -= vec3(nwpos.x, 0.0, nwpos.z) * abs(h - exph) * hstep;
 }
 #endif
 

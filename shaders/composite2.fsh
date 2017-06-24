@@ -6,6 +6,8 @@ varying vec2 texcoord;
 
 #include "GlslConfig"
 
+//#define SPACE
+
 #include "CompositeUniform.glsl.frag"
 #include "Utilities.glsl.frag"
 #include "Material.glsl.frag"
@@ -39,6 +41,7 @@ float blurAO (vec2 uv, vec3 N) {
 #endif
 
 //#define PRIME_RENDER
+//#define MODERN
 
 void main() {
 	// rebuild hybrid flag
@@ -52,7 +55,11 @@ void main() {
 
 	// build up materials & light sources
 	if (!mask.is_sky) {
+		#ifdef MODERN
+		const vec3 torch_color = vec3(0.01f);
+		#else
 		const vec3 torch_color = vec3(0.2435f, 0.0921f, 0.01053f) * 0.1f;
+		#endif
 		torch.color = torch_color;
 		torch.attenuation = light_mclightmap_attenuation(mclight.x);
 
@@ -61,14 +68,14 @@ void main() {
 		land.albedo = vec3(0.7);
 		#endif
 
+		#ifndef SPACE
 		sun.light.color = suncolor;
 		float thickness;
 		float shadow = 0.0;
+
+		shadow = light_fetch_shadow(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(land.wpos), thickness);
 		if (isEyeInWater) {
-			shadow = 1.0 - smoothstep(0.0, 1.0, mclight.y);
-			thickness = 1.0;
-		} else {
-			shadow = light_fetch_shadow(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(land.wpos), thickness);
+			shadow = max(shadow, 1.0 - mclight.y);
 		}
 
 		shadow = max(extShadow, shadow);
@@ -79,6 +86,7 @@ void main() {
 		}
 		#endif
 		sun.L = lightPosition;
+		#endif
 
 		amb.color = ambient;
 		amb.attenuation = light_mclightmap_simulated_GI(mclight.y, sun.L, land.N);
@@ -108,17 +116,24 @@ void main() {
 		}
 
 		// Light composite
+		#ifdef SPACE
+		color += light_calc_diffuse(torch, land) + light_calc_diffuse(amb, land);
+		#else
 		color += light_calc_PBR(sun, land, mask.is_plant ? thickness : 1.0) + light_calc_diffuse(torch, land) + light_calc_diffuse(amb, land);
+		#endif
 		
 		// Emmisive
-		color = mix(color, land.albedo * 2.0, land.emmisive);
+		if (!mask.is_trans) color = mix(color, land.albedo * 2.0, land.emmisive);
 	} else {
 		vec4 viewPosition = fetch_vpos(texcoord, depthtex1);
 		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * 512.0;
 		worldPosition.y += cameraPosition.y;
 		// Sky
+		#ifdef SPACE
+		color = vec3(0.0);
+		#else
 		color = calc_sky_with_sun(worldPosition.xyz, normalize(viewPosition.xyz));
-		
+		#endif
 		//color = vec3(get_thickness(normalize(worldPosition.xyz)));
 	}
 

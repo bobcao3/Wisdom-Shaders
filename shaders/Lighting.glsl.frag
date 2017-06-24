@@ -94,7 +94,7 @@ float shadowTexSmooth(in sampler2D s, in vec3 spos, in float bias, out float dep
 
 #define VARIANCE_SHADOW_MAPS
 
-float light_fetch_shadow(sampler2D shadowmap, in float bias, in vec3 spos, out float thickness) {
+float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float thickness) {
 	float shade = 0.0; thickness = 1.0;
 	#ifdef SHADOW_FILTER
 		#ifdef VARIANCE_SHADOW_MAPS
@@ -104,7 +104,7 @@ float light_fetch_shadow(sampler2D shadowmap, in float bias, in vec3 spos, out f
 		float xs = 0.0;
 		for (int i = 0; i < 25; i++) {
 			float n = bayer_4x4(float(i * 0.001) + texcoord.st, vec2(viewWidth, viewHeight)) * (1.0 + rainStrength * 2.0);
-			a = texture2D(shadowmap, spos.st + circle_offsets[i] * 0.004f * n).x + bias * (1.0 + n);
+			a = texture2D(smap, spos.st + circle_offsets[i] * 0.004f * n).x + bias * (1.0 + n);
 			M2 += a * a;
 			M1 += a;
 			
@@ -124,7 +124,7 @@ float light_fetch_shadow(sampler2D shadowmap, in float bias, in vec3 spos, out f
 		#else
 		float avd = 0.0;
 		for (int i = 0; i < 25; i++) {
-			float shadowDepth = texture2D(shadowmap, spos.st + circle_offsets[i] * 0.0008f * (1.0 + rainStrength * 2.0)).x;
+			float shadowDepth = texture2D(smap, spos.st + circle_offsets[i] * 0.0008f * (1.0 + rainStrength * 2.0)).x;
 			avd += shadowDepth;
 			shade += float(shadowDepth + bias < spos.z);
 		}
@@ -133,7 +133,7 @@ float light_fetch_shadow(sampler2D shadowmap, in float bias, in vec3 spos, out f
 		#endif
 	#else
 		float M1;
-		shade = shadowTexSmooth(shadowmap, spos, bias, M1);
+		shade = shadowTexSmooth(smap, spos, bias, M1);
 		thickness = distance(spos.z, M1) * 64.0;
 	#endif
 
@@ -149,8 +149,8 @@ float light_fetch_shadow(sampler2D shadowmap, in float bias, in vec3 spos, out f
 	return shade;
 }
 
-float light_fetch_shadow_fast(sampler2D shadowmap, in float bias, in vec3 spos) {
-	float shadowDepth = texture2D(shadowmap, spos.st).x;
+float light_fetch_shadow_fast(sampler2D smap, in float bias, in vec3 spos) {
+	float shadowDepth = texture2D(smap, spos.st).x;
 	float shade = float(shadowDepth + bias < spos.z);
 
 	float edgeX = abs(spos.x) - 0.9f;

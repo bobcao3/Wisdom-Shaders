@@ -39,6 +39,7 @@ void calcCommons() {
 	suncolor *= 1.0 - rainStrength * 0.67;
 	extShadow = (clamp((wTimeF-12000.0)/300.0,0.0,1.0)-clamp((wTimeF-13000.0)/300.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 
+	#ifndef SPACE
 	const vec3 ambient_sunrise = vec3(0.543, 0.672, 0.886) * 0.15;
 	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.3;
 	const vec3 ambient_sunset = vec3(0.443, 0.772, 0.847) * 0.15;
@@ -46,6 +47,14 @@ void calcCommons() {
 
 	ambient = ambient_sunrise * TimeSunrise + ambient_noon * TimeNoon + ambient_sunset * TimeSunset + ambient_midnight * TimeMidnight;
 	ambient *= 1.0 - rainStrength * 0.41;
+	#else
+	const vec3 ambient_sunrise = vec3(0.543, 0.672, 0.886) * 0.05;
+	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.1;
+	const vec3 ambient_sunset = vec3(0.443, 0.772, 0.847) * 0.05;
+	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.06;
+
+	ambient = ambient_sunrise * TimeSunrise + ambient_noon * TimeNoon + ambient_sunset * TimeSunset + ambient_midnight * TimeMidnight;
+	#endif
 	
 	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition);
 }
