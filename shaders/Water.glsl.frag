@@ -1,5 +1,5 @@
 // sea
-#define SEA_HEIGHT 0.54 // [0.21 0.32 0.43 0.54 0.65]
+#define SEA_HEIGHT 0.43 // [0.21 0.32 0.43 0.54 0.65]
 
 #define NATURAL_WAVE_GENERATOR
 
