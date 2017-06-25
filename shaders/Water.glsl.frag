@@ -26,7 +26,8 @@ float sea_octave_micro(vec2 uv, float choppy) {
 const float height_mul[5] = float[5] (
 	0.52, 0.34, 0.20, 0.22, 0.16
 );
-const float total_height = 1.44f;
+const float total_height =
+  height_mul[0] + height_mul[1] + height_mul[2] + height_mul[3] + height_mul[4];
 const float rcp_total_height = 1.0 / total_height;
 
 float getwave(vec3 p, in float lod) {
@@ -81,23 +82,23 @@ vec3 get_water_normal(in vec3 wwpos, in vec3 displacement, in float lod) {
 #ifdef WATER_PARALLAX
 void WaterParallax(inout vec3 wpos, in float lod) {
 	const int maxLayers = 4;
+	
+	wpos.y -= 1.62;
 
+	vec3 stepin = vec3(0.0);
 	vec3 nwpos = normalize(wpos);
-	//vec3 fpos = nwpos / max(0.1, abs(nwpos.y));
-	float exph = 0.0;
-	float hstep = 1.0 / float(maxLayers);
+	nwpos /= max(0.05, abs(nwpos.y));
 
 	float h;
 	for (int i = 0; i < maxLayers; i++) {
-		h = getwave(wpos + cameraPosition, lod);
-		hstep = (exph - h) * (1.0 - 0.125 * float(i));
+		h = getwave(wpos + stepin + cameraPosition, lod);
 
-		if (h + 0.02 > exph) break;
+		if (abs(h - stepin.y) < 0.02) break;
 
-		exph -= hstep;
-		wpos += vec3(nwpos.x, 0.0, nwpos.z) * hstep;
+		stepin += nwpos * (stepin.y - h) * 0.5;
 	}
-	wpos -= vec3(nwpos.x, 0.0, nwpos.z) * abs(h - exph) * hstep;
+	wpos += stepin;
+	wpos.y += 1.62;
 }
 #endif
 

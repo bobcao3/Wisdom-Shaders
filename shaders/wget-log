@@ -1,0 +1,4 @@
+--2017-06-24 19:06:11--  ftp://magnet/?xt=urn:btih:b6858696108cbc6959355db5ee4b78d644398ead
+           => ‘wget-log’
+Resolving magnet (magnet)... failed: No address associated with hostname.
+wget: unable to resolve host address ‘magnet’
