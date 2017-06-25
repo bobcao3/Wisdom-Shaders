@@ -53,6 +53,8 @@ option.NOISE_AND_GRAIN=Noise and Grain
 option.FILMIC_CINEMATIC=Filmic Cinematic
 option.FILMIC_CINEMATIC_ANAMORPHIC=Filmic Cinematic Anamorphic
 option.EIGHT_BIT=8 Bit Filter
+option.MODERN=Modern (White) light
+option.SPACE=Space mode (no sun)
 
 option.Version=Version: V3.2 Review, Build
 option.Version.comment=More information on: qionouu.cn

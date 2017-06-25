@@ -53,6 +53,8 @@ option.NOISE_AND_GRAIN=噪点滤镜
 option.FILMIC_CINEMATIC=电影滤镜
 option.FILMIC_CINEMATIC_ANAMORPHIC=电影滤镜21:9
 option.EIGHT_BIT=8-Bit 复古滤镜
+option.MODERN=现代（白色灯光）
+option.SPACE=太空模式（无太阳）
 
 option.Version=版本: V3.2 Review, Build
 option.Version.comment=更多信息请看qionouu.cn！
