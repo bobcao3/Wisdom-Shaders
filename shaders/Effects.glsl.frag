@@ -101,10 +101,11 @@ vec3 applyEffect(float total, float size,
 	color += texture2D(sam, uv + size * vec2(0.0, -pixel.y)).rgb * a01;
 	color += texture2D(sam, uv + size * vec2(pixel.x, -pixel.y)).rgb * a00;
 	
-	return clamp(color / total, vec3(0.0), vec3(3.0));
+	return max(color / total, vec3(0.0));
 }
 
-#ifdef BLOOM
+//#define DOF
+#if (defined(BLOOM) || defined(DOF))
 
 // 4x4 bicubic filter using 4 bilinear texture lookups 
 // See GPU Gems 2: "Fast Third-Order Texture Filtering", Sigg & Hadwiger:
@@ -174,7 +175,7 @@ vec4 texture_Bicubic(sampler2D tex, vec2 uv)
 vec3 bloom() {
 	vec2 tex = texcoord * 0.25;
 	vec3 color = texture_Bicubic(gcolor, tex).rgb;
-	tex = texcoord.st * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.025f);
+	tex = texcoord * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.025f);
 	color += texture_Bicubic(gcolor, tex).rgb;
 	tex = texcoord * 0.0625 + vec2(0.125f, 0.25f) + vec2(0.025f, 0.025f);
 	color += texture_Bicubic(gcolor, tex).rgb;
@@ -185,6 +186,17 @@ vec3 bloom() {
 	
 	color *= 0.2;
 	return color * smoothstep(0.0, 1.0, luma(color));
+}
+
+void dof(inout vec3 color) {
+	vec3 blur = applyEffect(6.8, 1.0,
+		0.3, 1.0, 0.3,
+		1.0, 1.6, 1.0,
+		0.3, 1.0, 0.3,
+		composite, texcoord);
+	float pcoc = abs(linearizeDepth(texture2D(depthtex0, texcoord).r) - linearizeDepth(centerDepthSmooth));
+	
+	color = mix(color, blur, pcoc);
 }
 #endif
 

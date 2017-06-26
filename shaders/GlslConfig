@@ -23,6 +23,7 @@ const float negShadowBias = 1.0f - SHADOW_MAP_BIAS;
 const float eyeBrightnessHalflife = 18.5f;
 const float wetnessHalflife = 40.0f;
 const float drynessHalflife = 200.0f;
+const float centerDepthHalflife = 2.5f;
 
 const float gamma = 2.2f;
 

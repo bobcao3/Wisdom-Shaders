@@ -9,6 +9,7 @@ uniform float viewWidth;
 
 uniform float wetness;
 uniform float rainStrength;
+uniform float centerDepthSmooth;
 
 uniform ivec2 eyeBrightnessSmooth;
 

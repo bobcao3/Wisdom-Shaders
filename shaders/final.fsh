@@ -32,7 +32,7 @@ void main() {
 	vec3 blur = applyEffect(6.8, size,
 		0.3, 1.0, 0.3,
 		1.0, 1.6, 1.0,
-		1.3, 1.0, 0.3,
+		0.3, 1.0, 0.3,
 		composite, texcoord);
 	color = mix(color, blur, edge);
 	#else
@@ -42,6 +42,10 @@ void main() {
 
 	#ifdef MOTION_BLUR
 	if (texture2D(gaux1, texcoord).a > 0.11) motion_blur(composite, color, texcoord, fetch_vpos(texcoord, depthtex0).xyz);
+	#endif
+
+	#ifdef DOF
+	dof(color);
 	#endif
 
 	float exposure = get_exposure();
