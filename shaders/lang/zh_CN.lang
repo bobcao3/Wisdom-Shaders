@@ -21,6 +21,7 @@ option.WISDOM_AMBIENT_OCCLUSION=Wisdom环境光遮蔽
 option.HQ_AO=高质量环境光遮蔽
 option.IBL=反射着色
 option.IBL_SSR=屏幕空间反射
+option.SSR_STEPS=反射精度
 
 option.NORMALS=法线贴图
 option.SPECULAR_TO_PBR_CONVERSION=高光材质转换

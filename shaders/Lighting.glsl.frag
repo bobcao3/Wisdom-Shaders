@@ -142,8 +142,7 @@ float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float 
 	shade -= max(0.0f, edgeX * 10.0f);
 	shade -= max(0.0f, edgeY * 10.0f);
 	shade = max(0.0, shade);
-	thickness += max(0.0f, edgeX * 10.0f);
-	thickness += max(0.0f, edgeY * 10.0f);
+	thickness += smoothstep(0.8, 1.0, max(abs(spos.x), abs(spos.y)));
 	thickness = min(1.0, thickness);
 
 	return shade;
@@ -271,15 +270,17 @@ vec3 light_calc_PBR_IBL(in vec3 L, Material mat, in vec3 env) {
 // Ray Trace (Screen Space Reflection)
 //==============================================================================
 
+#define SSR_STEPS 16 // [12 16 20]
+
 vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal) {
 	vec3 testPoint = start;
 	bool hit = false;
 	vec2 uv = vec2(0.0);
 	vec4 hitColor = vec4(0.0);
 	
-	float h = .05;
+	float h = .02 * length(start);
 	
-	for(int i = 0; i < 20; i++) {
+	for(int i = 0; i < SSR_STEPS; i++) {
 		testPoint += direction * h;
 		uv = screen_project(testPoint);
 		if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
@@ -292,12 +293,12 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal) {
 		
 		h = (sampleDepth - testDepth) * (1.0 - 0.0313 * float(i + 1)) * far;
 		
-		if(sampleDepth < testDepth + 0.1 * metal && testDepth - sampleDepth < 0.000976 * (1.0 + testDepth * 200.0 + float(i)) && i > 3){
+		if(sampleDepth < testDepth + 0.00005 && testDepth - sampleDepth < 0.000976 * (1.0 + testDepth * 200.0 + float(i))){
 			float flag = texture2D(gaux1, uv).a;
 			if (flag < 0.71f || flag > 0.79f) {
 				hitColor.rgb = max(vec3(0.0), texture2DLod(composite, uv, int(metal * 3.0)).rgb);
 				hitColor.a = clamp(1.0 - pow(distance(uv, vec2(0.5)) * 2.0, 5.0), 0.0, 1.0);
-			}
+			} else { hitColor.a = 0.0; }
 			
 			hit = true;
 			break;

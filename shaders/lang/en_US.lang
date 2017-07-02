@@ -21,6 +21,7 @@ option.WISDOM_AMBIENT_OCCLUSION=Wisdom Ambient Occlusion (AO)
 option.HQ_AO=High Quality AO
 option.IBL=IBL reflections
 option.IBL_SSR=IBL Screen Space Reflections
+option.SSR_STEPS=Reflection Steps
 
 option.NORMALS=Normal Mapping
 option.SPECULAR_TO_PBR_CONVERSION=Specular2PBR Conversion
