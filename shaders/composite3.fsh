@@ -91,6 +91,8 @@ void main() {
 				#endif
 				
 				glossy.nvpos = normalize(glossy.vpos);
+				glossy.cdepth = length(glossy.vpos);
+				glossy.cdepthN = glossy.cdepth / far;
 			} else {
 				glossy.albedo = mix(glossy.albedo, vec3(1.0), glossy.opaque * 0.5);
 				
@@ -144,12 +146,12 @@ void main() {
 		
 		#ifdef IBL
 		// IBL
-		if (land.roughness < 0.9) {
+		if (land.roughness < 0.7) {
 			vec3 viewRef = reflect(land.nvpos, land.N);
 			#ifdef IBL_SSR
 			vec4 glossy_reflect = ray_trace_ssr(viewRef, land.vpos, land.roughness);
 			vec3 skyReflect = vec3(0.0);
-			if (glossy_reflect.a < 0.95) skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
+			if (glossy_reflect.a < 0.95) skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0 + vec3(0.0, cameraPosition.y, 0.0), viewRef);
 			vec3 ibl = mix(skyReflect * mclight.y, glossy_reflect.rgb, glossy_reflect.a);
 			#else
 			vec3 ibl = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
