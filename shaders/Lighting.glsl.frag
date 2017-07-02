@@ -213,7 +213,7 @@ vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceTh
 	
 	float oren = light_PBR_oren_diffuse(-mat.nvpos, Li.L, mat.N, mat.roughness, NdotL, NdotV);
 	//oren = mix(oren, 1.0, 1.0 - min(subSurfaceThick, 1.0));
-	float att = oren * Li.light.attenuation + pow(1.0 - subSurfaceThick, 2.0) * (0.5 + 0.5 * dot(Li.L, mat.nvpos)) * 0.5;
+	float att = Li.light.attenuation * min(1.0, oren + pow(1.0 - subSurfaceThick, 2.0) * (0.5 + 0.5 * dot(Li.L, mat.nvpos)));
 	vec3 radiance = att * Li.light.color;
 
 	vec3 F0 = vec3(0.01);
