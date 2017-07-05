@@ -61,6 +61,7 @@ void main() {
 				vec3 water_plain_normal = mat3(gbufferModelViewInverse) * glossy.N;
 				
 				float lod = pow(max(water_plain_normal.y, 0.0), 4.0);
+				lod = smoothstep(0.0, 1.0, distance(glossy.vpos, land.vpos));
 				
 				#ifdef WATER_PARALLAX
 				if (lod > 0.0) WaterParallax(glossy.wpos, lod);

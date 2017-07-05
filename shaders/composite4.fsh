@@ -26,15 +26,26 @@
 
 #pragma optimize(on)
 
-uniform sampler2D composite;
-
 varying vec2 texcoord;
+
+uniform sampler2D composite;
 
 #define BLOOM
 //#define DOF
 
 uniform float viewWidth;
 uniform float viewHeight;
+
+float bayer2(vec2 a){
+    a = floor(a);
+    return fract( dot(a, vec2(.5, a.y * .75)) );
+}
+
+#define bayer4(a)   (bayer2( .5*(a))*.25+bayer2(a))
+
+float bayer_4x4(in vec2 pos, in vec2 view) {
+	return bayer4(pos * view);
+}
 
 #if (defined(BLOOM) || defined(DOF))
 const float padding = 0.02f;
@@ -59,12 +70,13 @@ vec3 LODblur(in int LOD, in vec2 offset) {
 			weight = clamp(weight, 0.0f, 1.0f);
 			weight = 1.0f - cos(weight * 3.1415 * 0.5f);
 			weight = pow(weight, 2.0f);
-			vec2 coord = vec2(i * 4.0 - 9.0, j * 4.0 - 9.0) / vec2(viewWidth, viewHeight);
+			float d1 = bayer_4x4(texcoord + i * j * 0.03, vec2(viewWidth, viewHeight));
+			vec2 coord = vec2(i * 2.0 - 4.5 + d1, j * 2.0 - 4.5 + fract(d1 + 0.75)) / vec2(viewWidth, viewHeight);
 
 			vec2 finalCoord = (texcoord.st + coord.st - offset.st) * scale;
 
 			if (weight > 0.0f) {
-				bloom += clamp(texture2DLod(composite, finalCoord, 3).rgb, vec3(0.0f), vec3(1.0f)) * weight;
+				bloom += clamp(texture2DLod(composite, finalCoord, 2).rgb, vec3(0.0f), vec3(1.0f)) * weight;
 				allWeights += 1.0f * weight;
 			}
 		}

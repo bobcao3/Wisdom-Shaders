@@ -69,8 +69,8 @@ float getwave2(vec3 p, in float lod) {
 }
 
 vec3 get_water_normal(in vec3 wwpos, in vec3 displacement, in float lod) {
-	vec3 w1 = vec3(0.01, getwave2(wwpos + vec3(0.01, 0.0, 0.0), lod), 0.0);
-	vec3 w2 = vec3(0.0, getwave2(wwpos + vec3(0.0, 0.0, 0.01), lod), 0.01);
+	vec3 w1 = vec3(0.001, getwave2(wwpos + vec3(0.001, 0.0, 0.0), lod), 0.0);
+	vec3 w2 = vec3(0.0, getwave2(wwpos + vec3(0.0, 0.0, 0.001), lod), 0.001);
 	#define w0 displacement
 	#define tangent w1 - w0
 	#define bitangent w2 - w0

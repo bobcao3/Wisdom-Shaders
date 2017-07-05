@@ -16,6 +16,48 @@ varying vec2 texcoord;
 //#define SSEDAA
 //#define BLACK_AND_WHITE
 
+#define LF
+#ifdef LF
+// =========== LF ===========
+
+uniform float aspectRatio;
+
+varying float sunVisibility;
+varying vec2 lf1Pos;
+varying vec2 lf2Pos;
+varying vec2 lf3Pos;
+varying vec2 lf4Pos;
+
+#define MANHATTAN_DISTANCE(DELTA) abs(DELTA.x)+abs(DELTA.y)
+
+#define LENS_FLARE(COLOR, UV, LFPOS, LFSIZE, LFCOLOR) { \
+				vec2 delta = UV - LFPOS; delta.x *= aspectRatio; \
+				if(MANHATTAN_DISTANCE(delta) < LFSIZE * 2.0) { \
+					float d = max(LFSIZE - sqrt(dot(delta, delta)), 0.0); \
+					COLOR += LFCOLOR.rgb * LFCOLOR.a * smoothstep(0.0, LFSIZE * 0.25, d) * sunVisibility;\
+				} }
+
+#define LF1SIZE 0.026
+#define LF2SIZE 0.03
+#define LF3SIZE 0.05
+
+const vec4 LF1COLOR = vec4(1.0, 1.0, 1.0, 0.05);
+const vec4 LF2COLOR = vec4(1.0, 0.6, 0.4, 0.03);
+const vec4 LF3COLOR = vec4(0.2, 0.6, 0.8, 0.05);
+
+vec3 lensFlare(vec3 color, vec2 uv) {
+	if(sunVisibility <= 0.0)
+		return color;
+	LENS_FLARE(color, uv, lf1Pos, LF1SIZE, (LF1COLOR * vec4(suncolor, 1.0)));
+	LENS_FLARE(color, uv, lf2Pos, LF2SIZE, (LF2COLOR * vec4(suncolor, 1.0)));
+	LENS_FLARE(color, uv, lf3Pos, LF3SIZE, (LF3COLOR * vec4(suncolor, 1.0)));
+	return color;
+}
+
+#endif
+// ==========================
+
+
 void main() {
 	#ifdef EIGHT_BIT
 	vec3 color;
@@ -51,7 +93,11 @@ void main() {
 	float exposure = get_exposure();
 
 	#ifdef BLOOM
-	color += max(vec3(0.0), bloom() * exposure * 0.5);
+	color += max(vec3(0.0), bloom() * exposure);
+	#endif
+	
+	#ifdef LF
+	color = lensFlare(color, texcoord);
 	#endif
 
 	// This will turn it into gamma space

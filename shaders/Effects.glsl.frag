@@ -185,7 +185,7 @@ vec3 bloom() {
 	color += texture_Bicubic(gcolor, tex).rgb;
 	
 	color *= 0.2;
-	return color * smoothstep(0.0, 1.0, luma(color));
+	return color * smoothstep(0.03, 1.0, luma(color));
 }
 
 void dof(inout vec3 color) {
