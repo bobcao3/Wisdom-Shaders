@@ -32,7 +32,7 @@ void calcCommons() {
 
 	const vec3 suncolor_sunrise = vec3(0.8843, 0.6, 0.313) * 2.72;
 	const vec3 suncolor_noon = vec3(1.392, 1.3235, 1.1156) * 4.4;
-	const vec3 suncolor_sunset = vec3(0.9943, 0.519, 0.0945) * 2.6;
+	const vec3 suncolor_sunset = vec3(0.9943, 0.419, 0.0945) * 2.6;
 	const vec3 suncolor_midnight = vec3(0.34, 0.5, 0.6) * 0.4;
 
 	suncolor = suncolor_sunrise * TimeSunrise + suncolor_noon * TimeNoon + suncolor_sunset * TimeSunset + suncolor_midnight * TimeMidnight;
