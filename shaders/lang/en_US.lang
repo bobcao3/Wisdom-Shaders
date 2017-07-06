@@ -57,5 +57,5 @@ option.EIGHT_BIT=8 Bit Filter
 option.MODERN=Modern (White) light
 option.SPACE=Space mode (no sun)
 
-option.Version=Version: V3.2 Review, Build
+option.Version=Version: V3.2 Release, Build
 option.Version.comment=More information on: qionouu.cn
