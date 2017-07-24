@@ -59,10 +59,12 @@ float light_mclightmap_simulated_GI(in float Ld, in vec3 L, in vec3 N) {
 vec3 wpos2shadowpos(in vec3 wpos) {
 	vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
 	shadowposition = shadowProjection * shadowposition;
+	shadowposition /= shadowposition.w;
+	
 	float distb = length(shadowposition.xy);
 	float distortFactor = negShadowBias + distb * SHADOW_MAP_BIAS;
 	shadowposition.xy /= distortFactor;
-	shadowposition /= shadowposition.w;
+
 	return shadowposition.xyz * 0.5f + 0.5f;
 }
 
@@ -151,12 +153,12 @@ float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float 
 float light_fetch_shadow_fast(sampler2D smap, in float bias, in vec3 spos) {
 	float shadowDepth = texture2D(smap, spos.st).x;
 	float shade = float(shadowDepth + bias < spos.z);
-
+/*
 	float edgeX = abs(spos.x) - 0.9f;
 	float edgeY = abs(spos.y) - 0.9f;
 	shade -= max(0.0f, edgeX * 10.0f);
 	shade -= max(0.0f, edgeY * 10.0f);
-	shade = max(0.0, shade);
+	shade = max(0.0, shade);*/
 
 	return shade;
 }

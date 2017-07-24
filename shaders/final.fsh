@@ -57,6 +57,7 @@ vec3 lensFlare(vec3 color, vec2 uv) {
 #endif
 // ==========================
 
+#define SATURATION 1.5 // [0.6 1.0 1.5 2.0]
 
 void main() {
 	#ifdef EIGHT_BIT
@@ -114,6 +115,8 @@ void main() {
 	#endif
 	
 	tonemap(color, exposure);
+	
+	saturation(color, SATURATION);
 	
 	gl_FragColor = vec4(color, 1.0f);
 }

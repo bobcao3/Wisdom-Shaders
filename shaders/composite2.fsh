@@ -70,7 +70,7 @@ void main() {
 
 		#ifndef SPACE
 		sun.light.color = suncolor;
-		float thickness;
+		float thickness = 1.0;
 		float shadow = 0.0;
 
 		shadow = light_fetch_shadow(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(land.wpos), thickness);
@@ -123,6 +123,8 @@ void main() {
 		
 		// Emmisive
 		if (!mask.is_trans) color = mix(color, land.albedo * 2.0, land.emmisive);
+		
+		//color = vec3(1.0-light_fetch_shadow_fast(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(land.wpos)));
 	} else {
 		vec4 viewPosition = fetch_vpos(texcoord, depthtex1);
 		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * 512.0;

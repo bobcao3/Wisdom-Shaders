@@ -104,6 +104,10 @@ vec3 applyEffect(float total, float size,
 	return max(color / total, vec3(0.0));
 }
 
+vec3 saturation(vec3 rgbColor, float s) {
+	return mix(vec3(luma(rgbColor)), rgbColor, s);
+}
+
 //#define DOF
 #if (defined(BLOOM) || defined(DOF))
 
