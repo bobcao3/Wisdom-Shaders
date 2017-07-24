@@ -62,7 +62,6 @@ void main() {
 				if (isEyeInWater) water_plain_normal = -water_plain_normal;
 				
 				float lod = pow(max(water_plain_normal.y, 0.0), 4.0);
-				lod = smoothstep(0.0, 1.0, distance(glossy.vpos, land.vpos));
 				
 				#ifdef WATER_PARALLAX
 				if (lod > 0.0) WaterParallax(glossy.wpos, lod);
@@ -83,11 +82,15 @@ void main() {
 				// Refraction
 				#ifdef WATER_REFRACTION
 				vec3 refract_vpos = refract(land.vpos - glossy.vpos, glossy.N, 1.0 / 1.3);
-				land.vpos = refract_vpos + glossy.vpos;
-				land.nvpos = normalize(land.vpos);
 								
-				vec2 uv = screen_project(land.vpos);
+				vec2 uv = screen_project(refract_vpos + glossy.vpos);
 				uv = mix(uv, texcoord, pow(abs(uv - vec2(0.5)) * 2.0, vec2(2.0)));
+				
+				land.vpos = fetch_vpos(uv, depthtex1).xyz;
+				land.nvpos = normalize(land.vpos);
+				land.cdepth = length(land.vpos);
+				land.cdepthN = land.cdepth / far;
+				
 				color = texture2DLod(composite, uv, 1.0).rgb * 0.5;
 				color += texture2DLod(composite, uv, 2.0).rgb * 0.3;
 				color += texture2DLod(composite, uv, 3.0).rgb * 0.2;
