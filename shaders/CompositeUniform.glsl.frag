@@ -12,6 +12,7 @@ uniform float rainStrength;
 uniform float centerDepthSmooth;
 
 uniform ivec2 eyeBrightnessSmooth;
+uniform ivec2 eyeBrightness;
 
 uniform bool isEyeInWater;
 

@@ -46,19 +46,20 @@ void main() {
 		material_sample(land, texcoord);
 		
 		// Transperant
-		if (mask.is_trans) {
+		if (mask.is_trans || isEyeInWater) {
 			material_sample_water(glossy, texcoord);
 
 			float water_sky_light = 0.0;
 		
 			if (mask.is_water) {
 				water_sky_light = glossy.albedo.b * 2.0;
-				mclight.y = water_sky_light * 8.5;
+				if (!isEyeInWater) mclight.y = water_sky_light * 8.5;
 				glossy.albedo = vec3(1.0);
 				glossy.roughness = 0.05;
 				glossy.metalic = 0.03;
 				
 				vec3 water_plain_normal = mat3(gbufferModelViewInverse) * glossy.N;
+				if (isEyeInWater) water_plain_normal = -water_plain_normal;
 				
 				float lod = pow(max(water_plain_normal.y, 0.0), 4.0);
 				lod = smoothstep(0.0, 1.0, distance(glossy.vpos, land.vpos));
@@ -74,6 +75,7 @@ void main() {
 				#endif
 				
 				vec3 water_normal = (lod > 0.99) ? get_water_normal(glossy.wpos + cameraPosition, wave * water_plain_normal, lod) : water_plain_normal;
+				if (isEyeInWater) water_normal = -water_normal;
 				
 				glossy.N = mat3(gbufferModelView) * water_normal;
 				glossy.vpos = (!mask.is_water && isEyeInWater) ? glossy.vpos : (gbufferModelView * vec4(glossy.wpos, 1.0)).xyz;
@@ -94,7 +96,7 @@ void main() {
 				glossy.nvpos = normalize(glossy.vpos);
 				glossy.cdepth = length(glossy.vpos);
 				glossy.cdepthN = glossy.cdepth / far;
-			} else {
+			} else if (!isEyeInWater) {
 				glossy.albedo = mix(glossy.albedo, vec3(1.0), glossy.opaque * 0.5);
 				
 				glossy.roughness = 0.04;
@@ -109,25 +111,28 @@ void main() {
 		
 			// Render
 			if (mask.is_water || isEyeInWater) {
-				float dist_diff = isEyeInWater ? length(land.vpos) : distance(land.vpos, glossy.vpos);
+				float dist_diff = isEyeInWater ? length(glossy.vpos) : distance(land.vpos, glossy.vpos);
 				float dist_diff_N = min(1.0, dist_diff * 0.125);
 			
 				// Absorbtion
 				float absorbtion = 2.0 / (dist_diff_N + 1.0) - 1.0;
 				vec3 watercolor = color * pow(vec3(absorbtion), vec3(1.0, 0.4, 0.5));
-				vec3 waterfog = luma(ambient) * water_sky_light * vec3(0.2,0.8,1.0) * 3.5;
+				float light_att = (isEyeInWater) ? eyeBrightness.y * 0.002 : water_sky_light * 3.5;
+				vec3 waterfog = luma(ambient) * light_att * vec3(0.2,0.8,1.0);
 				color = mix(waterfog, watercolor, smoothstep(0.0, 1.0, absorbtion));
 			}
 			
-			sun.light.color = suncolor;
-			float shadow = light_fetch_shadow_fast(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(glossy.wpos));
-			shadow = max(extShadow, shadow);
-			sun.light.attenuation = 1.0 - shadow;
-			sun.L = lightPosition;
+			if (!isEyeInWater) {
+				sun.light.color = suncolor;
+				float shadow = light_fetch_shadow_fast(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(glossy.wpos));
+				shadow = max(extShadow, shadow);
+				sun.light.attenuation = 1.0 - shadow;
+				sun.L = lightPosition;
 			
-			color += light_calc_PBR_brdf(sun, glossy);
-			
-			if (!isEyeInWater) land = glossy;
+				color += light_calc_PBR_brdf(sun, glossy);
+				
+				land = glossy;
+			}
 		} else {
 			// Force ground wetness
 			float wetness2 = wetness * pow(mclight.y, 5.0) * float(!mask.is_plant);
@@ -171,7 +176,7 @@ void main() {
 		color += 0.006 * pow(vl, 0.3) * suncolor;
 		#endif
 
-		calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + lit_strength * (0.7 + rainStrength)));
+		if (!isEyeInWater) calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + lit_strength * (0.7 + rainStrength)));
 	}
 
 /* DRAWBUFFERS:3 */

@@ -142,9 +142,14 @@ float get_exposure() {
 // Vector stuff
 //==============================================================================
 
+float fov = atan(1./gbufferProjection[1][1]);
+float fovUnderWater = fov * 0.85;
+float mulfov = isEyeInWater == true ? gbufferProjection[1][1]*tan(fovUnderWater):1.0;
+
 vec4 fetch_vpos (vec2 uv, float z) {
 	vec4 v = gbufferProjectionInverse * vec4(vec3(uv, z) * 2.0 - 1.0, 1.0);
 	v /= v.w;
+	v.xy *= mulfov;
 	
 	return v;
 }

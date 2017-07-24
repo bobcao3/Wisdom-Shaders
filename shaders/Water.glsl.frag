@@ -95,7 +95,9 @@ void WaterParallax(inout vec3 wpos, in float lod) {
 
 		if (abs(h - stepin.y) < 0.02) break;
 
-		stepin += nwpos * (stepin.y - h) * 0.5;
+		float diff = (stepin.y - h);
+		if (isEyeInWater) diff = -diff;
+		stepin += nwpos * diff * 0.5;
 	}
 	wpos += stepin;
 	wpos.y += 1.62;
