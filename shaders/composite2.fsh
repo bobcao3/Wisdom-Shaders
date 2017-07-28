@@ -43,6 +43,9 @@ float blurAO (vec2 uv, vec3 N) {
 //#define PRIME_RENDER
 //#define MODERN
 
+#define SKY_LIGHT_GI
+#define BLOCK_LIGHT_GI
+
 void main() {
 	// rebuild hybrid flag
 	vec4 speculardata = texture2D(gaux1, texcoord);
@@ -80,8 +83,9 @@ void main() {
 
 		sun.light.attenuation = 1.0 - max(extShadow, shadow);
 		#ifdef WATER_CAUSTICS
-		if ((mask.is_water || (isEyeInWater && !mask.is_water)) && shadow < 0.95) {
+		if (((!isEyeInWater && mask.is_water) || (isEyeInWater && !mask.is_water)) && shadow < 0.95) {
 			sun.light.attenuation *= 1.3 - get_caustic(land.wpos + cameraPosition);
+			sun.light.attenuation *= mclight.y;
 		}
 		#endif
 		sun.L = lightPosition;
@@ -89,6 +93,15 @@ void main() {
 
 		amb.color = ambient;
 		amb.attenuation = light_mclightmap_simulated_GI(mclight.y, sun.L, land.N);
+
+		#ifdef SKY_LIGHT_GI
+		amb.attenuation *= lightmap_normals(land.vpos, land.N, mclight.y);
+		#endif
+		
+		#ifdef BLOCK_LIGHT_GI
+		torch.attenuation *= lightmap_normals(land.vpos, land.N, mclight.x);
+		#endif
+
 		#ifdef WISDOM_AMBIENT_OCCLUSION
 		#ifdef HQ_AO
 		float ao = blurAO(texcoord, land.N);
@@ -123,8 +136,6 @@ void main() {
 		
 		// Emmisive
 		if (!mask.is_trans) color = mix(color, land.albedo * 2.0, land.emmisive);
-		
-		//color = vec3(1.0-light_fetch_shadow_fast(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(land.wpos)));
 	} else {
 		vec4 viewPosition = fetch_vpos(texcoord, depthtex1);
 		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * 512.0;
