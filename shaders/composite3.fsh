@@ -120,7 +120,7 @@ void main() {
 				// Absorbtion
 				float absorbtion = 2.0 / (dist_diff_N + 1.0) - 1.0;
 				vec3 watercolor = color * pow(vec3(absorbtion), vec3(1.0, 0.4, 0.5));
-				float light_att = (isEyeInWater) ? eyeBrightness.y * 0.002 : water_sky_light * 3.5;
+				float light_att = (isEyeInWater) ? (eyeBrightness.y * 0.0015 + 0.05) : water_sky_light * 3.5;
 				vec3 waterfog = luma(ambient) * light_att * vec3(0.2,0.8,1.0);
 				color = mix(waterfog, watercolor, smoothstep(0.0, 1.0, absorbtion));
 			}
@@ -176,10 +176,11 @@ void main() {
 		#ifdef CrespecularRays
 		float vl = 0.0;
 		lit_strength = VL(land.wpos, land.cdepth, vl);
+		if (isEyeInWater) vl *= eyeBrightness.y * 0.002;
 		color += 0.006 * pow(vl, 0.3) * suncolor;
 		#endif
 
-		if (!isEyeInWater) calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + lit_strength * (0.7 + rainStrength)));
+		if (!isEyeInWater) calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + max(lit_strength, rainStrength) * 0.7));
 	}
 
 /* DRAWBUFFERS:3 */
