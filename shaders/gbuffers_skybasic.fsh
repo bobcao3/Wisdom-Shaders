@@ -36,5 +36,5 @@ float luma(in vec3 color) { return dot(color,vec3(0.2126, 0.7152, 0.0722)); }
 /* DRAWBUFFERS:02 */
 void main() {
 	gl_FragData[0] = vec4(luma(skyColor) * skyRGB, 1.0);
-	gl_FragData[1] = vec4(0.0);
+	gl_FragData[1] = vec4(0.0, 0.0, 0.2, 1.0);
 }

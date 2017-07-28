@@ -68,7 +68,7 @@ void main() {
 
 		material_sample(land, texcoord);
 		#ifdef PRIME_RENDER
-		land.albedo = vec3(0.7);
+		land.albedo = vec3(0.5);
 		#endif
 
 		#ifndef SPACE

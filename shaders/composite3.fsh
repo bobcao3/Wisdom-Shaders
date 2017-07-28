@@ -46,7 +46,7 @@ void main() {
 		material_sample(land, texcoord);
 		
 		// Transperant
-		if (mask.is_trans || isEyeInWater) {
+		if (mask.is_trans || isEyeInWater || mask.is_particle) {
 			material_sample_water(glossy, texcoord);
 
 			float water_sky_light = 0.0;
@@ -99,7 +99,7 @@ void main() {
 				glossy.nvpos = normalize(glossy.vpos);
 				glossy.cdepth = length(glossy.vpos);
 				glossy.cdepthN = glossy.cdepth / far;
-			} else if (!isEyeInWater) {
+			} else if (!isEyeInWater && flag < 0.98 && !mask.is_particle) {
 				glossy.albedo = mix(glossy.albedo, vec3(1.0), glossy.opaque * 0.5);
 				
 				glossy.roughness = 0.04;
@@ -110,6 +110,8 @@ void main() {
 				color += texture2DLod(composite, texcoord, 3.0).rgb * 0.2;
 				
 				color = color * glossy.albedo;
+			} else {
+				color = mix(color, glossy.albedo, glossy.opaque);
 			}
 		
 			// Render
@@ -125,7 +127,7 @@ void main() {
 				color = mix(waterfog, watercolor, smoothstep(0.0, 1.0, absorbtion));
 			}
 			
-			if (!isEyeInWater) {
+			if (!isEyeInWater && flag < 0.98) {
 				sun.light.color = suncolor;
 				float shadow = light_fetch_shadow_fast(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(glossy.wpos));
 				shadow = max(extShadow, shadow);

@@ -25,6 +25,8 @@ void main() {
 	if (water_normal_tex.b == 1.0) water_normal_tex.b = 0.0;
 	float flag = (normaltex.b < 0.11 && normaltex.b > 0.01) ? normaltex.b : max(normaltex.b, water_normal_tex.b);
 	if (normaltex.b < 0.09 && water_normal_tex.b > 0.9) flag = 0.99;
+	if (normaltex.b > 0.19 && normaltex.b < 0.21 && water_normal_tex.b > 0.98) flag = 0.45;
+	
 
 	// build up mask
 	init_mask(mask, flag);

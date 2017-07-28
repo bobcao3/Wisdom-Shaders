@@ -31,7 +31,7 @@ struct Material {
 	float metalic;
 	float roughness;
 	float emmisive;
-	float opaque; 
+	float opaque;
 };
 
 void material_build(
@@ -58,24 +58,26 @@ void material_sample(out Material mat, in vec2 uv) {
 	vec4 vpos = fetch_vpos(uv, depthtex1);
 	vec3 normal = normalDecode(texture2D(gnormal, uv).rg);
 	vec4 spec = texture2D(gaux1, uv);
+	vec4 color = texture2D(gcolor, uv);
 	material_build(
 		mat,
 		vpos.xyz, (gbufferModelViewInverse * vpos).xyz, normal,
-		pow(texture2D(gcolor, uv).rgb, vec3(2.2f)), spec.rgb
+		pow(color.rgb, vec3(2.2f)), spec.rgb
 	);
-	mat.opaque = spec.b;
+	mat.opaque = color.a;
 }
 
 void material_sample_water(out Material mat, in vec2 uv) {
 	vec4 vpos = fetch_vpos(uv, depthtex0);
 	vec3 normal = normalDecode(texture2D(gnormal, uv).ba);
 	vec4 spec = texture2D(gaux1, uv);
+	vec4 color = texture2D(gaux4, uv);
 	material_build(
 		mat,
 		vpos.xyz, (gbufferModelViewInverse * vpos).xyz, normal,
-		pow(texture2D(gaux4, uv).rgb, vec3(2.2f)), spec.rgb
+		pow(color.rgb, vec3(2.2f)), spec.rgb
 	);
-	mat.opaque = spec.b;
+	mat.opaque = color.a;
 }
 
 //==============================================================================
@@ -93,16 +95,18 @@ struct Mask {
 	bool is_sky;
 	bool is_hand;
 	bool is_entity;
+	bool is_particle;
 };
 
 void init_mask(inout Mask m, in float flag) {
 	m.flag = flag;
+	m.is_particle = (flag > 0.44 && flag < 0.46);
 	float ndep = texture2D(depthtex1, texcoord).r;
-	m.is_sky = ndep >= 1.0;
+	m.is_sky = ndep >= 1.0 || (flag > 0.19 && flag < 0.21) || m.is_particle;
 	m.is_water = (flag > 0.71f && flag < 0.79f);
 	m.is_glass = (flag > 0.93);
 	m.is_trans = m.is_water || m.is_glass;
-	m.is_valid = (flag > 0.01 && flag < 0.97) && (!m.is_sky) || m.is_trans;
+	m.is_valid = ((flag > 0.01 && flag < 1.0) && (!m.is_sky) || m.is_trans) || m.is_particle;
 	m.is_plant = (flag > 0.48 && flag < 0.53);
 	m.is_hand = m.is_valid && flag < 0.11;
 	m.is_entity = (flag > 0.35 && flag < 0.4);

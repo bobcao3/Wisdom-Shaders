@@ -32,5 +32,5 @@ varying vec4 color;
 /* DRAWBUFFERS:02 */
 void main() {
 	gl_FragData[0] = texture2D(tex, texcoord);
-	gl_FragData[1] = vec4(0.0);
+	gl_FragData[1] = vec4(0.0, 0.0, 0.2, 1.0);
 }
