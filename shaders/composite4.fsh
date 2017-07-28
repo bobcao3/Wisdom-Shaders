@@ -57,32 +57,27 @@ bool checkBlur(vec2 offset, float scale) {
 	&& (texcoord.t - offset.t + padding < 1.0f / scale + (padding * 2.0f)) );
 }
 
+const float weight[5] = float[] (0.0606, 0.2417, 0.3829, 0.2417, 0.0606);
+
 vec3 LODblur(in int LOD, in vec2 offset) {
 	float scale = exp2(LOD);
 	vec3 bloom = vec3(0.0);
 
 	float allWeights = 0.0f;
+	float d1 = bayer_4x4(texcoord, vec2(viewWidth, viewHeight)) - 1.0;
+	float d2 = bayer_4x4(texcoord, vec2(viewWidth, viewHeight)) - 1.0;
 
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-
-			float weight = 1.0f - distance(vec2(i, j), vec2(2.5f)) * 0.72;
-			weight = clamp(weight, 0.0f, 1.0f);
-			weight = 1.0f - cos(weight * 3.1415 * 0.5f);
-			weight = pow(weight, 2.0f);
-			float d1 = bayer_4x4(texcoord + i * j * 0.03, vec2(viewWidth, viewHeight));
-			vec2 coord = vec2(i * 2.0 - 4.5 + d1, j * 2.0 - 4.5 + fract(d1 + 0.75)) / vec2(viewWidth, viewHeight);
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 5; j++) {
+			vec2 coord = vec2(i * 2.0 + d1, j * 2.0 + d2) / vec2(viewWidth, viewHeight);
 
 			vec2 finalCoord = (texcoord.st + coord.st - offset.st) * scale;
 
-			if (weight > 0.0f) {
-				bloom += clamp(texture2DLod(composite, finalCoord, 2).rgb, vec3(0.0f), vec3(1.0f)) * weight;
-				allWeights += 1.0f * weight;
-			}
+			bloom += clamp(texture2D(composite, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight[i] * weight[j];
 		}
 	}
 
-	return bloom / allWeights;
+	return bloom;
 }
 #endif
 
@@ -94,10 +89,10 @@ void main() {
 	float lod = 2.0; vec2 offset = vec2(0.0f);
 	if (texcoord.y < 0.25 + padding * 2.0 + 0.6251 && texcoord.x < 0.0078125 + 0.25f + 0.100f) {
 		if (texcoord.y > 0.25 + padding) {
-			     if (checkBlur(offset = vec2(0.0f, 0.25f)     + vec2(0.000f, 0.025f), exp2(lod = 3.0))) { /* LOD 3 */ }
-			else if (checkBlur(offset = vec2(0.125f, 0.25f)   + vec2(0.025f, 0.025f), exp2(lod = 4.0))) { /* LOD 4 */ }
-			else if (checkBlur(offset = vec2(0.1875f, 0.25f)  + vec2(0.050f, 0.025f), exp2(lod = 5.0))) { /* LOD 5 */ }
-			else if (checkBlur(offset = vec2(0.21875f, 0.25f) + vec2(0.075f, 0.025f), exp2(lod = 6.0))) { /* LOD 6 */ }
+			     if (checkBlur(offset = vec2(0.0f, 0.35f)     + vec2(0.000f, 0.035f), exp2(lod = 3.0))) { /* LOD 3 */ }
+			else if (checkBlur(offset = vec2(0.125f, 0.35f)   + vec2(0.030f, 0.035f), exp2(lod = 4.0))) { /* LOD 4 */ }
+			else if (checkBlur(offset = vec2(0.1875f, 0.35f)  + vec2(0.060f, 0.035f), exp2(lod = 5.0))) { /* LOD 5 */ }
+			else if (checkBlur(offset = vec2(0.21875f, 0.35f) + vec2(0.090f, 0.035f), exp2(lod = 6.0))) { /* LOD 6 */ }
 			else lod = 0.0f;
 		} else if (texcoord.x > 0.25 + padding) lod = 0.0f;
 		if (lod > 1.0f) blur = LODblur(int(lod), offset);

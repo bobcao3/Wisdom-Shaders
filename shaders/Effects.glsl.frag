@@ -178,18 +178,19 @@ vec4 texture_Bicubic(sampler2D tex, vec2 uv)
 
 vec3 bloom() {
 	vec2 tex = texcoord * 0.25;
-	vec3 color = texture_Bicubic(gcolor, tex).rgb;
-	tex = texcoord * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.025f);
-	color += texture_Bicubic(gcolor, tex).rgb;
-	tex = texcoord * 0.0625 + vec2(0.125f, 0.25f) + vec2(0.025f, 0.025f);
-	color += texture_Bicubic(gcolor, tex).rgb;
-	tex = texcoord * 0.03125 + vec2(0.1875f, 0.25f) + vec2(0.050f, 0.025f);
-	color += texture_Bicubic(gcolor, tex).rgb;
-	tex = texcoord * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.075f, 0.025f);
-	color += texture_Bicubic(gcolor, tex).rgb;
+	vec2 pix_offset = 3.0 / vec2(viewWidth, viewHeight);
+	vec3 color = texture_Bicubic(gcolor, tex - pix_offset).rgb;
+	tex = texcoord * 0.125 + vec2(0.0f, 0.35f) + vec2(0.000f, 0.035f);
+	color += texture_Bicubic(gcolor, tex - pix_offset).rgb;
+	tex = texcoord * 0.0625 + vec2(0.125f, 0.35f) + vec2(0.030f, 0.035f);
+	color += texture_Bicubic(gcolor, tex - pix_offset).rgb;
+	tex = texcoord * 0.03125 + vec2(0.1875f, 0.35f) + vec2(0.060f, 0.035f);
+	color += texture_Bicubic(gcolor, tex - pix_offset).rgb;
+	tex = texcoord * 0.015625 + vec2(0.21875f, 0.35f) + vec2(0.090f, 0.035f);
+	color += texture_Bicubic(gcolor, tex - pix_offset).rgb;
 	
 	color *= 0.2;
-	return color * smoothstep(0.03, 1.0, luma(color));
+	return color * luma(color);
 }
 
 void dof(inout vec3 color) {
