@@ -176,7 +176,10 @@ vec4 texture_Bicubic(sampler2D tex, vec2 uv)
                         g1x * texture2D(tex, p3));
 }
 
-vec3 bloom() {
+#define DIRTY_LENS
+#define DIRTY_LENS_TEXTURE
+
+vec3 bloom(inout vec3 c) {
 	vec2 tex = texcoord * 0.25;
 	vec2 pix_offset = 3.0 / vec2(viewWidth, viewHeight);
 	vec3 color = texture_Bicubic(gcolor, tex - pix_offset).rgb;
@@ -190,7 +193,38 @@ vec3 bloom() {
 	color += texture_Bicubic(gcolor, tex - pix_offset).rgb;
 	
 	color *= 0.2;
-	return color * luma(color);
+	float l = luma(color);
+	
+	// Dirty lens
+	#ifdef DIRTY_LENS
+	vec2 ext_tex = (texcoord - 0.5) * 0.5 + 0.5;
+	tex = ext_tex * 0.03125 + vec2(0.1875f, 0.35f) + vec2(0.060f, 0.035f);
+	vec3 color_huge = texture_Bicubic(gcolor, tex - pix_offset).rgb;
+	tex = ext_tex * 0.015625 + vec2(0.21875f, 0.35f) + vec2(0.090f, 0.035f);
+	color_huge += texture_Bicubic(gcolor, tex - pix_offset).rgb;
+	
+	float lh = luma(color_huge);
+	if (lh > 0.4) {
+		vec2 uv = texcoord;
+		uv.y = uv.y / viewWidth * viewHeight;
+		float col = smoothstep(0.4, 0.6, lh);
+		
+		#ifdef DIRTY_LENS_TEXTURE
+		vec3 lens = texture2D(gaux3, texcoord).rgb;
+		c = mix(c, mix(color, color_huge * lens, 0.7), lens * col);
+		#else
+		float n = abs(simplex2D(uv * 10.0));
+		n += simplex2D(uv * 6.0 + 0.4) * 0.4;
+		n += simplex2D(uv * 3.0 + 0.7);
+		
+		n = clamp(n * 0.3, 0.0, 1.0);
+		
+		c = mix(c, mix(color, color_huge, 0.7), n * col * 0.5);
+		#endif
+	}
+	#endif
+	
+	return color * l;
 }
 
 void dof(inout vec3 color) {

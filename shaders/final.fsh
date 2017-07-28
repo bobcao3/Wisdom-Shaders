@@ -97,7 +97,8 @@ void main() {
 	float exposure = get_exposure();
 
 	#ifdef BLOOM
-	color += max(vec3(0.0), bloom() * exposure);
+	vec3 b = bloom(color);
+	color += max(vec3(0.0), b * exposure);
 	#endif
 	
 	#ifdef LF

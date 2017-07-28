@@ -220,6 +220,38 @@ float bayer_16x16(in vec2 pos, in vec2 view) {
 	return bayer16(pos * view);
 }
 
-#endif
+vec2 hash22(vec2 p){
+    vec2 p2 = fract(p * vec2(.1031,.1030));
+    p2 += dot(p2, p2.yx+19.19);
+    return fract((p2.x+p2.y)*p2);
+}
+
+float simplex2D(vec2 p){
+    const float K1 = (sqrt(3.)-1.)/2.;
+    const float K2 = (3.-sqrt(3.))/6.;
+    const float K3 = K2*2.;
+
+    vec2 i = floor( p + dot(p,vec2(K1)) );
+    
+    vec2 a = p - i + dot(i,vec2(K2));
+    vec2 o = 1.-clamp((a.yx-a)*1.e35,0.,1.);
+    vec2 b = a - o + K2;
+    vec2 c = a - 1.0 + K3;
+
+    vec3 h = clamp( .5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0. ,1. );
+    
+    h*=h;
+    h*=h;
+
+    vec3 n = vec3( 
+        dot(a,hash22(i   )-.5),
+        dot(b,hash22(i+o )-.5),
+        dot(c,hash22(i+1.)-.5)
+    );
+
+    return dot(n,h)*140.;
+}
 
 #define Positive(a) max(0.0000001, a)
+
+#endif
