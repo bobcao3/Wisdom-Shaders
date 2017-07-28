@@ -59,6 +59,9 @@ vec3 lensFlare(vec3 color, vec2 uv) {
 
 #define SATURATION 1.5 // [0.6 1.0 1.5 2.0]
 
+uniform float nightVision;
+uniform float blindness;
+
 void main() {
 	#ifdef EIGHT_BIT
 	vec3 color;
@@ -115,6 +118,10 @@ void main() {
 	#endif
 	
 	tonemap(color, exposure);
+	// Apply night vision gamma
+	color = pow(color, vec3(1.0 - nightVision * 0.6));
+	// Apply blindness
+	color = pow(color, vec3(1.0 + blindness));
 	
 	saturation(color, SATURATION);
 	
