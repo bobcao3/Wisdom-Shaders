@@ -108,27 +108,38 @@ const float vl_steps = 8.0;
 const int vl_loop = 8;
 #endif
 
-float VL(in vec3 owpos, in float cdepth, out float vl) {
+float VL(in vec3 owpos, out float vl) {
+	vec3 adj_owpos = owpos - vec3(0.0,1.62,0.0);
+	float adj_depth = length(adj_owpos);
+
 	vec3 swpos = owpos;
-	float step_length = min(shadowDistance, cdepth) / vl_steps;
-	vec3 dir = normalize(owpos) * step_length;
+	float step_length = min(shadowDistance, adj_depth) / vl_steps;
+	vec3 dir = normalize(adj_owpos) * step_length;
 	float prev = 0.0, total = 0.0;
+
+	float dither = bayer_16x16(texcoord, vec2(viewWidth, viewHeight));
 
 	for (int i = 0; i < vl_loop; i++) {
 		swpos -= dir;
-		float dither = bayer_16x16(texcoord + vec2(i * 0.01), vec2(viewWidth, viewHeight));
+		dither = fract(dither + 0.11);
 		vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
 		float sdepth = texture2DLod(shadowtex1, shadowpos.xy, 2).x;
+		
+		float xdiff = 0.0;
 		if (shadowpos.z + 0.0006 < sdepth) {
-			total += (prev + 1.0) * step_length * (1 + dither) * 0.5;
+			xdiff = prev + 1.0;
 			prev = 1.0;
+		} else {
+			xdiff = prev;
+			prev = 0.0;
 		}
+		total += xdiff * step_length * 0.5;
 	}
 
 	total = min(total, 512.0);
 	vl = total / 512.0f;
 
-	return (max(0.0, cdepth - shadowDistance) + total) / 512.0f;
+	return (max(0.0, adj_depth - shadowDistance) + total) / 512.0f;
 }
 #endif
 

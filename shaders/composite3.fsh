@@ -177,9 +177,9 @@ void main() {
 		float lit_strength = 1.0;
 		#ifdef CrespecularRays
 		float vl = 0.0;
-		lit_strength = VL(land.wpos, land.cdepth, vl);
+		lit_strength = VL(land.wpos, vl);
 		if (isEyeInWater) vl *= eyeBrightness.y * 0.002;
-		color += 0.006 * pow(vl, 0.3) * suncolor;
+		color += 0.008 * pow(vl, 0.35) * suncolor;
 		#endif
 
 		if (!isEyeInWater) calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + max(lit_strength, rainStrength) * 0.7));
