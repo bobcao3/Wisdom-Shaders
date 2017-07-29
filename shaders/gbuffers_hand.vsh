@@ -22,22 +22,49 @@
 // =============================================================================
 
 #version 120
+
+#include "compat.glsl"
+
 #pragma optimize(on)
 
+#define NORMALS
+
+attribute vec4 mc_Entity;
+attribute vec4 mc_midTexCoord;
+attribute vec4 at_tangent;
+
 uniform mat4 gbufferModelViewInverse;
+uniform float rainStrength;
+uniform float frameTimeCounter;
 
 varying vec4 color;
-varying vec2 normal;
-varying vec2 texcoord;
-varying vec2 lmcoord;
+varying vec4 coords;
+varying vec3 normal;
 
-#include "gbuffers.inc.vsh"
+#define texcoord coords.rg
+#define lmcoord coords.ba
 
-VSH {
+#ifdef NORMALS
+varying vec3 tangent;
+varying vec3 binormal;
+#endif
+
+#define WAVING_FOILAGE
+
+void main() {
 	color = gl_Color;
-	gl_Position = gl_ModelViewMatrix * gl_Vertex;
-	gl_Position = gl_ProjectionMatrix * gl_Position;
-	normal = normalEncode(normalize(gl_NormalMatrix * gl_Normal));
-	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
-	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+	
+	normal = normalize(gl_NormalMatrix * gl_Normal);
+
+	#ifdef NORMALS
+	tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
+    binormal = cross(normal, tangent);
+    #endif
+
+	vec4 position = gl_Vertex;
+	position = gl_ModelViewMatrix * position;
+	vec3 wpos = position.xyz;
+	gl_Position = gl_ProjectionMatrix * position;
+	texcoord = gl_MultiTexCoord0.st;
+	lmcoord = (gl_TextureMatrix[1] *  gl_MultiTexCoord1).xy;
 }
