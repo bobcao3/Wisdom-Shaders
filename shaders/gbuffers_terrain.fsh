@@ -57,7 +57,7 @@ varying vec3 binormal;
 
 uniform ivec2 atlasSize;
 
-//#define ParallaxOcclusion
+#define ParallaxOcclusion
 #ifdef ParallaxOcclusion
 varying vec3 tangentpos;
 

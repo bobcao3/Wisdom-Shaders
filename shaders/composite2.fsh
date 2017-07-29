@@ -43,9 +43,6 @@ float blurAO (vec2 uv, vec3 N) {
 //#define PRIME_RENDER
 //#define MODERN
 
-#define SKY_LIGHT_GI
-#define BLOCK_LIGHT_GI
-
 void main() {
 	// rebuild hybrid flag
 	vec4 speculardata = texture2D(gaux1, texcoord);
@@ -94,11 +91,8 @@ void main() {
 		amb.color = ambient;
 		amb.attenuation = light_mclightmap_simulated_GI(mclight.y, sun.L, land.N);
 
-		#ifdef SKY_LIGHT_GI
+		#ifdef DIRECTIONAL_LIGHTMAP
 		amb.attenuation *= lightmap_normals(land.vpos, land.N, mclight.y);
-		#endif
-		
-		#ifdef BLOCK_LIGHT_GI
 		torch.attenuation *= lightmap_normals(land.vpos, land.N, mclight.x);
 		#endif
 

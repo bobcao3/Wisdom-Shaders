@@ -40,7 +40,7 @@ float light_mclightmap_attenuation(in float l) {
 // #define FAKE_GI_REFLECTION
 
 float light_mclightmap_simulated_GI(in float Ld, in vec3 L, in vec3 N) {
-	float simulatedGI = 0.4 * (-1.333 / (3.0 * pow(Ld, 4.0) + 1.0) + 1.333);
+	float simulatedGI = 0.4 * (-1.333 / (3.0 * pow(Ld, 3.0) + 1.0) + 1.333);
 	
 	#ifdef FAKE_GI_REFLECTION
 	vec3 sunRef = reflect(L, upVec);
@@ -208,6 +208,9 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 	return a2 / denom;
 }
 
+#define DIRECTIONAL_LIGHTMAP
+
+#ifdef DIRECTIONAL_LIGHTMAP
 float lightmap_normals(vec3 vpos, vec3 N, float lm) {
 	vec3 tangent = normalize(dFdx(vpos));
 	vec3 binormal = normalize(dFdy(vpos));
@@ -222,6 +225,7 @@ float lightmap_normals(vec3 vpos, vec3 N, float lm) {
 	
 	return clamp(dot(N, TL) * 0.5 + 0.5, 0.1, 1.0);
 }
+#endif
 
 vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceThick) {
 	float NdotV = Positive(dot(mat.N, -mat.nvpos));

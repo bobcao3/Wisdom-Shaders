@@ -6,7 +6,7 @@ varying vec2 texcoord;
 
 #include "GlslConfig"
 
-//#define MOTION_BLUR
+#define MOTION_BLUR
 #define BLOOM
 
 #include "CompositeUniform.glsl.frag"

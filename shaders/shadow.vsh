@@ -42,7 +42,7 @@ varying vec3 color;
 
 #define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
-//#define WAVING_SHADOW
+#define WAVING_SHADOW
 
 void main() {
 	vec4 position = gl_Vertex;

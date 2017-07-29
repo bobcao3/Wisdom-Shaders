@@ -22,6 +22,7 @@ option.HQ_AO=High Quality AO
 option.IBL=IBL reflections
 option.IBL_SSR=IBL Screen Space Reflections
 option.SSR_STEPS=Reflection Steps
+option.DIRECTIONAL_LIGHTMAP=Directional Blocklight
 
 option.NORMALS=Normal Mapping
 option.SPECULAR_TO_PBR_CONVERSION=Specular2PBR Conversion
@@ -45,6 +46,9 @@ option.DOF=Depth of Field
 option.MOTION_BLUR=Motion Blur
 option.SSEDAA=SSEDAA (Anti-aliasing)
 option.VIGNETTE=Vignette
+option.DIRTY_LENS=Dirty Lens
+option.DIRTY_LENS_TEXTURE=Dirty Lens Texture
+option.DIRTY_LENS_TEXTURE.comment=Need newer Optifine's texture loading function
 
 option.EXPOSURE=Exposure
 option.BLACK_AND_WHITE=Black and White Filter

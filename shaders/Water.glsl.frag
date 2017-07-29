@@ -104,7 +104,7 @@ void WaterParallax(inout vec3 wpos, in float lod) {
 }
 #endif
 
-//#define WATER_CAUSTICS
+#define WATER_CAUSTICS
 #ifdef WATER_CAUSTICS
 float get_caustic (in vec3 wpos) {
 	wpos += (64.0 - wpos.y) * (worldLightPosition / worldLightPosition.y);

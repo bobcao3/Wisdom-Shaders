@@ -22,6 +22,7 @@ option.HQ_AO=高质量环境光遮蔽
 option.IBL=反射着色
 option.IBL_SSR=屏幕空间反射
 option.SSR_STEPS=反射精度
+option.DIRECTIONAL_LIGHTMAP=定向环境光追踪
 
 option.NORMALS=法线贴图
 option.SPECULAR_TO_PBR_CONVERSION=高光材质转换
@@ -45,6 +46,9 @@ option.DOF=景深
 option.MOTION_BLUR=动态模糊
 option.SSEDAA=边缘检测抗锯齿
 option.VIGNETTE=画面暗角
+option.DIRTY_LENS=脏镜头
+option.DIRTY_LENS_TEXTURE=超级脏镜头材质
+option.DIRTY_LENS_TEXTURE.comment=需要新版Optifine的材质载入支持
 
 option.EXPOSURE=曝光
 option.BLACK_AND_WHITE=黑白滤镜
