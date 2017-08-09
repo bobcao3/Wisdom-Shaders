@@ -38,7 +38,7 @@ uniform sampler2D specular;
 uniform sampler2D normals;
 #endif
 
-varying vec4 color;
+varying f16vec4 color;
 varying vec4 coords;
 varying vec4 wdata;
 
@@ -51,22 +51,22 @@ varying float dis;
 #define lmcoord coords.ba
 
 #ifdef NORMALS
-varying vec3 tangent;
-varying vec3 binormal;
+varying f16vec3 tangent;
+varying f16vec3 binormal;
 #endif
 
 uniform ivec2 atlasSize;
 
 #define ParallaxOcclusion
 #ifdef ParallaxOcclusion
-varying vec3 tangentpos;
+varying f16vec3 tangentpos;
 
 #define TILE_RESOLUTION 0 // [32 64 128 256 512 1024]
 
 vec2 atlas_offset(in vec2 coord, in vec2 offset) {
-	const ivec2 atlasTiles = ivec2(16, 8);
+	const ivec2 atlasTiles = ivec2(32, 16);
 	#if TILE_RESOLUTION == 0
-	int tileResolution = atlasSize.x / atlasTiles.x;
+	int tileResolution = atlasSize.x / atlasTiles.x * 2;
 	#else
 	int tileResolution = TILE_RESOLUTION;
 	#endif
@@ -149,7 +149,7 @@ vec2 ParallaxMapping(in vec2 coord) {
 }
 #endif
 
-vec2 normalEncode(vec3 n) {return sqrt(-n.z*0.125+0.125) * normalize(n.xy) + 0.5;}
+f16vec2 normalEncode(f16vec3 n) {return sqrt(-n.z*0.125f+0.125f) * normalize(n.xy) + 0.5f;}
 
 //#define SPECULAR_TO_PBR_CONVERSION
 
@@ -160,27 +160,22 @@ void main() {
 	if (dis < 64.0) texcoord_adj = ParallaxMapping(texcoord);
 	#endif
 
-	vec4 t = texture2D(texture, texcoord_adj);
-
-	if (t.a <= 0.0) discard;
+	f16vec4 t = texture2D(texture, texcoord_adj);
 
 	#ifdef PARALLAX_SELF_SHADOW
 	t.rgb *= parallax_lit;
 	#endif
 
 	gl_FragData[0] = t * color;
-	vec2 n2 = normalEncode(normal);
+	f16vec2 n2 = normalEncode(normal);
 	#ifdef NORMALS
-		vec3 normal2 = normal;
+		f16vec3 normal2 = normal;
 		if (dis < 64.0) {
 			normal2 = texture2D(normals, texcoord_adj).xyz * 2.0 - 1.0;
-			const float bumpmult = 0.5;
+			const float16_t bumpmult = 0.5;
 			normal2 = normal2 * bumpmult + vec3(0.0f, 0.0f, 1.0f - bumpmult);
-			mat3 tbnMatrix = mat3(
-				tangent.x, binormal.x, normal.x,
-				tangent.y, binormal.y, normal.y,
-				tangent.z, binormal.z, normal.z);
-			normal2 = normal2 * tbnMatrix;
+			f16mat3 tbnMatrix = mat3(tangent, binormal, normal);
+			normal2 = tbnMatrix * normal2;
 		}
 		vec2 d = normalEncode(normal2);
 		if (!(d.x > 0.0 && d.y > 0.0)) d = n2;

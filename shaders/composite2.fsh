@@ -4,9 +4,12 @@
 
 varying vec2 texcoord;
 
+#define WATER_CAUSTICS
+
 #include "GlslConfig"
 
 //#define SPACE
+#define DIRECTIONAL_LIGHTMAP
 
 #include "CompositeUniform.glsl.frag"
 #include "Utilities.glsl.frag"
@@ -92,8 +95,12 @@ void main() {
 		amb.attenuation = light_mclightmap_simulated_GI(mclight.y, sun.L, land.N);
 
 		#ifdef DIRECTIONAL_LIGHTMAP
-		amb.attenuation *= lightmap_normals(land.vpos, land.N, mclight.y);
-		torch.attenuation *= lightmap_normals(land.vpos, land.N, mclight.x);
+		vec3 T = normalize(dFdx(land.vpos));
+		vec3 B = normalize(dFdy(land.vpos));
+		vec3 N = cross(T, B);
+		
+		amb.attenuation *= lightmap_normals(land.N, mclight.y, T, B, N);
+		torch.attenuation *= lightmap_normals(land.N, mclight.x, T, B, N);
 		#endif
 
 		#ifdef WISDOM_AMBIENT_OCCLUSION

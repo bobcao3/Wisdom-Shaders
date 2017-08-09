@@ -24,6 +24,8 @@ LightSourcePBR sun;
 
 Mask mask;
 
+#define WATER_PARALLAX
+
 #include "Water.glsl.frag"
 
 #define WISDOM_AMBIENT_OCCLUSION
@@ -161,7 +163,7 @@ void main() {
 		
 		#ifdef IBL
 		// IBL
-		if (land.roughness < 0.7) {
+		if (land.roughness < 0.6) {
 			vec3 viewRef = reflect(land.nvpos, land.N);
 			#ifdef IBL_SSR
 			vec4 glossy_reflect = ray_trace_ssr(viewRef, land.vpos, land.roughness);

@@ -74,7 +74,7 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 const vec2 shadowPixSize = vec2(1.0 / shadowMapResolution);
 
 float shadowTexSmooth(in sampler2D s, in vec3 spos, in float bias, out float depth) {
-	vec2 px0 = vec2(spos.xy + shadowPixSize * vec2(0.5, 0.25));
+	vec2 px0 = vec2(spos.xy + shadowPixSize * vec2(0.25, 0.25));
 	depth = 0.0;
 	float texel = texture2D(s, px0).x; depth += texel;
 	float res1 = float(texel + bias < spos.z);
@@ -143,7 +143,7 @@ float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float 
 	#else
 		float M1;
 		shade = shadowTexSmooth(smap, spos, bias, M1);
-		thickness = distance(spos.z, M1) * 64.0;
+		thickness = distance(spos.z, M1) * 64.0 * shade;
 	#endif
 
 	float edgeX = abs(spos.x) - 0.9f;
@@ -217,14 +217,8 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 	return a2 / denom;
 }
 
-#define DIRECTIONAL_LIGHTMAP
-
 #ifdef DIRECTIONAL_LIGHTMAP
-float lightmap_normals(vec3 vpos, vec3 N, float lm) {
-	vec3 tangent = normalize(dFdx(vpos));
-	vec3 binormal = normalize(dFdy(vpos));
-	vec3 normal = cross(tangent, binormal);
-	
+float lightmap_normals(vec3 N, float lm, vec3 tangent, vec3 binormal, vec3 normal) {
 	float dither = bayer_16x16(texcoord, vec2(viewWidth, viewHeight)) * 0.2 - 0.1;
 
 	float Lx = dFdx(lm) * 240.0 + dither;
@@ -313,7 +307,7 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal) {
 	for(int i = 0; i < SSR_STEPS; i++) {
 		testPoint += direction * h;
 		uv = screen_project(testPoint);
-		if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+		if(clamp(uv, vec2(0.0), vec2(1.0)) != uv) {
 			hit = true;
 			break;
 		}

@@ -179,19 +179,19 @@ vec2 screen_project (vec3 vpos) {
 
 #define hash_fast(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
-float hash(vec2 p) {
+float16_t hash(f16vec2 p) {
 	vec3 p3  = fract(vec3(p.xyx) * 0.2031);
 	p3 += dot(p3, p3.yzx + 19.19);
 	return fract((p3.x + p3.y) * p3.z);
 }
 
-float noise(vec2 p) {
-	vec2 i = floor(p);
-	vec2 f = fract(p);
-	vec2 u = f*f*(3.0-2.0*f);
+float16_t noise(f16vec2 p) {
+	f16vec2 i = floor(p);
+	f16vec2 f = fract(p);
+	f16vec2 u = f*f*(3.0f-2.0f*f);
 	return -1.0 + 2.0 * mix(
-		mix(hash(i),                 hash(i + vec2(1.0,0.0)), u.x),
-		mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x),
+		mix(hash(i),                        hash(i + f16vec2(1.0f,0.0f)), u.x),
+		mix(hash(i + f16vec2(0.0f,1.0f)), hash(i + f16vec2(1.0f,1.0f)), u.x),
 	u.y);
 }
 
@@ -199,30 +199,30 @@ float noise_tex(in vec2 p) {
 	return texture2D(noisetex, fract(p * 0.0020173)).r * 2.0 - 1.0;
 }
 
-float bayer2(vec2 a){
+float16_t bayer2(f16vec2 a){
     a = floor(a);
-    return fract( dot(a, vec2(.5, a.y * .75)) );
+    return fract( dot(a, vec2(.5f, a.y * .75f)) );
 }
 
-#define bayer4(a)   (bayer2( .5*(a))*.25+bayer2(a))
-#define bayer8(a)   (bayer4( .5*(a))*.25+bayer2(a))
-#define bayer16(a)  (bayer8( .5*(a))*.25+bayer2(a))
+#define bayer4(a)   (bayer2( .5f*(a))*.25f+bayer2(a))
+#define bayer8(a)   (bayer4( .5f*(a))*.25f+bayer2(a))
+#define bayer16(a)  (bayer8( .5f*(a))*.25f+bayer2(a))
 
-float bayer_4x4(in vec2 pos, in vec2 view) {
+float16_t bayer_4x4(in f16vec2 pos, in f16vec2 view) {
 	return bayer4(pos * view);
 }
 
-float bayer_8x8(in vec2 pos, in vec2 view) {
+float16_t bayer_8x8(in f16vec2 pos, in f16vec2 view) {
 	return bayer8(pos * view);
 }
 
-float bayer_16x16(in vec2 pos, in vec2 view) {
+float16_t bayer_16x16(in f16vec2 pos, in f16vec2 view) {
 	return bayer16(pos * view);
 }
 
-vec2 hash22(vec2 p){
-    vec2 p2 = fract(p * vec2(.1031,.1030));
-    p2 += dot(p2, p2.yx+19.19);
+f16vec2 hash22(f16vec2 p){
+    f16vec2 p2 = fract(p * vec2(.1031f,.1030f));
+    p2 += dot(p2, p2.yx+19.19f);
     return fract((p2.x+p2.y)*p2);
 }
 

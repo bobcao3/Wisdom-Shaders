@@ -57,7 +57,7 @@ bool checkBlur(vec2 offset, float scale) {
 	&& (texcoord.t - offset.t + padding < 1.0f / scale + (padding * 2.0f)) );
 }
 
-const float weight[5] = float[] (0.0606, 0.2417, 0.3829, 0.2417, 0.0606);
+const float weight[3] = float[] (0.2750, 0.4357, 0.2750);
 
 vec3 LODblur(in int LOD, in vec2 offset) {
 	float scale = exp2(LOD);
@@ -67,8 +67,8 @@ vec3 LODblur(in int LOD, in vec2 offset) {
 	float d1 = bayer_4x4(texcoord, vec2(viewWidth, viewHeight)) - 1.0;
 	float d2 = bayer_4x4(texcoord, vec2(viewWidth, viewHeight)) - 1.0;
 
-	for (int i = 0; i < 5; i++) {
-		for (int j = 0; j < 5; j++) {
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
 			vec2 coord = vec2(i * 2.0 + d1, j * 2.0 + d2) / vec2(viewWidth, viewHeight);
 
 			vec2 finalCoord = (texcoord.st + coord.st - offset.st) * scale;

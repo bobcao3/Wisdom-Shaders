@@ -11,27 +11,21 @@
 
 #endif
 
-/*
-Nvidia tells some how the wrong thing that the truth is that it does not work
-
 // Half float support
-#ifndef __GLSL_CG_DATA_TYPES
+#ifdef MC_GL_AMD_shader_half_float
+#extension GL_AMD_shader_half_float : require
+#else
 
-	#if defined(MC_GL_NV_half_float)
-		#extension GL_NV_half_float : require
-	#elif defined(MC_GL_AMD_gpu_shader_half_float)
-		#extension GL_AMD_gpu_shader_half_float : require
-	#else
-
-		#define half float
-		#define half2 vec2
-		#define half3 vec3
-		#define half4 vec4
-
-	#endif
+	#define float16_t float
+	#define f16vec2 vec2
+	#define f16vec3 vec3
+	#define f16vec4 vec4
+	#define f16mat2 mat2
+	#define f16mat3 mat3
+	#define f16mat4 mat4
+	#define HF f
 
 #endif
-*/
 
 #define sampler2D_color sampler2D
 

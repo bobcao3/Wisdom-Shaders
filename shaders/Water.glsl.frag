@@ -10,35 +10,35 @@ const int ITER_GEOMETRY2 = 5;
 const int ITER_GEOMETRY = 2;
 const int ITER_GEOMETRY2 = 3;
 #endif
-const float SEA_CHOPPY = 4.0;
-const float SEA_SPEED = 1.2;
-const float SEA_FREQ = 0.12;
-const mat2 octave_m = mat2(1.4,1.1,-1.2,1.4);
+const float16_t SEA_CHOPPY = 4.0;
+const float16_t SEA_SPEED = 1.2;
+const float16_t SEA_FREQ = 0.12;
+const f16mat2 octave_m = f16mat2(1.4,1.1,-1.2,1.4);
 
-float sea_octave_micro(vec2 uv, float choppy) {
+float16_t sea_octave_micro(f16vec2 uv, float16_t choppy) {
 	uv += noise(uv);
-	vec2 wv = 1.0-abs(sin(uv));
-	vec2 swv = abs(cos(uv));
+	f16vec2 wv = 1.0-abs(sin(uv));
+	f16vec2 swv = abs(cos(uv));
 	wv = mix(wv,swv,wv);
 	return pow(1.0-pow(wv.x * wv.y,0.75),choppy);
 }
 
-const float height_mul[5] = float[5] (
+const float16_t height_mul[5] = float[5] (
 	0.52, 0.34, 0.20, 0.22, 0.16
 );
-const float total_height =
+const float16_t total_height =
   height_mul[0] + height_mul[1] + height_mul[2] + height_mul[3] + height_mul[4];
-const float rcp_total_height = 1.0 / total_height;
+const float16_t rcp_total_height = 1.0 / total_height;
 
-float getwave(vec3 p, in float lod) {
-	float freq = SEA_FREQ;
-	float amp = SEA_HEIGHT;
-	float choppy = SEA_CHOPPY;
-	vec2 uv = p.xz ; uv.x *= 0.75;
+float16_t getwave(vec3 p, in float lod) {
+	float16_t freq = SEA_FREQ;
+	float16_t amp = SEA_HEIGHT;
+	float16_t choppy = SEA_CHOPPY;
+	f16vec2 uv = p.xz ; uv.x *= 0.75;
 
-	float wave_speed = frameTimeCounter * SEA_SPEED;
+	float16_t wave_speed = frameTimeCounter * SEA_SPEED;
 
-	float d, h = 0.0;
+	float16_t d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY; i++) {
 		d = sea_octave_micro((uv+wave_speed)*freq,choppy);
 		h += d * amp;
@@ -49,15 +49,15 @@ float getwave(vec3 p, in float lod) {
 	return (h * rcp_total_height - SEA_HEIGHT) * lod;
 }
 
-float getwave2(vec3 p, in float lod) {
-	float freq = SEA_FREQ;
-	float amp = SEA_HEIGHT;
-	float choppy = SEA_CHOPPY;
-	vec2 uv = p.xz ; uv.x *= 0.75;
+float16_t getwave2(vec3 p, in float16_t lod) {
+	float16_t freq = SEA_FREQ;
+	float16_t amp = SEA_HEIGHT;
+	float16_t choppy = SEA_CHOPPY;
+	f16vec2 uv = p.xz ; uv.x *= 0.75;
 
-	float wave_speed = frameTimeCounter * SEA_SPEED;
+	float16_t wave_speed = frameTimeCounter * SEA_SPEED;
 
-	float d, h = 0.0;
+	float16_t d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY2; i++) {
 		d = sea_octave_micro((uv+wave_speed)*freq,choppy);
 		h += d * amp;
@@ -68,17 +68,15 @@ float getwave2(vec3 p, in float lod) {
 	return (h * rcp_total_height - SEA_HEIGHT) * lod;
 }
 
-vec3 get_water_normal(in vec3 wwpos, in float displacement, in float lod, in vec3 dir) {
-	vec3 w1 = vec3(0.001, dir.y * getwave2(wwpos + vec3(0.001, 0.0, 0.0), lod), 0.0);
-	vec3 w2 = vec3(0.0, dir.y * getwave2(wwpos + vec3(0.0, 0.0, 0.001), lod), 0.001);
-	vec3 w0 = displacement * dir;
+f16vec3 get_water_normal(in f16vec3 wwpos, in float16_t displacement, in float16_t lod, in f16vec3 dir) {
+	f16vec3 w1 = vec3(0.001, dir.y * getwave2(wwpos + vec3(0.001, 0.0, 0.0), lod), 0.0);
+	f16vec3 w2 = vec3(0.0, dir.y * getwave2(wwpos + vec3(0.0, 0.0, 0.001), lod), 0.001);
+	f16vec3 w0 = displacement * dir;
 	#define tangent w1 - w0
 	#define bitangent w2 - w0
 	return normalize(cross(bitangent, tangent));
 }
 
-#define ENHANCED_WATER
-#define WATER_PARALLAX
 #ifdef WATER_PARALLAX
 void WaterParallax(inout vec3 wpos, in float lod) {
 	const int maxLayers = 4;
@@ -104,7 +102,6 @@ void WaterParallax(inout vec3 wpos, in float lod) {
 }
 #endif
 
-#define WATER_CAUSTICS
 #ifdef WATER_CAUSTICS
 float get_caustic (in vec3 wpos) {
 	wpos += (64.0 - wpos.y) * (worldLightPosition / worldLightPosition.y);

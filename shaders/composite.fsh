@@ -2,6 +2,18 @@
 #include "compat.glsl"
 #pragma optimize (on)
 
+const int RGB8 = 0, R11F_G11F_B10F = 1, RGB16 = 2, RGBA16 = 3, RGBA8 = 4, RG16 = 5;
+
+const int colortex0Format = RGBA8;
+const int colortex1Format = RGB16;
+const int gnormalFormat = RGBA16;
+const int compositeFormat = R11F_G11F_B10F;
+const int gaux1Format = RGBA8;
+const int gaux2Format = RGBA16;
+//const int gaux3Format = R11F_G11F_B10F;
+const int gaux4Format = RGBA8;
+const int noiseTextureResolution = 512;
+
 varying vec2 texcoord;
 
 #include "GlslConfig"
