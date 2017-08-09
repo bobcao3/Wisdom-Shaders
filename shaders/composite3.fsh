@@ -73,7 +73,7 @@ void main() {
 				glossy.wpos -= vec3(wp.x, 0.0, wp.y);
 				#endif
 				
-				vec3 water_normal = (lod > 0.99) ? get_water_normal(glossy.wpos + cameraPosition, wave * water_plain_normal, lod) : water_plain_normal;
+				vec3 water_normal = (lod > 0.99) ? get_water_normal(glossy.wpos + cameraPosition, wave, lod, water_plain_normal) : water_plain_normal;
 				if (isEyeInWater) water_normal = -water_normal;
 				
 				glossy.N = mat3(gbufferModelView) * water_normal;
@@ -81,19 +81,23 @@ void main() {
 				
 				// Refraction
 				#ifdef WATER_REFRACTION
-				vec3 refract_vpos = refract(land.vpos - glossy.vpos, glossy.N, 1.0 / 1.3);
-								
-				vec2 uv = screen_project(refract_vpos + glossy.vpos);
-				uv = mix(uv, texcoord, pow(abs(uv - vec2(0.5)) * 2.0, vec2(2.0)));
+				float l = min(16.0, length(land.vpos - glossy.vpos));
+				vec3 refract_vpos = refract(normalize(land.vpos - glossy.vpos), glossy.N, 1.0 / 1.3);
+				if (refract_vpos != vec3(0.0)) {
+					vec2 uv = screen_project(refract_vpos * l + glossy.vpos);
+					uv = mix(uv, texcoord, pow(abs(uv - vec2(0.5)) * 2.0, vec2(2.0)));
 				
-				land.vpos = fetch_vpos(uv, depthtex1).xyz;
-				land.nvpos = normalize(land.vpos);
-				land.cdepth = length(land.vpos);
-				land.cdepthN = land.cdepth / far;
+					land.vpos = fetch_vpos(uv, depthtex1).xyz;
+					land.nvpos = normalize(land.vpos);
+					land.cdepth = length(land.vpos);
+					land.cdepthN = land.cdepth / far;
 				
-				color = texture2DLod(composite, uv, 1.0).rgb * 0.5;
-				color += texture2DLod(composite, uv, 2.0).rgb * 0.3;
-				color += texture2DLod(composite, uv, 3.0).rgb * 0.2;
+					color = texture2DLod(composite, uv, 1.0).rgb * 0.5;
+					color += texture2DLod(composite, uv, 2.0).rgb * 0.3;
+					color += texture2DLod(composite, uv, 3.0).rgb * 0.2;
+				} else {
+					color = vec3(0.0);
+				}
 				#endif
 				
 				glossy.nvpos = normalize(glossy.vpos);
@@ -177,9 +181,10 @@ void main() {
 		float lit_strength = 1.0;
 		#ifdef CrespecularRays
 		float vl = 0.0;
-		lit_strength = VL(land.wpos, vl);
-		if (isEyeInWater) vl *= eyeBrightness.y * 0.002;
-		color += 0.008 * pow(vl, 0.35) * suncolor;
+		if (!isEyeInWater) {
+			lit_strength = VL(land.wpos, vl);
+			color += 0.008 * pow(vl, 0.35) * suncolor;
+		}
 		#endif
 
 		if (!isEyeInWater) calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + max(lit_strength, rainStrength) * 0.7));

@@ -42,7 +42,7 @@ float getwave(vec3 p, in float lod) {
 	for(int i = 0; i < ITER_GEOMETRY; i++) {
 		d = sea_octave_micro((uv+wave_speed)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= -1.3;
+		uv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= -1.1;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
@@ -61,17 +61,17 @@ float getwave2(vec3 p, in float lod) {
 	for(int i = 0; i < ITER_GEOMETRY2; i++) {
 		d = sea_octave_micro((uv+wave_speed)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= -1.3;
+		uv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= -1.1;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
 	return (h * rcp_total_height - SEA_HEIGHT) * lod;
 }
 
-vec3 get_water_normal(in vec3 wwpos, in vec3 displacement, in float lod) {
-	vec3 w1 = vec3(0.001, getwave2(wwpos + vec3(0.001, 0.0, 0.0), lod), 0.0);
-	vec3 w2 = vec3(0.0, getwave2(wwpos + vec3(0.0, 0.0, 0.001), lod), 0.001);
-	#define w0 displacement
+vec3 get_water_normal(in vec3 wwpos, in float displacement, in float lod, in vec3 dir) {
+	vec3 w1 = vec3(0.001, dir.y * getwave2(wwpos + vec3(0.001, 0.0, 0.0), lod), 0.0);
+	vec3 w2 = vec3(0.0, dir.y * getwave2(wwpos + vec3(0.0, 0.0, 0.001), lod), 0.001);
+	vec3 w0 = displacement * dir;
 	#define tangent w1 - w0
 	#define bitangent w2 - w0
 	return normalize(cross(bitangent, tangent));
@@ -109,7 +109,7 @@ void WaterParallax(inout vec3 wpos, in float lod) {
 float get_caustic (in vec3 wpos) {
 	wpos += (64.0 - wpos.y) * (worldLightPosition / worldLightPosition.y);
 	float w1 = getwave2(wpos, 1.0);
-	vec3 n = get_water_normal(wpos, vec3(0.0, w1, 0.0), 1.0);
+	vec3 n = get_water_normal(wpos, w1, 1.0, vec3(0.0, 1.0, 0.0));
 	return abs(dot(n, worldLightPosition) * 2.0 - 1.0);
 }
 #endif

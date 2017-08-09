@@ -108,15 +108,18 @@ float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float 
 		
 		float a = 0.0;
 		float xs = 0.0;
-		for (int i = 0; i < 25; i++) {
-			float n = bayer_4x4(float(i * 0.001) + texcoord.st, vec2(viewWidth, viewHeight)) * (1.0 + rainStrength * 2.0);
-			a = texture2D(smap, spos.st + circle_offsets[i] * 0.004f * n).x + bias * (1.0 + n);
-			M2 += a * a;
-			M1 += a;
+		float n = bayer_4x4(texcoord.st, vec2(viewWidth, viewHeight));
+		for (int i = -1; i < 2; i++) {
+			for (int j = -1; j < 2; j++) {
+				vec2 offset = vec2(i, j) * (fract(n + i * j * 0.17) * (1.0 + rainStrength * 2.0) * 0.3 + 0.7);
+				a = texture2D(smap, spos.st + offset * 0.001f).x + bias * (1.0 + n);
+				M2 += a * a;
+				M1 += a;
 			
-			xs += float(a < spos.z);
+				xs += float(a < spos.z);
+			}
 		}
-		const float d25f = 1.0 / 25.0;
+		const float d25f = 1.0 / 9.0;
 		M1 *= d25f; M2 *= d25f; xs *= d25f;
 		
 		if (M1 < spos.z) {
