@@ -97,7 +97,10 @@ float shadowTexSmooth(in sampler2D s, in vec3 spos, in float bias, out float dep
 #define VARIANCE_SHADOW_MAPS
 
 float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float thickness) {
-	float shade = 0.0; thickness = 1.0;
+	float shade = 0.0; thickness = 0.0;
+
+	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return shade;
+
 	#ifdef SHADOW_FILTER
 		#ifdef VARIANCE_SHADOW_MAPS
 		float M1 = 0.0, M2 = 0.0;
@@ -144,13 +147,15 @@ float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float 
 	shade -= max(0.0f, edgeX * 10.0f);
 	shade -= max(0.0f, edgeY * 10.0f);
 	shade = max(0.0, shade);
-	thickness += smoothstep(0.8, 1.0, max(abs(spos.x), abs(spos.y)));
-	thickness = min(1.0, thickness);
+	thickness -= smoothstep(0.8, 1.0, max(abs(spos.x), abs(spos.y)));
+	thickness = max(0.0, thickness);
 
 	return shade;
 }
 
 float light_fetch_shadow_fast(sampler2D smap, in float bias, in vec3 spos) {
+	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return 0.0;
+
 	float shadowDepth = texture2D(smap, spos.st).x;
 	float shade = float(shadowDepth + bias < spos.z);
 /*
