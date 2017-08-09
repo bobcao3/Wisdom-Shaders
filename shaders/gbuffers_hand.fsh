@@ -70,9 +70,9 @@ void main() {
 		normal2 = normal2 * tbnMatrix;
 		vec2 d = normalEncode(normal2);
 		if (!(d.x > 0.0 && d.y > 0.0)) d = n2;
-		gl_FragData[1] = vec4(d, 0.1, 1.0);
+		gl_FragData[1] = vec4(d, 0.3, 1.0);
 	#else
-		gl_FragData[1] = vec4(n2, 0.1, 1.0);
+		gl_FragData[1] = vec4(n2, 0.3, 1.0);
 	#endif
 	#ifdef SPECULAR_TO_PBR_CONVERSION
 	vec3 spec = texture2D(specular, texcoord).rgb;

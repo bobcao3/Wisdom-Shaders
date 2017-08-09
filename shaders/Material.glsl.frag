@@ -108,7 +108,7 @@ void init_mask(inout Mask m, in float flag) {
 	m.is_trans = m.is_water || m.is_glass;
 	m.is_valid = ((flag > 0.01 && flag < 1.0) && (!m.is_sky) || m.is_trans) || m.is_particle;
 	m.is_plant = (flag > 0.48 && flag < 0.53);
-	m.is_hand = m.is_valid && flag < 0.11;
+	m.is_hand = flag > 0.29 && flag < 0.31;
 	m.is_entity = (flag > 0.35 && flag < 0.4);
 }
 

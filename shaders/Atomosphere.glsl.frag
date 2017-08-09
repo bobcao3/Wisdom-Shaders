@@ -30,7 +30,7 @@ vec3 calc_atmosphere(in vec3 sphere, in vec3 vsphere) {
 	VdotS = max(VdotS, 0.0) * pow(1.0 - extShadow, 0.33);
 	//float lSun = luma(suncolor);
 	at = mix(at, suncolor, smoothstep(0.1, 1.0, h2 * pow(VdotS, 3.0)));
-	at *= luma(ambient);
+	at *= smoothstep(0.0, 1.0, luma(ambient));
 	
 	at += suncolor * 0.009 * VdotS;
 	at += suncolor * 0.011 * pow(VdotS, 4.0);
@@ -45,10 +45,10 @@ vec3 calc_atmosphere(in vec3 sphere, in vec3 vsphere) {
 const mat2 octave_c = mat2(1.4,1.2,-1.2,1.4);
 
 vec4 calc_clouds(in vec3 sphere, float dotS) {
-	if (sphere.y < 40.0) return vec4(0.0);
+	if (sphere.y < 0.0) return vec4(0.0);
 
 	sphere.y -= cameraPosition.y;
-	vec3 c = sphere / sphere.y * 768.0;
+	vec3 c = sphere / max(sphere.y, 0.001) * 768.0;
 	vec2 uv = (c.xz + cameraPosition.xz);
 	
 	uv.x += frameTimeCounter * 10.0;
@@ -56,7 +56,7 @@ vec4 calc_clouds(in vec3 sphere, float dotS) {
 	uv.y *= 0.75;
 	float n  = noise_tex(uv * vec2(0.5, 1.0)) * 0.5;
 		uv += vec2(n * 0.5, 0.3) * octave_c; uv *= 3.0;
-		  n += noise_tex(uv) * 0.35;
+		  n += noise_tex(uv) * 0.25;
 		uv += vec2(n * 0.9, 0.2) * octave_c + vec2(frameTimeCounter * 0.1, 0.2); uv *= 3.01;
 		  n += noise_tex(uv) * 0.105;
 		uv += vec2(n * 0.4, 0.1) * octave_c + vec2(frameTimeCounter * 0.03, 0.1); uv *= 3.02;
@@ -66,7 +66,7 @@ vec4 calc_clouds(in vec3 sphere, float dotS) {
 	vec3 mist_color = vec3(luma(suncolor) * 0.1);
 	mist_color += pow(dotS, 4.0) * (1.0 - n) * suncolor * 0.3;
 	
-	n *= smoothstep(40.0, 80.0, sphere.y);
+	n *= smoothstep(0.0, 80.0, sphere.y);
 	
 	return vec4(mist_color, 0.5 * n);
 }
@@ -88,7 +88,7 @@ vec3 calc_sky_with_sun(in vec3 sphere, in vec3 vsphere) {
 	float dotS = dot(vsphere, lightPosition);
 
 	float ground_cover = smoothstep(70.0, 100.0, sphere.y);
-	sky += suncolor * smoothstep(0.997, 0.998, abs(dotS)) * (1.0 - rainStrength) * 5.0 * ground_cover;
+	sky += suncolor * smoothstep(0.998, 0.9985, abs(dotS)) * (1.0 - rainStrength) * 5.0 * ground_cover;
 	
 	vec4 clouds = calc_clouds(sphere, max(dotS, 0.0));
 	sky = mix(sky, clouds.rgb, clouds.a);

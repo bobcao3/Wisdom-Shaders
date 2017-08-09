@@ -28,13 +28,14 @@ vec3 light_calc_diffuse(LightSource Li, Material mat) {
 
 float light_mclightmap_attenuation(in float l) {
 	float light_distance = clamp((1.0 - pow(l, 4.6)), 0.08, 1.0);
-	float max_light = 80.5 * pow(l, 2.0);
+	const float max_light = 100.0;
 
 	const float light_quadratic = 4.9f;
 	const float light_constant1 = 1.09f;
+	const float light_constant_linear = 0.1;
 	const float light_constant2 = 1.09f;
-
-	return clamp(light_constant1 / (pow(light_distance, light_quadratic)) - light_constant2, 0.0, max_light);
+	
+	return clamp(pow(light_constant1 / light_distance, light_quadratic) + l * light_constant_linear - light_constant2, 0.0, max_light);
 }
 
 // #define FAKE_GI_REFLECTION
@@ -147,8 +148,8 @@ float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float 
 	shade -= max(0.0f, edgeX * 10.0f);
 	shade -= max(0.0f, edgeY * 10.0f);
 	shade = max(0.0, shade);
-	thickness -= smoothstep(0.8, 1.0, max(abs(spos.x), abs(spos.y)));
-	thickness = max(0.0, thickness);
+	thickness *= 1.0 - smoothstep(0.8, 1.0, max(abs(spos.x), abs(spos.y)));
+	thickness = clamp(thickness, 0.0, 1.0);
 
 	return shade;
 }
@@ -237,7 +238,8 @@ vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceTh
 	float NdotL = Positive(dot(mat.N, Li.L));
 	
 	float oren = light_PBR_oren_diffuse(-mat.nvpos, Li.L, mat.N, mat.roughness, NdotL, NdotV);
-	float att = min(1.0, Li.light.attenuation * oren + max(0.0, pow(1.0 - subSurfaceThick, 3.0) * (0.5 + 0.5 * dot(Li.L, mat.nvpos))));
+	float att = max(0.0, Li.light.attenuation * oren);
+	att += 0.9 * (1.0 - att) * max(0.0, pow(1.0 - subSurfaceThick, 3.0) * (0.5 + 0.5 * dot(Li.L, mat.nvpos)));
 	vec3 radiance = att * Li.light.color;
 
 	vec3 F0 = vec3(0.01);

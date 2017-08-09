@@ -101,6 +101,7 @@ void main() {
 			position.x += (sin(rand_ang * 10.0 + time + position.y) * 0.2) * (reset * maxStrength);
 		}
 		#endif
+		color.a *= 0.4;
 		flag = 0.50;
 	} else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0) {
 		#ifdef WAVING_FOILAGE
