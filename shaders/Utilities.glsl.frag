@@ -38,6 +38,8 @@ uniform float rainStrength;
 uniform float frameTimeCounter;
 uniform int moonPhase;
 
+uniform float wetness;
+
 uniform vec3 shadowLightPosition;
 
 uniform mat4 gbufferModelViewInverse;
@@ -59,7 +61,7 @@ void calcCommons() {
 	
 	float day = wTimeF / 24000.0;
 	float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.00001;
-	cloud_coverage = mix(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, 0.7, rainStrength);
+	cloud_coverage = mix(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, 0.7, max(rainStrength, wetness));
 
 	suncolor = suncolor_sunrise * TimeSunrise + suncolor_noon * TimeNoon + suncolor_sunset * TimeSunset + suncolor_midnight * TimeMidnight;
 	suncolor *= 1.0 - rainStrength * 0.87;

@@ -14,6 +14,11 @@ const int gaux2Format = RGBA16;
 const int gaux4Format = RGBA8;
 const int noiseTextureResolution = 512;
 
+const float eyeBrightnessHalflife = 18.5f;
+const float wetnessHalflife = 40.0f;
+const float drynessHalflife = 400.0f;
+const float centerDepthHalflife = 2.5f;
+
 varying vec2 texcoord;
 
 #include "GlslConfig"
