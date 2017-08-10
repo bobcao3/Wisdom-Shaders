@@ -6,14 +6,6 @@
 #ifdef NATURAL_WAVE_GENERATOR
 const int ITER_GEOMETRY = 3;
 const int ITER_GEOMETRY2 = 5;
-#else
-const int ITER_GEOMETRY = 2;
-const int ITER_GEOMETRY2 = 3;
-#endif
-const float16_t SEA_CHOPPY = 4.0;
-const float16_t SEA_SPEED = 1.2;
-const float16_t SEA_FREQ = 0.12;
-const f16mat2 octave_m = f16mat2(1.4,1.1,-1.2,1.4);
 
 float16_t sea_octave_micro(f16vec2 uv, float16_t choppy) {
 	uv += noise(uv);
@@ -22,6 +14,19 @@ float16_t sea_octave_micro(f16vec2 uv, float16_t choppy) {
 	wv = mix(wv,swv,wv);
 	return pow(1.0-pow(wv.x * wv.y,0.75),choppy);
 }
+#else
+const int ITER_GEOMETRY = 2;
+const int ITER_GEOMETRY2 = 3;
+
+float16_t sea_octave_micro(f16vec2 uv, float16_t choppy) {
+	uv += noise(uv);
+	return pow((1.0 - sin(uv.x)) * cos(1.0 - uv.y) * 0.3,choppy);
+}
+#endif
+const float16_t SEA_CHOPPY = 4.0;
+const float16_t SEA_SPEED = 1.2;
+const float16_t SEA_FREQ = 0.12;
+const f16mat2 octave_m = f16mat2(1.4,1.1,-1.2,1.4);
 
 const float16_t height_mul[5] = float[5] (
 	0.52, 0.34, 0.20, 0.22, 0.16
@@ -46,7 +51,7 @@ float16_t getwave(vec3 p, in float lod) {
 		choppy = mix(choppy,1.0,0.2);
 	}
 
-	return (h * rcp_total_height - SEA_HEIGHT) * lod;
+	return (h * rcp_total_height) * lod;
 }
 
 float16_t getwave2(vec3 p, in float16_t lod) {
@@ -65,7 +70,7 @@ float16_t getwave2(vec3 p, in float16_t lod) {
 		choppy = mix(choppy,1.0,0.2);
 	}
 
-	return (h * rcp_total_height - SEA_HEIGHT) * lod;
+	return (h * rcp_total_height) * lod;
 }
 
 f16vec3 get_water_normal(in f16vec3 wwpos, in float16_t displacement, in float16_t lod, in f16vec3 dir) {

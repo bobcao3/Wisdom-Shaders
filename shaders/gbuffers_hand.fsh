@@ -77,9 +77,9 @@ void main() {
 	#ifdef SPECULAR_TO_PBR_CONVERSION
 	vec3 spec = texture2D(specular, texcoord).rgb;
 	float spec_strength = dot(spec, vec3(0.3, 0.6, 0.1));
-	gl_FragData[2] = vec4(spec_strength, spec_strength, 0.0, 0.0);
+	gl_FragData[2] = vec4(spec_strength, spec_strength, 0.0, 1.0);
 	#else
-	gl_FragData[2] = texture2D(specular, texcoord);
+	gl_FragData[2] = vec4(texture2D(specular, texcoord).rgb, 1.0);
 	#endif
 	gl_FragData[3] = vec4(lmcoord, n2);
 }

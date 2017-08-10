@@ -8,6 +8,26 @@ varying vec3 ambient;
 varying float extShadow;
 varying vec3 worldLightPosition;
 
+varying float cloud_coverage;
+
+#define hash_fast(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
+
+float16_t hash(f16vec2 p) {
+	vec3 p3  = fract(vec3(p.xyx) * 0.2031);
+	p3 += dot(p3, p3.yzx + 19.19);
+	return fract((p3.x + p3.y) * p3.z);
+}
+
+float16_t noise(f16vec2 p) {
+	f16vec2 i = floor(p);
+	f16vec2 f = fract(p);
+	f16vec2 u = f*f*(3.0f-2.0f*f);
+	return -1.0 + 2.0 * mix(
+		mix(hash(i),                        hash(i + f16vec2(1.0f,0.0f)), u.x),
+		mix(hash(i + f16vec2(0.0f,1.0f)), hash(i + f16vec2(1.0f,1.0f)), u.x),
+	u.y);
+}
+
 //==============================================================================
 // Vertex stuff
 //==============================================================================
@@ -15,6 +35,8 @@ varying vec3 worldLightPosition;
 
 uniform int worldTime;
 uniform float rainStrength;
+uniform float frameTimeCounter;
+uniform int moonPhase;
 
 uniform vec3 shadowLightPosition;
 
@@ -34,9 +56,14 @@ void calcCommons() {
 	const vec3 suncolor_noon = vec3(1.392, 1.3235, 1.1156) * 4.4;
 	const vec3 suncolor_sunset = vec3(0.9943, 0.419, 0.0945) * 2.6;
 	const vec3 suncolor_midnight = vec3(0.34, 0.5, 0.6) * 0.4;
+	
+	float day = wTimeF / 24000.0;
+	float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.00001;
+	cloud_coverage = mix(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, 0.7, rainStrength);
 
 	suncolor = suncolor_sunrise * TimeSunrise + suncolor_noon * TimeNoon + suncolor_sunset * TimeSunset + suncolor_midnight * TimeMidnight;
-	suncolor *= 1.0 - rainStrength * 0.67;
+	suncolor *= 1.0 - rainStrength * 0.87;
+	suncolor *= 1.0 - cloud_coverage;
 	extShadow = (clamp((wTimeF-12000.0)/300.0,0.0,1.0)-clamp((wTimeF-13000.0)/300.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 
 	#ifndef SPACE
@@ -46,12 +73,12 @@ void calcCommons() {
 	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.2;
 
 	ambient = ambient_sunrise * TimeSunrise + ambient_noon * TimeNoon + ambient_sunset * TimeSunset + ambient_midnight * TimeMidnight;
-	ambient *= 1.0 - rainStrength * 0.41;
+	ambient *= 1.0 + cloud_coverage * 0.11;
 	#else
 	const vec3 ambient_sunrise = vec3(0.543, 0.672, 0.886) * 0.05;
 	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.1;
 	const vec3 ambient_sunset = vec3(0.443, 0.772, 0.847) * 0.05;
-	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.06;
+	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.03;
 
 	ambient = ambient_sunrise * TimeSunrise + ambient_noon * TimeNoon + ambient_sunset * TimeSunset + ambient_midnight * TimeMidnight;
 	#endif
@@ -176,24 +203,6 @@ vec2 screen_project (vec3 vpos) {
 }
 
 #endif
-
-#define hash_fast(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
-
-float16_t hash(f16vec2 p) {
-	vec3 p3  = fract(vec3(p.xyx) * 0.2031);
-	p3 += dot(p3, p3.yzx + 19.19);
-	return fract((p3.x + p3.y) * p3.z);
-}
-
-float16_t noise(f16vec2 p) {
-	f16vec2 i = floor(p);
-	f16vec2 f = fract(p);
-	f16vec2 u = f*f*(3.0f-2.0f*f);
-	return -1.0 + 2.0 * mix(
-		mix(hash(i),                        hash(i + f16vec2(1.0f,0.0f)), u.x),
-		mix(hash(i + f16vec2(0.0f,1.0f)), hash(i + f16vec2(1.0f,1.0f)), u.x),
-	u.y);
-}
 
 float noise_tex(in vec2 p) {
 	return texture2D(noisetex, fract(p * 0.0020173)).r * 2.0 - 1.0;
