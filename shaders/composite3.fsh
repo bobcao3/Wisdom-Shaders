@@ -120,7 +120,7 @@ void main() {
 				
 				color = color * glossy.albedo;
 			} else {
-				color = mix(color, glossy.albedo, glossy.opaque);
+				color = mix(color, glossy.albedo, glossy.opaque * (float(mask.is_sky) * 0.7 + 0.3));
 			}
 		
 			// Render
@@ -156,7 +156,7 @@ void main() {
 			if (wetness2 > 0.1 && !(mask.is_water || mask.is_hand || mask.is_entity)) {
 				float wet = noise((land.wpos + cameraPosition).xz * 0.5);
 				wet += noise((land.wpos + cameraPosition).xz * 0.6) * 0.5;
-				wet = clamp(smoothstep(0.0, 0.5, wetness2) * wet * 2.0, 0.0, 1.0);
+				wet = clamp(smoothstep(0.0, 0.5, wetness2) * wet * 2.0 + 0.5, 0.0, 1.0);
 				
 				land.roughness = mix(land.roughness, 0.05, wet);
 				land.metalic = mix(land.metalic, 0.03, wet);
@@ -167,8 +167,8 @@ void main() {
 				
 				color *= 1.0 - wet * 0.6;
 				
-				land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - frameTimeCounter * 3.0) * 0.05;
-				land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - frameTimeCounter * 3.0) * 0.05;
+				land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 3.0, 0.0)) * 0.05;
+				land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 3.0, 0.0)) * 0.05;
 				land.N = normalize(land.N);
 
 				color = mix(color, color * 0.3, wet * (1.0 - abs(dot(land.nvpos, land.N))));
@@ -206,7 +206,7 @@ void main() {
 		}
 		#endif
 
-		if (!isEyeInWater) calc_fog_height (land, 0.0, 512.0 * (1.0 - 0.5 * rainStrength), color, atmosphere * (0.3 + max(lit_strength, rainStrength) * 0.7));
+		if (!isEyeInWater) calc_fog_height (land, 0.0, 512.0 * (1.0 - cloud_coverage), color, atmosphere * (0.7 * lit_strength + 0.3));
 	}
 
 /* DRAWBUFFERS:3 */

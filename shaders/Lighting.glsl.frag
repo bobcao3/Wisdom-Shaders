@@ -146,11 +146,11 @@ float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float 
 		thickness = distance(spos.z, M1) * 64.0 * shade;
 	#endif
 
-	float edgeX = abs(spos.x) - 0.9f;
+	/*float edgeX = abs(spos.x) - 0.9f;
 	float edgeY = abs(spos.y) - 0.9f;
 	shade -= max(0.0f, edgeX * 10.0f);
 	shade -= max(0.0f, edgeY * 10.0f);
-	shade = max(0.0, shade);
+	shade = max(0.0, shade);*/
 	thickness *= 1.0 - smoothstep(0.8, 1.0, max(abs(spos.x), abs(spos.y)));
 	thickness = clamp(thickness, 0.0, 1.0);
 
@@ -219,7 +219,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 
 #ifdef DIRECTIONAL_LIGHTMAP
 float lightmap_normals(vec3 N, float lm, vec3 tangent, vec3 binormal, vec3 normal) {
-	float dither = bayer_16x16(texcoord, vec2(viewWidth, viewHeight)) * 0.2 - 0.1;
+	float dither = bayer_16x16(texcoord, vec2(viewWidth, viewHeight)) * 0.1 - 0.05;
 
 	float Lx = dFdx(lm) * 240.0 + dither;
 	float Ly = dFdy(lm) * 240.0 + dither;

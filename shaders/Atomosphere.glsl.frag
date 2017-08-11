@@ -22,7 +22,7 @@ f16vec3 calc_atmosphere(in f16vec3 sphere, in f16vec3 vsphere) {
 	float16_t h = max(normalize(sphere).y, 0.0);
 	f16vec3 at = skyRGB;
 	
-	at = mix(at, f16vec3(0.7), rainStrength);
+	at = mix(at, f16vec3(0.7), max(0.0, cloud_coverage) * 1.428);
 	at *= 1.0 - (0.6 - rainStrength * 0.4) * pow(h, 0.75);
 	
 	float16_t h2 = pow(max(0.0, 1.0 - h * 1.4), 2.5);

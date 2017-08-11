@@ -60,7 +60,7 @@ void calcCommons() {
 	const vec3 suncolor_midnight = vec3(0.34, 0.5, 0.6) * 0.4;
 	
 	float day = wTimeF / 24000.0;
-	float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.00001;
+	float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
 	cloud_coverage = mix(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, 0.7, max(rainStrength, wetness));
 
 	suncolor = suncolor_sunrise * TimeSunrise + suncolor_noon * TimeNoon + suncolor_sunset * TimeSunset + suncolor_midnight * TimeMidnight;
@@ -75,7 +75,7 @@ void calcCommons() {
 	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.2;
 
 	ambient = ambient_sunrise * TimeSunrise + ambient_noon * TimeNoon + ambient_sunset * TimeSunset + ambient_midnight * TimeMidnight;
-	ambient *= 1.0 + cloud_coverage * 0.11;
+	ambient *= 1.0 + cloud_coverage;
 	#else
 	const vec3 ambient_sunrise = vec3(0.543, 0.672, 0.886) * 0.05;
 	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.1;
