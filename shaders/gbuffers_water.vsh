@@ -50,7 +50,7 @@ VSH {
 	gl_Position = gl_ModelViewMatrix * gl_Vertex;
 	gl_Position = gl_ProjectionMatrix * gl_Position;
 	
-	normal = normalEncode(normalize(gl_NormalMatrix * gl_Normal));
+	normal = normalEncode(gl_NormalMatrix * gl_Normal);
 	
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 	skyLight = (gl_TextureMatrix[1] * gl_MultiTexCoord1).y;

@@ -27,15 +27,9 @@
 
 uniform sampler2D texture;
 
-varying vec3 coords;
+varying vec2 texcoord;
 varying vec3 color;
 
-#define texcoord coords.xy
-#define iswater coords.z
-
 void main() {
-	vec4 c = texture2D(texture, texcoord);
-	c.rgb *= color;
-	c = mix(c, vec4(1.0), iswater);
-	gl_FragData[0] = c;
+	gl_FragData[0] = texture2D(texture, texcoord) * vec4(color, 1.0);
 }

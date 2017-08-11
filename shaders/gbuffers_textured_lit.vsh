@@ -37,9 +37,8 @@ varying vec4 coords;
 
 VSH {
 	color = gl_Color;
-	gl_Position = gl_ModelViewMatrix * gl_Vertex;
-	gl_Position = gl_ProjectionMatrix * gl_Position;
-	normal = normalEncode(normalize(gl_NormalMatrix * gl_Normal));
+	gl_Position = ftransform();
+	normal = normalEncode(gl_NormalMatrix * gl_Normal);
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 }

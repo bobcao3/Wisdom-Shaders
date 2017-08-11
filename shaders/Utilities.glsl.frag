@@ -9,6 +9,8 @@ varying float extShadow;
 varying vec3 worldLightPosition;
 
 varying float cloud_coverage;
+varying float wind_speed;
+varying float animate_speed;
 
 #define hash_fast(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
@@ -62,9 +64,10 @@ void calcCommons() {
 	float day = wTimeF / 24000.0;
 	float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
 	cloud_coverage = mix(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, 0.7, max(rainStrength, wetness));
+	wind_speed = mix(noise(vec2(day_cycle * 2.0, 0.0)) * 0.5 + 1.0, 2.0, rainStrength);
+	animate_speed = frameTimeCounter * wind_speed;
 
 	suncolor = suncolor_sunrise * TimeSunrise + suncolor_noon * TimeNoon + suncolor_sunset * TimeSunset + suncolor_midnight * TimeMidnight;
-	suncolor *= 1.0 - rainStrength * 0.87;
 	suncolor *= 1.0 - cloud_coverage;
 	extShadow = (clamp((wTimeF-12000.0)/300.0,0.0,1.0)-clamp((wTimeF-13000.0)/300.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 
@@ -173,10 +176,10 @@ float get_exposure() {
 
 float fov = atan(1./gbufferProjection[1][1]);
 float fovUnderWater = fov * 0.85;
-float mulfov = isEyeInWater == true ? gbufferProjection[1][1]*tan(fovUnderWater):1.0;
+float mulfov = isEyeInWater ? gbufferProjection[1][1]*tan(fovUnderWater):1.0;
 
 vec4 fetch_vpos (vec2 uv, float z) {
-	vec4 v = gbufferProjectionInverse * vec4(vec3(uv, z) * 2.0 - 1.0, 1.0);
+	vec4 v = gbufferProjectionInverse * vec4(fma(vec3(uv, z), vec3(2.0f), vec3(-1.0)), 1.0);
 	v /= v.w;
 	v.xy *= mulfov;
 	
@@ -187,27 +190,27 @@ vec4 fetch_vpos (vec2 uv, sampler2D sam) {
 	return fetch_vpos(uv, texture2D(sam, uv).x);
 }
 
-float linearizeDepth(float depth) { return (2.0 * near) / (far + near - depth * (far - near));}
+float16_t linearizeDepth(float16_t depth) { return (2.0 * near) / (far + near - depth * (far - near));}
 
 float getLinearDepthOfViewCoord(vec3 viewCoord) {
 	vec4 p = vec4(viewCoord, 1.0);
 	p = gbufferProjection * p;
 	p /= p.w;
-	return linearizeDepth(p.z * 0.5 + 0.5);
+	return linearizeDepth(fma(p.z, 0.5f, 0.5f));
 }
 
-vec2 screen_project (vec3 vpos) {
-	vec4 p = gbufferProjection * vec4(vpos, 1.0);
+f16vec2 screen_project (vec3 vpos) {
+	f16vec4 p = f16mat4(gbufferProjection) * f16vec4(vpos, 1.0f);
 	p /= p.w;
 	if(abs(p.z) > 1)
-		return vec2(-1.0);
-	return p.st * 0.5f + 0.5f;
+		return f16vec2(-1.0);
+	return fma(p.st, vec2(0.5f), vec2(0.5f));
 }
 
 #endif
 
 float noise_tex(in vec2 p) {
-	return texture2D(noisetex, fract(p * 0.0020173)).r * 2.0 - 1.0;
+	return fma(texture2D(noisetex, fract(p * 0.0020173)).r, 2.0, -1.0);
 }
 
 float16_t bayer2(f16vec2 a){

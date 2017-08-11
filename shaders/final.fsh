@@ -2,7 +2,8 @@
 #include "compat.glsl"
 #pragma optimize (on)
 
-varying vec2 texcoord;
+varying vec2 tex;
+vec2 texcoord = tex;
 
 #include "GlslConfig"
 
@@ -59,10 +60,27 @@ vec3 lensFlare(vec3 color, vec2 uv) {
 
 #define SATURATION 1.5 // [0.6 1.0 1.5 2.0]
 
+#define SCREEN_RAIN_DROPS
+
 uniform float nightVision;
 uniform float blindness;
 
+//uniform float aspectRatio;
+
 void main() {
+	#ifdef SCREEN_RAIN_DROPS
+	float real_strength = rainStrength * smoothstep(0.8, 1.0, float(eyeBrightness.y) / 240.0);
+	if (rainStrength > 0.0) {
+		vec2 adj_tex = texcoord * vec2(aspectRatio, 1.0);
+		float n = noise((adj_tex + vec2(0.1, 1.0) * frameTimeCounter) * 2.0);
+		n -= 0.6 * abs(noise((adj_tex * 2.0 + vec2(0.1, 1.0) * frameTimeCounter) * 3.0));
+		n *= (n * n) * (n * n);
+		n *= real_strength * 0.007;
+		vec2 uv = texcoord + vec2(n, -n);
+		texcoord = mix(uv, texcoord, pow(abs(uv - vec2(0.5)) * 2.0, vec2(2.0)));
+	}
+	#endif
+
 	#ifdef EIGHT_BIT
 	vec3 color;
 	bit8(color);

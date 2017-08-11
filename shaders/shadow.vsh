@@ -34,11 +34,8 @@ attribute vec4 mc_midTexCoord;
 uniform float rainStrength;
 uniform float frameTimeCounter;
 
-varying vec3 coords;
+varying vec2 texcoord;
 varying vec3 color;
-
-#define texcoord coords.xy
-#define iswater coords.z
 
 #define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
@@ -46,29 +43,25 @@ varying vec3 color;
 
 void main() {
 	vec4 position = gl_Vertex;
-	float blockId = mc_Entity.x;
 	color = gl_Color.rgb;
 
-	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0) {
+	#ifdef WAVING_SHADOW
+	float blockId = mc_Entity.x;
+	if (gl_MultiTexCoord0.t < mc_midTexCoord.t && (blockId == 31.0 || blockId == 37.0 || blockId == 38.0)) {
 		float rand_ang = hash(position.xz);
-		position.x += rand_ang * 0.2;
-		position.z -= rand_ang * 0.2;
-		#ifdef WAVING_SHADOW
-		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
-			float maxStrength = 1.0 + rainStrength * 0.5;
-			float time = frameTimeCounter * 3.0;
-			float reset = cos(rand_ang * 10.0 + time * 0.1);
-			reset = max( reset * reset, max(rainStrength, 0.1));
-			position.x += (sin(rand_ang * 10.0 + time + position.y) * 0.2) * (reset * maxStrength);
-		}
-		#endif
+		float maxStrength = 1.0 + rainStrength * 0.5;
+		float time = frameTimeCounter * 3.0;
+		float reset = cos(rand_ang * 10.0 + time * 0.1);
+		reset = max( reset * reset, max(rainStrength, 0.1));
+		position.x += (sin(rand_ang * 10.0 + time + position.y) * 0.2) * (reset * maxStrength);
 	}
+	position = gl_ProjectionMatrix * (gl_ModelViewMatrix * position);
+	#else
+	position = ftransform();
+	#endif
+	
+	position.xy /= negBias + length(position.xy) * SHADOW_MAP_BIAS;
 
-	iswater = float(blockId == 8.0 || blockId == 9.0);
-
-	gl_Position = gl_ProjectionMatrix * (gl_ModelViewMatrix * position);
-
-	float distortFactor = negBias + length(gl_Position.xy) * SHADOW_MAP_BIAS;
-	gl_Position.xy /= distortFactor;
+	gl_Position = position;
 	texcoord = gl_MultiTexCoord0.st;
 }

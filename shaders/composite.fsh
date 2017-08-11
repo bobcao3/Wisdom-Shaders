@@ -9,13 +9,13 @@ const int colortex1Format = RGB16;
 const int gnormalFormat = RGBA16;
 const int compositeFormat = R11F_G11F_B10F;
 const int gaux1Format = RGBA8;
-const int gaux2Format = RGBA16;
-//const int gaux3Format = R11F_G11F_B10F;
+const int gaux2Format = RGBA8;
+const int gaux3Format = RGB8;
 const int gaux4Format = RGBA8;
 const int noiseTextureResolution = 512;
 
 const float eyeBrightnessHalflife = 18.5f;
-const float wetnessHalflife = 40.0f;
+const float wetnessHalflife = 10.0f;
 const float drynessHalflife = 400.0f;
 const float centerDepthHalflife = 2.5f;
 

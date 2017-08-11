@@ -59,7 +59,7 @@ void main() {
 	// build up materials & light sources
 	if (!mask.is_sky) {
 		#ifdef MODERN
-		const vec3 torch_color = vec3(0.01f);
+		const vec3 torch_color = vec3(0.04f, 0.027f, 0.02f);
 		#else
 		const vec3 torch_color = vec3(0.2435f, 0.0921f, 0.01053f) * 0.1f;
 		#endif
@@ -116,19 +116,19 @@ void main() {
 		#endif
 		
 		// Force ground wetness
-		float wetness2 = wetness * pow(mclight.y, 10.0) * float(!mask.is_plant);
-		if (wetness2 > 0.1 && !(mask.is_water || mask.is_hand || mask.is_entity)) {
-			float wet = noise((land.wpos + cameraPosition).xz * 0.5);
-			wet += noise((land.wpos + cameraPosition).xz * 0.6) * 0.5;
-			wet = clamp(smoothstep(0.0, 0.5, wetness2) * wet * 2.0 + 0.5, 0.0, 1.0);
+		float wetness2 = wetness * smoothstep(0.92, 1.0, mclight.y) * float(!mask.is_plant);
+		if (wetness2 > 0.0 && !(mask.is_water || mask.is_hand || mask.is_entity)) {
+			float wet = noise((land.wpos + cameraPosition).xz * 0.5 - frameTimeCounter * 0.02);
+			wet += noise((land.wpos + cameraPosition).xz * 0.6 - frameTimeCounter * 0.01) * 0.5;
+			wet = clamp(wetness2 * wet * 2.0 + 0.5, 0.0, 1.0);
 			
 			land.roughness = mix(land.roughness, 0.05, wet);
 			land.metalic = mix(land.metalic, 0.15, wet);
 			vec3 flat_normal = normalDecode(mclight.zw);
 			land.N = mix(land.N, flat_normal, wet);
 			
-			land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 3.0, 0.0)) * 0.05;
-			land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 3.0, 0.0)) * 0.05;
+			land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05;
+			land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05;
 			land.N = normalize(land.N);
 		}
 
@@ -142,7 +142,7 @@ void main() {
 		// Emmisive
 		if (!mask.is_trans) color = mix(color, land.albedo * 2.0, land.emmisive);
 	} else {
-		vec4 viewPosition = fetch_vpos(texcoord, depthtex1);
+		vec4 viewPosition = fetch_vpos(texcoord, 1.0);
 		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * 512.0;
 		worldPosition.y += cameraPosition.y;
 		// Sky

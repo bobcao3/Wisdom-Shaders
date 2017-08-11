@@ -25,7 +25,7 @@
 //  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
 // =============================================================================
 
-varying vec2 texcoord;
+varying vec2 tex;
 
 #define _VERTEX_SHADER_
 #include "Utilities.glsl.frag"
@@ -52,7 +52,7 @@ uniform sampler2D depthtex0;
 
 void main() {
 	gl_Position = ftransform();
-	texcoord = gl_MultiTexCoord0.st;
+	tex = gl_MultiTexCoord0.st;
 
 	calcCommons();
 	

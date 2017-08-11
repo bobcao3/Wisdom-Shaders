@@ -152,11 +152,11 @@ void main() {
 			if (isEyeInWater && total_internal_reflection > 0.0) land = glossy;;
 		} else {
 			// Force ground wetness
-			float wetness2 = wetness * pow(mclight.y, 10.0) * float(!mask.is_plant);
-			if (wetness2 > 0.1 && !(mask.is_water || mask.is_hand || mask.is_entity)) {
-				float wet = noise((land.wpos + cameraPosition).xz * 0.5);
-				wet += noise((land.wpos + cameraPosition).xz * 0.6) * 0.5;
-				wet = clamp(smoothstep(0.0, 0.5, wetness2) * wet * 2.0 + 0.5, 0.0, 1.0);
+			float wetness2 = wetness * smoothstep(0.92, 1.0, mclight.y) * float(!mask.is_plant);
+			if (wetness2 > 0.0 && !(mask.is_water || mask.is_hand || mask.is_entity)) {
+				float wet = noise((land.wpos + cameraPosition).xz * 0.5 - frameTimeCounter * 0.02);
+				wet += noise((land.wpos + cameraPosition).xz * 0.6 - frameTimeCounter * 0.01) * 0.5;
+				wet = clamp(wetness2 * wet * 2.0 + 0.5, 0.0, 1.0);
 				
 				land.roughness = mix(land.roughness, 0.05, wet);
 				land.metalic = mix(land.metalic, 0.03, wet);
@@ -167,8 +167,8 @@ void main() {
 				
 				color *= 1.0 - wet * 0.6;
 				
-				land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 3.0, 0.0)) * 0.05;
-				land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 3.0, 0.0)) * 0.05;
+				land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05;
+				land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05;
 				land.N = normalize(land.N);
 
 				color = mix(color, color * 0.3, wet * (1.0 - abs(dot(land.nvpos, land.N))));
@@ -208,6 +208,10 @@ void main() {
 
 		if (!isEyeInWater) calc_fog_height (land, 0.0, 512.0 * (1.0 - cloud_coverage), color, atmosphere * (0.7 * lit_strength + 0.3));
 	}
+	
+	#ifdef XLLLLL
+	color=vec3(1.0,0.0,0.0);
+	#endif
 
 /* DRAWBUFFERS:3 */
 	gl_FragData[0] = vec4(color, 1.0f);

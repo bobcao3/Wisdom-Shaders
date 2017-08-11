@@ -39,7 +39,7 @@ float16_t getwave(vec3 p, in float lod) {
 	float16_t freq = SEA_FREQ;
 	float16_t amp = SEA_HEIGHT;
 	float16_t choppy = SEA_CHOPPY;
-	f16vec2 uv = p.xz ; uv.x *= 0.75;
+	f16vec2 uv = p.xz - vec2(frameTimeCounter * 0.7, 0.0); uv.x *= 0.75;
 
 	float16_t wave_speed = frameTimeCounter * SEA_SPEED;
 
@@ -58,7 +58,7 @@ float16_t getwave2(vec3 p, in float16_t lod) {
 	float16_t freq = SEA_FREQ;
 	float16_t amp = SEA_HEIGHT;
 	float16_t choppy = SEA_CHOPPY;
-	f16vec2 uv = p.xz ; uv.x *= 0.75;
+	f16vec2 uv = p.xz - vec2(frameTimeCounter, 0.0); uv.x *= 0.75;
 
 	float16_t wave_speed = frameTimeCounter * SEA_SPEED;
 

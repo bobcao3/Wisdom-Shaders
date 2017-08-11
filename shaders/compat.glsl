@@ -29,4 +29,11 @@
 
 #define sampler2D_color sampler2D
 
+// GPU Shader 5
+#ifdef MC_GL_ARB_gpu_shader5
+#extension GL_ARB_gpu_shader5 : require
+#else
+#define fma(a,b,c) (a*b+c)
+#endif
+
 #endif

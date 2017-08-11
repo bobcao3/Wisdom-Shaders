@@ -25,7 +25,6 @@
 #pragma optimize(on)
 
 uniform sampler2D texture;
-uniform vec4 entityColor;
 
 varying vec4 color;
 varying vec2 normal;

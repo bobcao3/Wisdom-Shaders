@@ -26,7 +26,7 @@ f16vec3 calc_atmosphere(in f16vec3 sphere, in f16vec3 vsphere) {
 	at *= 1.0 - (0.6 - rainStrength * 0.4) * pow(h, 0.75);
 	
 	float16_t h2 = pow(max(0.0, 1.0 - h * 1.4), 2.5);
-	at += h2 * mist_color * clamp(length(sphere) / 512.0, 0.0, 1.0) * 2.0;
+	at += h2 * mist_color * clamp(length(sphere) / 512.0, 0.0, 1.0) * 3.0;
 	
 	float16_t VdotS = dot(vsphere, lightPosition);
 	VdotS = max(VdotS, 0.0) * pow(1.0 - extShadow, 0.33);
@@ -34,12 +34,12 @@ f16vec3 calc_atmosphere(in f16vec3 sphere, in f16vec3 vsphere) {
 	at = mix(at, suncolor, smoothstep(0.1, 1.0, h2 * pow(VdotS, 3.0)));
 	at *= max(0.0, luma(ambient) * 0.93 - 0.03);
 	
-	at += suncolor * 0.009 * VdotS;
-	at += suncolor * 0.011 * pow(VdotS, 4.0);
-	at += suncolor * 0.025 * pow(VdotS, 8.0);
-	at += suncolor * 0.22 * pow(VdotS, 30.0);
+	at += suncolor * 0.009 * VdotS * (0.7 + cloud_coverage);
+	//at += suncolor * 0.011 * pow(VdotS, 4.0) * (0.7 + cloud_coverage);
+	at += suncolor * 0.015 * pow(VdotS, 8.0) * (0.7 + cloud_coverage);
+	at += suncolor * 0.22 * pow(VdotS, 30.0) * (0.7 + cloud_coverage);
 	
-	at += suncolor * 0.3 * pow(VdotS, 4.0) * rainStrength;
+	//at += suncolor * 0.3 * pow(VdotS, 4.0) * rainStrength;
 	
 	return at;
 }
