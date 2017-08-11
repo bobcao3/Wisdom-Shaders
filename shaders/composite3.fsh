@@ -112,11 +112,17 @@ void main() {
 				glossy.albedo = mix(glossy.albedo, vec3(1.0), glossy.opaque * 0.5);
 				
 				glossy.roughness = 0.04;
-				glossy.metalic = 0.25;
+				glossy.metalic = 0.01;
 				
-				color = texture2DLod(composite, texcoord, 1.0).rgb * 0.5;
+				color += texture2DLod(composite, texcoord, 0.0).rgb * 0.3;
+				color += texture2DLod(composite, texcoord, 1.0).rgb * 0.4;
 				color += texture2DLod(composite, texcoord, 2.0).rgb * 0.3;
-				color += texture2DLod(composite, texcoord, 3.0).rgb * 0.2;
+				
+				float n = noise((land.wpos.xz + cameraPosition.xz) * 5.0) * 0.01;
+				glossy.N.x += n;
+				glossy.N.y -= n;
+				glossy.N.z += n;
+				glossy.N = normalize(glossy.N);
 				
 				color = color * glossy.albedo;
 			} else {

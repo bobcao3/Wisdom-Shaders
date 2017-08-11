@@ -59,7 +59,7 @@ void main() {
 	// build up materials & light sources
 	if (!mask.is_sky) {
 		#ifdef MODERN
-		const vec3 torch_color = vec3(0.04f, 0.027f, 0.02f);
+		const vec3 torch_color = vec3(0.03f, 0.022f, 0.02f);
 		#else
 		const vec3 torch_color = vec3(0.2435f, 0.0921f, 0.01053f) * 0.1f;
 		#endif
