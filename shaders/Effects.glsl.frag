@@ -31,6 +31,7 @@ void bit8(out vec3 color) {
 #define FILMIC_CINEMATIC_ANAMORPHIC
 #ifdef FILMIC_CINEMATIC
 void filmic_cinematic(inout vec3 color) {
+	color = clamp(color, vec3(0.0), vec3(2.0));
 	float w = luma(color);
 	
 	color = mix(vec3(w), max(color - vec3(w * 0.1), vec3(0.0)), 0.4 + w * 0.8);

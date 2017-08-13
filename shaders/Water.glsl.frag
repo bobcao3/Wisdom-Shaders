@@ -5,7 +5,7 @@
 
 #ifdef NATURAL_WAVE_GENERATOR
 const int ITER_GEOMETRY = 3;
-const int ITER_GEOMETRY2 = 5;
+const int ITER_GEOMETRY2 = 4;
 
 float16_t sea_octave_micro(f16vec2 uv, float16_t choppy) {
 	uv += noise(uv);
@@ -74,8 +74,8 @@ float16_t getwave2(vec3 p, in float16_t lod) {
 }
 
 f16vec3 get_water_normal(in f16vec3 wwpos, in float16_t displacement, in float16_t lod, in f16vec3 dir) {
-	f16vec3 w1 = vec3(0.001, dir.y * getwave2(wwpos + vec3(0.001, 0.0, 0.0), lod), 0.0);
-	f16vec3 w2 = vec3(0.0, dir.y * getwave2(wwpos + vec3(0.0, 0.0, 0.001), lod), 0.001);
+	f16vec3 w1 = vec3(0.01, dir.y * getwave2(wwpos + vec3(0.01, 0.0, 0.0), lod), 0.0);
+	f16vec3 w2 = vec3(0.0, dir.y * getwave2(wwpos + vec3(0.0, 0.0, 0.01), lod), 0.01);
 	f16vec3 w0 = displacement * dir;
 	#define tangent w1 - w0
 	#define bitangent w2 - w0
@@ -86,24 +86,23 @@ f16vec3 get_water_normal(in f16vec3 wwpos, in float16_t displacement, in float16
 void WaterParallax(inout vec3 wpos, in float lod) {
 	const int maxLayers = 4;
 	
-	wpos.y -= 1.62;
+	wpos.y -= 1.62 + SEA_HEIGHT;
 
 	vec3 stepin = vec3(0.0);
 	vec3 nwpos = normalize(wpos);
 	nwpos /= max(0.05, abs(nwpos.y));
 
-	float h;
 	for (int i = 0; i < maxLayers; i++) {
-		h = getwave(wpos + stepin + cameraPosition, lod);
+		float h = getwave(wpos + stepin + cameraPosition, lod);
 
 		if (abs(h - stepin.y) < 0.02) break;
 
-		float diff = (stepin.y - h);
+		float diff = stepin.y - h;
 		if (isEyeInWater) diff = -diff;
 		stepin += nwpos * diff * 0.5;
 	}
 	wpos += stepin;
-	wpos.y += 1.62;
+	wpos.y += 1.62 + SEA_HEIGHT;
 }
 #endif
 

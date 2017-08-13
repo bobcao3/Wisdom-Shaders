@@ -219,10 +219,12 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 
 #ifdef DIRECTIONAL_LIGHTMAP
 float lightmap_normals(vec3 N, float lm, vec3 tangent, vec3 binormal, vec3 normal) {
-	float dither = bayer_16x16(texcoord, vec2(viewWidth, viewHeight)) * 0.1 - 0.05;
+	if (lm < 0.0001 || lm > 0.98) return 1.0;
 
-	float Lx = dFdx(lm) * 240.0 + dither;
-	float Ly = dFdy(lm) * 240.0 + dither;
+	float dither = bayer_64x64(texcoord, vec2(viewWidth, viewHeight)) * 0.1 - 0.05;
+
+	float Lx = dFdx(lm) * 120.0 + dither;
+	float Ly = dFdy(lm) * 120.0 - dither;
 	
 	vec3 TL = normalize(vec3(Lx * tangent + 0.0005 * normal + Ly * binormal));
 	
@@ -311,7 +313,7 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal) {
 			hit = true;
 			break;
 		}
-		float sampleDepth = texture2D(depthtex0, uv).x;
+		float sampleDepth = texture2D(depthtex1, uv).x;
 		sampleDepth = linearizeDepth(sampleDepth);
 		float testDepth = getLinearDepthOfViewCoord(testPoint);
 		
@@ -355,34 +357,26 @@ const  vec2 ao_offset_table[Sample_Directions + 1] = vec2 [] (
 );
 
 float calcAO (vec3 cNormal, float cdepth, vec3 vpos, vec2 uv) {
-	float radius = 1.08 / cdepth;
+	float radius = 1.02 / cdepth;
 	float ao = 0.0;
 	
+	float16_t rand = bayer_64x64(uv, vec2(viewWidth, viewHeight));
 	for (int i = 0; i < Sample_Directions; i++) {
-		float rand = bayer_4x4(uv + i * 0.0017, vec2(viewWidth, viewHeight));
+		rand = fract(rand + 0.13);
 		float dx = radius * pow(rand, 2.0);
-		vec2 dir = mix(ao_offset_table[i], ao_offset_table[i + 1], rand) * (dx + pixel * 2.0);
+		vec2 dir = normalize(mix(ao_offset_table[i], ao_offset_table[i + 1], fract(rand + 0.5))) * (dx + pixel * 2.0);
+		
+		vec2 h = uv + dir;
+		//if (clamp(h, vec2(0.0), vec2(1.0)) != h) continue;
+		vec3 nvpos = fetch_vpos(h, depthtex1).xyz;
 			
-		#ifdef HQ_AO
-		const int dcount = 2;
-		#define multi 0.125f
-		#else
-		const int dcount = 1;
-		#define multi 0.265f
-		#endif
-		for (int j = 0; j < dcount; j++) {
-			vec2 h = uv + dir * float(j + 1) / float(dcount);
-			if (h.x < 0.0 || h.x > 1.0 || h.y < 0.0 || h.y > 1.0) continue;
-			vec3 nvpos = fetch_vpos(h, depthtex1).xyz;
+		float d = length(nvpos - vpos);
 			
-			float d = length(nvpos - vpos);
-			
-			ao += max(0.0, dot(cNormal, nvpos - vpos) / d - 0.15)
-			   * max(0.0, 1.0 - d * 0.27)
-			   * float(d > 0.00001);
-		}
+		ao += max(0.0, dot(cNormal, nvpos - vpos) / d - 0.15)
+		   * max(0.0, - (d * 0.27 - 1.0))
+		   * float(d > 0.00001);
 	}
 
-	return 1.0 - pow(clamp(ao * multi, 0.0, 1.0), 0.25);
+	return 1.0 - pow(clamp(ao * 0.265f, 0.0, 1.0), 0.5);
 }
 #endif

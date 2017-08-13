@@ -57,7 +57,7 @@ void calcCommons() {
 	float TimeMidnight = ((clamp(wTimeF, 12000.0, 12750.0) - 12000.0) / 750.0) - ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0);
 
 	const vec3 suncolor_sunrise = vec3(0.8843, 0.6, 0.313) * 2.72;
-	const vec3 suncolor_noon = vec3(1.392, 1.3235, 1.1156) * 4.4;
+	const vec3 suncolor_noon = vec3(1.392, 1.1635, 1.036) * 4.2;
 	const vec3 suncolor_sunset = vec3(0.9943, 0.419, 0.0945) * 2.6;
 	const vec3 suncolor_midnight = vec3(0.34, 0.5, 0.6) * 0.4;
 	
@@ -73,7 +73,7 @@ void calcCommons() {
 
 	#ifndef SPACE
 	const vec3 ambient_sunrise = vec3(0.543, 0.672, 0.886) * 0.15;
-	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.3;
+	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.2;
 	const vec3 ambient_sunset = vec3(0.443, 0.772, 0.847) * 0.15;
 	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.2;
 
@@ -221,6 +221,8 @@ float16_t bayer2(f16vec2 a){
 #define bayer4(a)   (bayer2( .5f*(a))*.25f+bayer2(a))
 #define bayer8(a)   (bayer4( .5f*(a))*.25f+bayer2(a))
 #define bayer16(a)  (bayer8( .5f*(a))*.25f+bayer2(a))
+#define bayer32(a)  (bayer16(.5f*(a))*.25f+bayer2(a))
+#define bayer64(a)  (bayer32(.5f*(a))*.25f+bayer2(a))
 
 float16_t bayer_4x4(in f16vec2 pos, in f16vec2 view) {
 	return bayer4(pos * view);
@@ -232,6 +234,14 @@ float16_t bayer_8x8(in f16vec2 pos, in f16vec2 view) {
 
 float16_t bayer_16x16(in f16vec2 pos, in f16vec2 view) {
 	return bayer16(pos * view);
+}
+
+float16_t bayer_32x32(in f16vec2 pos, in f16vec2 view) {
+	return bayer32(pos * view);
+}
+
+float16_t bayer_64x64(in f16vec2 pos, in f16vec2 view) {
+	return bayer64(pos * view);
 }
 
 f16vec2 hash22(f16vec2 p){

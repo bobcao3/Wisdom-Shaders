@@ -49,9 +49,9 @@ const vec4 LF3COLOR = vec4(0.2, 0.6, 0.8, 0.05);
 vec3 lensFlare(vec3 color, vec2 uv) {
 	if(sunVisibility <= 0.0)
 		return color;
-	LENS_FLARE(color, uv, lf1Pos, LF1SIZE, (LF1COLOR * vec4(suncolor, 1.0)));
-	LENS_FLARE(color, uv, lf2Pos, LF2SIZE, (LF2COLOR * vec4(suncolor, 1.0)));
-	LENS_FLARE(color, uv, lf3Pos, LF3SIZE, (LF3COLOR * vec4(suncolor, 1.0)));
+	LENS_FLARE(color, uv, lf1Pos, LF1SIZE, (LF1COLOR * vec4(suncolor, 1.0) * (1.0 - extShadow)));
+	LENS_FLARE(color, uv, lf2Pos, LF2SIZE, (LF2COLOR * vec4(suncolor, 1.0) * (1.0 - extShadow)));
+	LENS_FLARE(color, uv, lf3Pos, LF3SIZE, (LF3COLOR * vec4(suncolor, 1.0) * (1.0 - extShadow)));
 	return color;
 }
 

@@ -46,6 +46,8 @@ float blurAO (vec2 uv, vec3 N) {
 //#define PRIME_RENDER
 //#define MODERN
 
+#define CLOUD_SHADOW
+
 void main() {
 	// rebuild hybrid flag
 	vec4 speculardata = texture2D(gaux1, texcoord);
@@ -59,7 +61,7 @@ void main() {
 	// build up materials & light sources
 	if (!mask.is_sky) {
 		#ifdef MODERN
-		const vec3 torch_color = vec3(0.03f, 0.022f, 0.02f);
+		const vec3 torch_color = vec3(0.016f, 0.012f, 0.011f);
 		#else
 		const vec3 torch_color = vec3(0.2435f, 0.0921f, 0.01053f) * 0.1f;
 		#endif
@@ -89,6 +91,11 @@ void main() {
 		}
 		#endif
 		sun.L = lightPosition;
+		#endif
+		
+		#ifdef CLOUD_SHADOW
+		vec4 clouds = calc_clouds(worldLightPosition, cameraPosition + land.wpos, 0.0);
+		sun.light.attenuation *= 1.0 - clouds.a * 1.6;
 		#endif
 
 		amb.color = ambient;
@@ -120,16 +127,18 @@ void main() {
 		if (wetness2 > 0.0 && !(mask.is_water || mask.is_hand || mask.is_entity)) {
 			float wet = noise((land.wpos + cameraPosition).xz * 0.5 - frameTimeCounter * 0.02);
 			wet += noise((land.wpos + cameraPosition).xz * 0.6 - frameTimeCounter * 0.01) * 0.5;
-			wet = clamp(wetness2 * wet * 2.0 + 0.5, 0.0, 1.0);
+			wet = clamp(wetness2 * 3.0, 0.0, 1.0) * clamp(wet * 2.0 + wetness2, 0.0, 1.0);
 			
-			land.roughness = mix(land.roughness, 0.05, wet);
-			land.metalic = mix(land.metalic, 0.15, wet);
-			vec3 flat_normal = normalDecode(mclight.zw);
-			land.N = mix(land.N, flat_normal, wet);
+			if (wet > 0.0) {
+				land.roughness = mix(land.roughness, 0.05, wet);
+				land.metalic = mix(land.metalic, 0.03, wet);
+				vec3 flat_normal = normalDecode(mclight.zw);
+				land.N = mix(land.N, flat_normal, wet);
 			
-			land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05;
-			land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05;
-			land.N = normalize(land.N);
+				land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
+				land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
+				land.N = normalize(land.N);
+			}
 		}
 
 		// Light composite
