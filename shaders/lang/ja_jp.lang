@@ -1,0 +1,66 @@
+profile.LITE=LITE画質
+profile.LOW=低画質
+profile.MEDIUM=中画質
+profile.HIGH=高画質
+profile.ULTRA=超高画質
+
+screen.ATMOSPHERE=雰囲気設定
+screen.LIGHTING=光照設定
+screen.MATERIALS=材料&質感設定
+screen.IMAGE_EFFECTS=画像効果
+screen.TONE=トーン&フィルター
+
+screen.PARALLAX_SETTINGS=視差設定
+screen.WATER_OPTIONS=水設定
+screen.SHADOW_OPTIONS=影設定
+
+option.CrespecularRays=容積光
+option.HIGH_QUALITY_Crespecular=高品質の体積光
+
+option.WISDOM_AMBIENT_OCCLUSION=Wisdomアンビエントオクルージョン
+option.HQ_AO=高品質のアンビエントオクルージョン
+option.IBL=IBL
+option.IBL_SSR=SSR反射
+option.SSR_STEPS=反射精度
+option.DIRECTIONAL_LIGHTMAP=指向性環境光追跡
+
+option.NORMALS=法線マッピング
+option.SPECULAR_TO_PBR_CONVERSION=鏡面反射マッピング変換
+option.SPECULAR_TO_PBR_CONVERSION.comment=Convert specular map to PBR map
+option.ParallaxOcclusion=視差マッピング
+option.maxSteps=視差マッピング品質
+option.maxSteps.comment=高品質、 高負荷
+option.scale=視差マッピング規模
+option.TILE_RESOLUTION=マッピング解像度
+
+option.WATER_PARALLAX=水視差マッピング
+option.WATER_REFRACTION=水の屈折
+option.NATURAL_WAVE_GENERATOR=高品質水波発生器
+option.SEA_HEIGHT=水波高度
+option.WATER_CAUSTICS=水波振幅
+
+option.WAVING_FOILAGE=植物揺れ
+
+option.BLOOM=BLOOM
+option.DOF=DOF
+option.MOTION_BLUR=モーションブラー
+option.SSEDAA=アンチエイリアシング
+option.VIGNETTE=ヴィネット
+option.DIRTY_LENS=汚れたレンズ
+option.DIRTY_LENS_TEXTURE=汚れたレンズマップ
+option.DIRTY_LENS_TEXTURE.comment=Needs newer Optifine's support
+option.SCREEN_RAIN_DROPS=レンズ雨
+
+option.EXPOSURE=感光
+option.BLACK_AND_WHITE=黒と白
+option.PRIME_RENDER=白い世界
+option.ambientOcclusionLevel=ジャンクション
+option.NOISE_AND_GRAIN=ノイズフィルタ
+option.FILMIC_CINEMATIC=映画風
+option.FILMIC_CINEMATIC_ANAMORPHIC=映画21:9
+option.EIGHT_BIT=8-Bit
+option.MODERN=モダン（白色光）
+option.SPACE=宇宙（いいえ太陽）
+
+option.Version=バージョン: V3.2 Release, Build
+option.Version.comment=ウェブサイトの詳細: qionouu.cn

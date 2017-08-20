@@ -49,6 +49,7 @@ option.VIGNETTE=Vignette
 option.DIRTY_LENS=Dirty Lens
 option.DIRTY_LENS_TEXTURE=Dirty Lens Texture
 option.DIRTY_LENS_TEXTURE.comment=Need newer Optifine's texture loading function
+option.SCREEN_RAIN_DROPS=Rain Drops on Camera
 
 option.EXPOSURE=Exposure
 option.BLACK_AND_WHITE=Black and White Filter

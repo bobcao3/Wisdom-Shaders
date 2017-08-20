@@ -4,11 +4,11 @@ profile.MEDIUM=中画质
 profile.HIGH=高画质
 profile.ULTRA=极高画质
 
-screen.ATMOSPHERE=大气
-screen.LIGHTING=光照
-screen.MATERIALS=材质材料
-screen.IMAGE_EFFECTS=画面特效
-screen.TONE=色调与滤镜
+screen.ATMOSPHERE=大气设置
+screen.LIGHTING=光照设置
+screen.MATERIALS=材质材料设置
+screen.IMAGE_EFFECTS=画面特效设置
+screen.TONE=色调与滤镜设置
 
 screen.PARALLAX_SETTINGS=视差材质设置
 screen.WATER_OPTIONS=水设置
@@ -49,6 +49,7 @@ option.VIGNETTE=画面暗角
 option.DIRTY_LENS=脏镜头
 option.DIRTY_LENS_TEXTURE=超级脏镜头材质
 option.DIRTY_LENS_TEXTURE.comment=需要新版Optifine的材质载入支持
+option.SCREEN_RAIN_DROPS=镜头雨点
 
 option.EXPOSURE=曝光
 option.BLACK_AND_WHITE=黑白滤镜
