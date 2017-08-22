@@ -61,13 +61,23 @@ vec3 lensFlare(vec3 color, vec2 uv) {
 #define SATURATION 1.5 // [0.6 1.0 1.5 2.0]
 
 #define SCREEN_RAIN_DROPS
+#define DISTORTION_FIX
 
 uniform float nightVision;
 uniform float blindness;
 
 //uniform float aspectRatio;
 
+#ifdef DISTORTION_FIX
+varying vec3 vUV;
+varying vec2 vUVDot;
+#endif
+
 void main() {
+	#ifdef DISTORTION_FIX
+	vec3 distort = dot(vUVDot, vUVDot) * vec3(-0.5, -0.5, -1.0) + vUV;
+	texcoord = distort.xy / distort.z;
+	#endif
 	#ifdef SCREEN_RAIN_DROPS
 	float real_strength = rainStrength * smoothstep(0.8, 1.0, float(eyeBrightness.y) / 240.0);
 	if (rainStrength > 0.0) {

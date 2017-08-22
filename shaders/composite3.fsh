@@ -139,7 +139,7 @@ void main() {
 				float absorbtion = 2.0 / (dist_diff_N + 1.0) - 1.0;
 				vec3 watercolor = color * pow(vec3(absorbtion), vec3(1.0, 0.4, 0.5));
 				float light_att = (isEyeInWater) ? (eyeBrightness.y * 0.0015 * (total_internal_reflection + 1.0) + 0.05) : water_sky_light * 3.5;
-				vec3 waterfog = max(luma(ambient) - 0.01, 0.0) * light_att * mix(vec3(0.2,0.8,1.0), vec3(0.1,0.35,0.5), rainStrength);
+				vec3 waterfog = max(luma(ambient) - 0.01, 0.0) * light_att * mix(vec3(0.3,1.2,1.4), vec3(0.1,0.35,0.5), rainStrength);
 				color = mix(waterfog, watercolor, smoothstep(0.0, 1.0, absorbtion));
 			}
 			

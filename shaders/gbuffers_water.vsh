@@ -38,6 +38,8 @@ const float PI = 3.14159f;
 varying vec2 normal;
 varying vec4 coords;
 
+uniform bool isEyeInWater;
+
 #define texcoord coords.rg
 #define skyLight coords.b
 #define iswater coords.a
@@ -46,9 +48,13 @@ varying vec4 coords;
 
 VSH {
 	iswater = 0.95f;
-	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) iswater = 0.79f;
-	gl_Position = gl_ModelViewMatrix * gl_Vertex;
-	gl_Position = gl_ProjectionMatrix * gl_Position;
+	vec4 pos = gl_Vertex;
+	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
+		iswater = 0.79f;
+		pos.y += float(isEyeInWater) * 0.3 - 0.2;
+	}
+	pos = gl_ModelViewMatrix * pos;
+	gl_Position = gl_ProjectionMatrix * pos;
 	
 	normal = normalEncode(gl_NormalMatrix * gl_Normal);
 	
