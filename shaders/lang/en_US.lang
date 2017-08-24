@@ -16,6 +16,8 @@ screen.SHADOW_OPTIONS=Shadow Settings
 
 option.CrespecularRays=Crepuscular Rays
 option.HIGH_QUALITY_Crespecular=High Quality Crepuscular
+option.VOLUMETRIC_CLOUDS=Volumetric Clouds
+option.HQ_VOLUMETRICS=HQ Volumetric Clouds
 
 option.WISDOM_AMBIENT_OCCLUSION=Wisdom Ambient Occlusion (AO)
 option.HQ_AO=High Quality AO

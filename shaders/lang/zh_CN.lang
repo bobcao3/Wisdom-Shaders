@@ -16,6 +16,8 @@ screen.SHADOW_OPTIONS=阴影设置
 
 option.CrespecularRays=体积光
 option.HIGH_QUALITY_Crespecular=高质量体积光
+option.VOLUMETRIC_CLOUDS=体积云
+option.HQ_VOLUMETRICS=高质量体积云
 
 option.WISDOM_AMBIENT_OCCLUSION=Wisdom环境光遮蔽
 option.HQ_AO=高质量环境光遮蔽

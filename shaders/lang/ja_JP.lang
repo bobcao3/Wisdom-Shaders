@@ -16,6 +16,8 @@ screen.SHADOW_OPTIONS=影設定
 
 option.CrespecularRays=容積光
 option.HIGH_QUALITY_Crespecular=高品質の体積光
+option.VOLUMETRIC_CLOUDS=容積雲
+option.HQ_VOLUMETRICS=高品質の容積雲
 
 option.WISDOM_AMBIENT_OCCLUSION=Wisdomアンビエントオクルージョン
 option.HQ_AO=高品質のアンビエントオクルージョン

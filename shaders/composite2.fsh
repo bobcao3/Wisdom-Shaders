@@ -30,13 +30,13 @@ Mask mask;
 #ifdef WISDOM_AMBIENT_OCCLUSION
 #ifdef HQ_AO
 //=========== BLUR AO =============
-float blurAO (vec2 uv, vec3 N) {
-	float z  = texture2D(composite, uv).r;
-	float x  = z * 0.2941176f;
-	vec3  y  = texture2D(composite, uv + vec2(0.0, -pixel.y * 1.333333)).rgb;
-	      x += mix(z, y.x, max(0.0, dot(normalDecode(y.yz), N))) * 0.352941176f;
-	      y  = texture2D(composite, uv + vec2(0.0,  pixel.y * 1.333333)).rgb;
-	      x += mix(z, y.x, max(0.0, dot(normalDecode(y.yz), N))) * 0.352941176f;
+float16_t blurAO (vec2 uv, vec3 N) {
+	float16_t z  = texture2D(composite, uv).r;
+	float16_t x  = z * 0.2941176f;
+	f16vec3  y  = texture2D(composite, uv + vec2(0.0, -pixel.y * 1.333333)).rgb;
+	         x += mix(z, y.x, max(0.0, dot(normalDecode(y.yz), N))) * 0.352941176f;
+	         y  = texture2D(composite, uv + vec2(0.0,  pixel.y * 1.333333)).rgb;
+	         x += mix(z, y.x, max(0.0, dot(normalDecode(y.yz), N))) * 0.352941176f;
 	return x;
 }
 //=================================
@@ -73,7 +73,6 @@ void main() {
 		land.albedo = vec3(0.5);
 		#endif
 
-		#ifndef SPACE
 		sun.light.color = suncolor;
 		float thickness = 1.0;
 		float shadow = 0.0;
@@ -91,10 +90,9 @@ void main() {
 		}
 		#endif
 		sun.L = lightPosition;
-		#endif
 		
 		#ifdef CLOUD_SHADOW
-		vec4 clouds = calc_clouds(worldLightPosition, cameraPosition + land.wpos, 0.0);
+		vec4 clouds = calc_clouds(worldLightPosition * 512.0f, cameraPosition + land.wpos, 0.0);
 		sun.light.attenuation *= 1.0 - clouds.a * 1.6;
 		#endif
 
@@ -120,6 +118,8 @@ void main() {
 		#endif
 		amb.attenuation *= ao;
 		torch.attenuation *= ao;
+		
+		if (mask.is_plant) sun.light.attenuation *= ao;
 		#endif
 		
 		// Force ground wetness
@@ -142,11 +142,7 @@ void main() {
 		}
 
 		// Light composite
-		#ifdef SPACE
-		color += light_calc_diffuse(torch, land) + light_calc_diffuse(amb, land);
-		#else
 		color += light_calc_PBR(sun, land, mask.is_plant ? thickness : 1.0) + light_calc_diffuse(torch, land) + light_calc_diffuse(amb, land);
-		#endif
 		
 		// Emmisive
 		if (!mask.is_trans) color = mix(color, land.albedo * 2.0, land.emmisive);

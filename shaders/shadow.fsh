@@ -22,7 +22,7 @@
 // =============================================================================
 
 #version 120
-
+#include "compat.glsl"
 #pragma optimize(on)
 
 uniform sampler2D texture;
@@ -30,6 +30,8 @@ uniform sampler2D texture;
 varying vec2 texcoord;
 varying vec3 color;
 
+varying float LOD;
+
 void main() {
-	gl_FragData[0] = texture2D(texture, texcoord) * vec4(color, 1.0);
+	gl_FragData[0] = texture2DLod(texture, texcoord, LOD) * vec4(color, 1.0);
 }

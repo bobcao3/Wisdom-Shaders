@@ -34,8 +34,13 @@ attribute vec4 mc_midTexCoord;
 uniform float rainStrength;
 uniform float frameTimeCounter;
 
+//uniform mat4 gbufferModelViewInverse;
+
 varying vec2 texcoord;
 varying vec3 color;
+varying float LOD;
+
+//uniform mat4 shadowProjection;
 
 #define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
@@ -45,8 +50,8 @@ void main() {
 	vec4 position = gl_Vertex;
 	color = gl_Color.rgb;
 
-	#ifdef WAVING_SHADOW
 	float blockId = mc_Entity.x;
+	#ifdef WAVING_SHADOW
 	if (gl_MultiTexCoord0.t < mc_midTexCoord.t && (blockId == 31.0 || blockId == 37.0 || blockId == 38.0)) {
 		float rand_ang = hash(position.xz);
 		float maxStrength = 1.0 + rainStrength * 0.5;
@@ -60,7 +65,15 @@ void main() {
 	position = ftransform();
 	#endif
 	
-	position.xy /= negBias + length(position.xy) * SHADOW_MAP_BIAS;
+	float l = sqrt(dot(position.xy, position.xy));
+
+//	vec4 testpos = shadowProjection * (gbufferModelViewInverse * vec4(0.0, 0.0, 1.0, 1.0));
+//	if (dot(normalize(testpos.xy), normalize(position.xy)) < -0.3) position.z -= 1000000.0f;
+
+	position.xy /= l * SHADOW_MAP_BIAS + negBias;
+	
+	LOD = l * 2.0;
+	if ((blockId == 31.0 || blockId == 37.0 || blockId == 38.0) && l > 0.5) position.z -= 1000000.0f;
 
 	gl_Position = position;
 	texcoord = gl_MultiTexCoord0.st;

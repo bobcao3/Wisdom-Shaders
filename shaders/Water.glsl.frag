@@ -1,5 +1,5 @@
 // sea
-#define SEA_HEIGHT 0.43 // [0.21 0.32 0.43 0.54 0.65]
+#define SEA_HEIGHT 0.2 // [0.1 0.2 0.3]
 
 #define NATURAL_WAVE_GENERATOR
 
@@ -15,31 +15,34 @@ float16_t sea_octave_micro(f16vec2 uv, float16_t choppy) {
 	return pow(1.0-pow(wv.x * wv.y,0.75),choppy);
 }
 #else
-const int ITER_GEOMETRY = 2;
+const int ITER_GEOMETRY = 3;
 const int ITER_GEOMETRY2 = 3;
 
 float16_t sea_octave_micro(f16vec2 uv, float16_t choppy) {
 	uv += noise(uv);
-	return pow((1.0 - sin(uv.x)) * cos(1.0 - uv.y) * 0.3,choppy);
+	return (1.0 - sin(uv.x)) * cos(1.0 - uv.y) * 0.7;
 }
 #endif
-const float16_t SEA_CHOPPY = 4.0;
+const float16_t SEA_CHOPPY = 4.5;
 const float16_t SEA_SPEED = 1.2;
 const float16_t SEA_FREQ = 0.12;
 const f16mat2 octave_m = f16mat2(1.4,1.1,-1.2,1.4);
 
-const float16_t height_mul[5] = float[5] (
-	0.52, 0.34, 0.20, 0.22, 0.16
+const float16_t height_mul[4] = float[4] (
+	0.52, 0.34, 0.20, 0.22
 );
 const float16_t total_height =
-  height_mul[0] + height_mul[1] + height_mul[2] + height_mul[3] + height_mul[4];
+  height_mul[0] + 
+  height_mul[0] * height_mul[1] +
+  height_mul[0] * height_mul[1] * height_mul[2] +
+  height_mul[0] * height_mul[1] * height_mul[2] * height_mul[3];
 const float16_t rcp_total_height = 1.0 / total_height;
 
 float16_t getwave(vec3 p, in float lod) {
 	float16_t freq = SEA_FREQ;
 	float16_t amp = SEA_HEIGHT;
 	float16_t choppy = SEA_CHOPPY;
-	f16vec2 uv = p.xz - vec2(frameTimeCounter * 0.7, 0.0); uv.x *= 0.75;
+	f16vec2 uv = p.xz - vec2(frameTimeCounter * 0.5, 0.0); uv.x *= 0.75;
 
 	float16_t wave_speed = frameTimeCounter * SEA_SPEED;
 
@@ -58,7 +61,7 @@ float16_t getwave2(vec3 p, in float16_t lod) {
 	float16_t freq = SEA_FREQ;
 	float16_t amp = SEA_HEIGHT;
 	float16_t choppy = SEA_CHOPPY;
-	f16vec2 uv = p.xz - vec2(frameTimeCounter, 0.0); uv.x *= 0.75;
+	f16vec2 uv = p.xz - vec2(frameTimeCounter * 0.5, 0.0); uv.x *= 0.75;
 
 	float16_t wave_speed = frameTimeCounter * SEA_SPEED;
 
@@ -86,23 +89,23 @@ f16vec3 get_water_normal(in f16vec3 wwpos, in float16_t displacement, in float16
 void WaterParallax(inout vec3 wpos, in float lod) {
 	const int maxLayers = 4;
 	
-	wpos.y -= 1.62 + SEA_HEIGHT;
+	wpos.y -= 1.62;
 
 	vec3 stepin = vec3(0.0);
 	vec3 nwpos = normalize(wpos);
-	nwpos /= max(0.05, abs(nwpos.y));
+	nwpos /= max(0.01, abs(nwpos.y));
 
 	for (int i = 0; i < maxLayers; i++) {
 		float h = getwave(wpos + stepin + cameraPosition, lod);
 
-		if (abs(h - stepin.y) < 0.02) break;
+		//if (abs(h - stepin.y) < 0.02) break;
 
 		float diff = stepin.y - h;
 		if (isEyeInWater) diff = -diff;
 		stepin += nwpos * diff * 0.5;
 	}
 	wpos += stepin;
-	wpos.y += 1.62 + SEA_HEIGHT;
+	wpos.y += 1.62;
 }
 #endif
 

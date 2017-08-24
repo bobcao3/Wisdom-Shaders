@@ -5,6 +5,8 @@
 
 varying vec2 texcoord;
 
+//#define SPACE
+
 #include "GlslConfig"
 
 #include "CompositeUniform.glsl.frag"
@@ -139,10 +141,11 @@ void main() {
 				float absorbtion = 2.0 / (dist_diff_N + 1.0) - 1.0;
 				vec3 watercolor = color * pow(vec3(absorbtion), vec3(1.0, 0.4, 0.5));
 				float light_att = (isEyeInWater) ? (eyeBrightness.y * 0.0015 * (total_internal_reflection + 1.0) + 0.05) : water_sky_light * 3.5;
-				vec3 waterfog = max(luma(ambient) - 0.01, 0.0) * light_att * mix(vec3(0.3,1.2,1.4), vec3(0.1,0.35,0.5), rainStrength);
+				vec3 waterfog = max(luma(ambient) * 0.8, 0.0) * light_att * vec3(0.55,1.53,1.3);
 				color = mix(waterfog, watercolor, smoothstep(0.0, 1.0, absorbtion));
 			}
 			
+			#ifndef SPACE
 			if (!isEyeInWater && flag < 0.98) {
 				sun.light.color = suncolor;
 				float shadow = light_fetch_shadow_fast(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(glossy.wpos));
@@ -154,6 +157,7 @@ void main() {
 				
 				land = glossy;
 			}
+			#endif
 			
 			if (isEyeInWater && total_internal_reflection > 0.0) land = glossy;;
 		} else {
@@ -190,10 +194,10 @@ void main() {
 			#ifdef IBL_SSR
 			vec4 glossy_reflect = ray_trace_ssr(viewRef, land.vpos, land.roughness);
 			vec3 skyReflect = vec3(0.0);
-			if (!isEyeInWater && glossy_reflect.a < 0.95) skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0 + vec3(0.0, cameraPosition.y + land.wpos.y, 0.0), viewRef);
-			vec3 ibl = mix(skyReflect * mclight.y, glossy_reflect.rgb, glossy_reflect.a);
+			if (!isEyeInWater && glossy_reflect.a < 0.95) skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0 + vec3(0.0, cameraPosition.y + land.wpos.y, 0.0), viewRef, cameraPosition + land.wpos.xyz);
+			vec3 ibl = mix(skyReflect * smoothstep(0.0, 0.5, mclight.y), glossy_reflect.rgb, glossy_reflect.a);
 			#else
-			vec3 ibl = isEyeInWater ? vec3(0.0) : calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef);
+			vec3 ibl = isEyeInWater ? vec3(0.0) : calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef, cameraPosition + land.wpos.xyz);
 			#endif
 			vec3 calc_IBL = light_calc_PBR_IBL(viewRef, land, ibl);
 			if (isEyeInWater) calc_IBL *= total_internal_reflection;
@@ -202,6 +206,7 @@ void main() {
 		#endif
 		
 		// Atmosphere
+		#ifndef SPACE
 		vec3 atmosphere = calc_atmosphere(land.wpos, land.nvpos);
 	
 		float lit_strength = 1.0;
@@ -214,6 +219,7 @@ void main() {
 		#endif
 
 		if (!isEyeInWater) calc_fog_height (land, 0.0, 512.0 * (1.0 - cloud_coverage), color, atmosphere * (0.7 * lit_strength + 0.3));
+		#endif
 	}
 	
 	#ifdef XLLLLL

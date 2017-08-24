@@ -22,16 +22,16 @@ f16vec3 calc_atmosphere(in f16vec3 sphere, in f16vec3 vsphere) {
 	float16_t h = max(normalize(sphere).y, 0.0);
 	f16vec3 at = skyRGB;
 	
-	at = mix(at, f16vec3(0.7), max(0.0, cloud_coverage) * 1.428);
+	at = mix(at, f16vec3(0.7), max(0.0, cloud_coverage));
 	at *= 1.0 - (0.5 - rainStrength * 0.3) * h;
 	
 	float16_t h2 = pow(max(0.0, 1.0 - h * 1.4), 2.5);
 	at += h2 * mist_color * clamp(length(sphere) / 512.0, 0.0, 1.0) * 3.5;
 	
 	float16_t VdotS = dot(vsphere, lightPosition);
-	VdotS = max(VdotS, 0.0) * pow(1.0 - extShadow, 0.33);
+	VdotS = max(VdotS, 0.0) * (1.0 - extShadow);
 	//float lSun = luma(suncolor);
-	at = mix(at, suncolor, smoothstep(0.1, 1.0, h2 * pow(VdotS, 3.0)));
+	at = mix(at, suncolor, smoothstep(0.1, 1.0, h2 * pow(VdotS, 2.0)));
 	at *= max(0.0, luma(ambient) * 1.2 - 0.02);
 	
 	at += suncolor * 0.009 * VdotS * (0.7 + cloud_coverage);
@@ -50,6 +50,7 @@ f16vec4 calc_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 	if (sphere.y < 0.0) return f16vec4(0.0);
 
 	f16vec3 c = sphere / max(sphere.y, 0.001) * 768.0;
+	c += noise((c.xz + cam.xz) * 0.001 + frameTimeCounter * 0.01) * 200.0 / sphere.y;
 	f16vec2 uv = (c.xz + cam.xz);
 	
 	uv.x += frameTimeCounter * 10.0;
@@ -64,18 +65,77 @@ f16vec4 calc_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 		  n += noise(uv) * 0.0625;
 	n = smoothstep(0.0, 1.0, n + cloud_coverage);
 	
-	n *= smoothstep(0.0, 80.0, sphere.y);
+	n *= smoothstep(0.0, 140.0, sphere.y);
 	
 	return f16vec4(mist_color + pow(dotS, 3.0) * (1.0 - n) * suncolor * 0.5 * (1.0 - extShadow), 0.5 * n);
 }
 
-vec3 calc_sky(in vec3 sphere, in vec3 vsphere) {
+#define HQ_VOLUMETRICS
+
+#define VOLUMETRIC_CLOUDS
+#ifdef VOLUMETRIC_CLOUDS
+float16_t cloud_depth_map(f16vec2 uv) {
+	float16_t n  = noise(uv * f16vec2(0.5, 1.0)) * 0.5;
+	uv += f16vec2(0.5, 0.3) * octave_c; uv *= 3.0;
+	 n += noise(uv) * 0.25;
+	uv += f16vec2(0.9, 0.2) * octave_c + f16vec2(frameTimeCounter * 0.1, 0.2); uv *= 3.01;
+	 n += noise(uv) * 0.105;
+	uv += f16vec2(0.4, 0.1) * octave_c + f16vec2(frameTimeCounter * 0.03, 0.1); uv *= 3.02;
+	 n += noise(uv) * 0.0625;
+	
+	return smoothstep(0.0, 0.5, n + cloud_coverage);
+}
+
+f16vec4 volumetric_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
+	if (sphere.y < -0.1) return f16vec4(0.0);
+
+	sphere.y += 0.1;
+	f16vec3 c = sphere / max(sphere.y, 0.001) * 500.0;
+	f16vec3 ray = c + cam;
+	f16vec3 ray_step = sphere / sphere.y;
+	
+	float16_t n = 0.0, prev = 0.0;
+	float16_t dither = bayer_64x64(texcoord, f16vec2(viewWidth, viewHeight));
+	
+	float16_t thickness = 0.0;
+	f16vec3 H = normalize(worldLightPosition + normalize(sphere));
+	for (int i = 0; i < 6; i++) {
+		float16_t h = cloud_depth_map(ray.xz * 0.0006);
+		
+		ray += ray_step * (700.0 - ray.y) * 0.1 * (1.0 + dither);
+		dither = fract(dither + 0.6117);
+		
+		float16_t st = 0.0;
+		if (h > 0.0 && ray.y > 600.0 - h * 100.0 && ray.y < 600.0 + h * 100.0) st = 1.0;
+		n += (prev + st) * 0.0625;
+		prev = st;
+		
+		// Thickness
+		f16vec3 lray = ray + H * 50.0 * (2.0 - dither);
+		h = cloud_depth_map(lray.xz * 0.0006);
+		if (h > 0.0 && lray.y > 600.0 - h * 100.0 && lray.y < 600.0 + h * 100.0)
+			thickness += h;
+	}
+	
+	thickness = smoothstep(0.0, 3.0, thickness);
+	n *= 1.1;
+	
+	return f16vec4(mist_color * (1.5 - thickness * 0.7) + pow(dotS, 3.0) * suncolor * 0.5 * (1.0 - extShadow), max(n - 0.1, 0.0) * smoothstep(0.0, 30.0, sphere.y));
+}
+#endif
+
+vec3 calc_sky(in vec3 sphere, in vec3 vsphere, in vec3 cam) {
 	vec3 sky = calc_atmosphere(sphere, vsphere);
 
 	float dotS = dot(vsphere, lightPosition);
 
-	vec4 clouds = calc_clouds(sphere - vec3(0.0, cameraPosition.y, 0.0), cameraPosition, max(dotS, 0.0));
+	vec4 clouds = calc_clouds(sphere - vec3(0.0, cam.y, 0.0), cam, max(dotS, 0.0));
 	sky = mix(sky, clouds.rgb, clouds.a);
+	
+	#ifdef HQ_VOLUMETRICS
+	vec4 VClouds = volumetric_clouds(sphere - vec3(0.0, cam.y, 0.0), cam, max(dotS, 0.0));
+	sky = mix(sky, VClouds.rgb, VClouds.a);
+	#endif
 
 	return sky;
 }
@@ -85,11 +145,16 @@ vec3 calc_sky_with_sun(in vec3 sphere, in vec3 vsphere) {
 
 	float dotS = dot(vsphere, lightPosition);
 
-	float ground_cover = smoothstep(90.0, 130.0, sphere.y - cameraPosition.y);
+	float ground_cover = smoothstep(30.0, 60.0, sphere.y - cameraPosition.y);
 	sky += suncolor * smoothstep(0.998, 0.9985, abs(dotS)) * (1.0 - rainStrength) * 5.0 * ground_cover;
 	
 	vec4 clouds = calc_clouds(sphere - vec3(0.0, cameraPosition.y, 0.0), cameraPosition, max(dotS, 0.0));
 	sky = mix(sky, clouds.rgb, clouds.a);
+	
+	#ifdef VOLUMETRIC_CLOUDS
+	vec4 VClouds = volumetric_clouds(sphere - vec3(0.0, cameraPosition.y, 0.0), cameraPosition, max(dotS, 0.0));
+	sky = mix(sky, VClouds.rgb, VClouds.a);
+	#endif
 
 	return sky;
 }

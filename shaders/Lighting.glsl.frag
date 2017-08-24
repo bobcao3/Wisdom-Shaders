@@ -323,7 +323,7 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal) {
 			float flag = texture2D(gaux1, uv).a;
 			if (flag < 0.71f || flag > 0.79f) {
 				hitColor.rgb = max(vec3(0.0), texture2DLod(composite, uv, int(metal * 3.0)).rgb);
-				hitColor.a = clamp(1.0 - pow(distance(uv, vec2(0.5)) * 2.0, 5.0), 0.0, 1.0);
+				hitColor.a = 1.0;
 			} else { hitColor.a = 0.0; }
 			
 			hit = true;
@@ -335,7 +335,7 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal) {
 		float flag = texture2D(gaux1, uv).a;
 		if (flag < 0.71f || flag > 0.79f) {
 			hitColor = vec4(max(vec3(0.0), texture2DLod(composite, uv, int(metal * 3.0)).rgb), 0.0);
-			hitColor.a = clamp(1.0 - pow(distance(uv, vec2(0.5))*2.0, 4.0), 0.0, 1.0);
+			hitColor.a = 1.0;
 		}
 	}
 	
