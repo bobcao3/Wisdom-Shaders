@@ -23,7 +23,7 @@ float16_t hash(f16vec2 p) {
 float16_t noise(f16vec2 p) {
 	f16vec2 i = floor(p);
 	f16vec2 f = fract(p);
-	f16vec2 u = (f * f) * fma(-2.0f, f, 3.0f);
+	f16vec2 u = (f * f) * fma(f16vec2(-2.0f), f, f16vec2(3.0f));
 	return fma(2.0f, mix(
 		mix(hash(i),                      hash(i + f16vec2(1.0f,0.0f)), u.x),
 		mix(hash(i + f16vec2(0.0f,1.0f)), hash(i + f16vec2(1.0f,1.0f)), u.x),
