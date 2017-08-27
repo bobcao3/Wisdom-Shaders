@@ -105,7 +105,7 @@ f16vec4 volumetric_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 	sphere.y += 0.1;
 	f16vec3 ray = cam;
 	f16vec3 ray_step = normalize(sphere);
-	float16_t dither = bayer_64x64(texcoord, vec2(viewWidth, viewHeight));
+	float16_t dither = bayer_4x4(texcoord, vec2(viewWidth, viewHeight));
 	
 	for (int i = 0; i < 12; i++) {
 		float16_t h = cloud_depth_map(ray.xz);
@@ -117,7 +117,7 @@ f16vec4 volumetric_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 		float16_t line_to_dot = distance(ray_step * dist, sphere_center);
 		
 		if (h == 0.0) h = -2.0 / 12.0;
-		float16_t SDF = min(line_to_dot - cloud_half * h + dist + 5.0, 20.0 / ray_step.y);
+		float16_t SDF = min(line_to_dot - cloud_half * h + dist + 4.0 / ray_step.y, 20.0 / ray_step.y);
 		
 		SDF = max(SDF, (cloud_min - ray.y) / max(0.001, ray_step.y));
 		ray += SDF * ray_step * fma(dither, 0.4, 0.6);
@@ -127,17 +127,17 @@ f16vec4 volumetric_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 		// Check intersect
 		if (h > 0.01 && ray.y > b1 && ray.y < b2) {
 			// Step back to intersect
-			ray -= (b1 - ray.y) * ray_step * 0.5;
+			ray -= (line_to_dot - cloud_half * h) * ray_step;
 			
 			color.a = 1.0;
-			color.rgb *= 0.75 + (ray.y - cloud_med) / cloud_half * 0.5 * clamp(sphere.y / 80.0, 0.0, 1.0);
 			break;
 		}
 	}
 	
 	if (color.a > 0.0) {
 		color.rgb += pow(dotS, 3.0) * suncolor * 0.5 * (1.0 - extShadow) * (1.0 - color.a);
-		color.a *= smoothstep(0.0, 30.0, sphere.y);
+		color.a = min(1.0, cloud_depth_map((ray + ray_step * 30.0).xz) * 3.0) * smoothstep(0.0, 30.0, sphere.y);
+		color.rgb *= 0.75 + (ray.y - cloud_med) / cloud_half * 0.5 * clamp(sphere.y / 80.0, 0.0, 1.0);
 	}
 
 	return color;
