@@ -89,7 +89,7 @@ void main() {
 				// Refraction
 				#ifdef WATER_REFRACTION
 				float l = min(32.0, length(land.vpos - glossy.vpos));
-				vec3 refract_vpos = refract(glossy.nvpos, glossy.N, isEyeInWater ? 1.2 : 1.0 / 1.2);
+				vec3 refract_vpos = refract(glossy.nvpos, glossy.N, isEyeInWater ? 1.33 / 1.00029 : 1.00029 / 1.33);
 				if (refract_vpos != vec3(0.0)) {
 					if (!isEyeInWater) l *= (0.2 + max(0.0, dot(glossy.nvpos, glossy.N)) * 0.8);
 					vec2 uv = screen_project(refract_vpos * l + glossy.vpos);
