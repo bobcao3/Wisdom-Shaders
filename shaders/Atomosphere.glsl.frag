@@ -106,7 +106,7 @@ f16vec4 volumetric_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 	f16vec3 ray = cam;
 	f16vec3 ray_step = normalize(sphere);
 	
-	float16_t dither = abs(noise(texcoord * vec2(viewWidth, viewHeight) + f16vec2(frameTimeCounter * 0.000003, 0.1)));
+	float16_t dither = fract(abs(noise(texcoord * vec2(viewWidth, viewHeight) * 0.02 + f16vec2(frameTimeCounter * 0.000003, 0.1))) + bayer_16x16(texcoord, vec2(viewWidth, viewHeight)));
 	
 	for (int i = 0; i < 16; i++) {
 		float16_t h = cloud_depth_map(ray.xz);
@@ -127,7 +127,7 @@ f16vec4 volumetric_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 		// Check intersect
 		if (h > 0.01 && ray.y > b1 && ray.y < b2) {
 			// Step back to intersect
-			ray -= (line_to_dot - cloud_half * h) * ray_step;
+			ray -= (line_to_dot - cloud_half * h + 6.0 / ray_step.y) * ray_step;
 			
 			color.a = 1.0;
 			break;
