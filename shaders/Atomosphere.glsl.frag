@@ -74,53 +74,73 @@ f16vec4 calc_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 
 #define VOLUMETRIC_CLOUDS
 #ifdef VOLUMETRIC_CLOUDS
-float16_t cloud_depth_map(f16vec2 uv) {
-	float16_t n  = noise(uv * f16vec2(0.5, 1.0)) * 0.5;
-	uv += f16vec2(0.5, 0.3) * octave_c; uv *= 3.0;
+float16_t cloud_depth_map(in f16vec2 uv) {
+	uv *= 0.003;
+
+	float16_t n  = noise(uv * f16vec2(0.5, 1.0));
+	uv += f16vec2(0.5, 0.3) * octave_c; uv *= 2.0;
+	 n += noise(uv) * 0.5;
+	uv += f16vec2(0.9, 0.2) * octave_c + f16vec2(frameTimeCounter * 0.1, 0.2); uv *= 2.01;
 	 n += noise(uv) * 0.25;
-	uv += f16vec2(0.9, 0.2) * octave_c + f16vec2(frameTimeCounter * 0.1, 0.2); uv *= 3.01;
-	 n += noise(uv) * 0.105;
-	uv += f16vec2(0.4, 0.1) * octave_c + f16vec2(frameTimeCounter * 0.03, 0.1); uv *= 3.02;
+	uv += f16vec2(0.4, 0.1) * octave_c + f16vec2(frameTimeCounter * 0.03, 0.1); uv *= 2.02;
+	 n += noise(uv) * 0.125;
+	uv += f16vec2(0.2, 0.05) * octave_c + f16vec2(frameTimeCounter * 0.01, 0.1); uv *= 2.03;
 	 n += noise(uv) * 0.0625;
-	
-	return smoothstep(0.0, 0.5, n + cloud_coverage);
+	uv += f16vec2(0.1, 0.025) * octave_c; uv *= 2.04;
+	 n += noise(uv) * 0.03125;
+	 
+	return clamp((n + cloud_coverage) * 2.0, 0.0, 1.0);
 }
 
+const float cloud_min = 400.0;
+const float cloud_med = 500.0;
+const float cloud_max = 600.0;
+const float cloud_half = 100.0;
+
 f16vec4 volumetric_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
-	if (sphere.y < -0.1) return f16vec4(0.0);
+	if (sphere.y < -0.1 && cam.y < cloud_min - 1.0) return f16vec4(0.0);
+
+	f16vec4 color = f16vec4(mist_color, 0.0);
 
 	sphere.y += 0.1;
-	f16vec3 c = sphere / max(sphere.y, 0.001) * 500.0;
-	f16vec3 ray = c + cam;
-	f16vec3 ray_step = sphere / sphere.y;
+	f16vec3 ray = cam;
+	f16vec3 ray_step = normalize(sphere);
+	float16_t dither = bayer_64x64(texcoord, vec2(viewWidth, viewHeight));
 	
-	float16_t n = 0.0, prev = 0.0;
-	float16_t dither = bayer_64x64(texcoord, f16vec2(viewWidth, viewHeight));
-	
-	float16_t thickness = 0.0;
-	f16vec3 H = normalize(worldLightPosition + normalize(sphere));
-	for (int i = 0; i < 6; i++) {
-		float16_t h = cloud_depth_map(ray.xz * 0.0006);
+	for (int i = 0; i < 12; i++) {
+		float16_t h = cloud_depth_map(ray.xz);
+		float16_t b1 = fma(-h, cloud_half, cloud_med);
+		float16_t b2 = fma( h, cloud_half, cloud_med);
 		
-		ray += ray_step * (700.0 - ray.y) * 0.1 * (1.0 + dither);
+		f16vec3 sphere_center = f16vec3(0.0, cloud_med - ray.y, 0.0);
+		float16_t dist = abs(dot(ray_step, sphere_center));
+		float16_t line_to_dot = distance(ray_step * dist, sphere_center);
+		
+		if (h == 0.0) h = -2.0 / 12.0;
+		float16_t SDF = min(line_to_dot - cloud_half * h + dist + 5.0, 20.0 / ray_step.y);
+		
+		SDF = max(SDF, (cloud_min - ray.y) / max(0.001, ray_step.y));
+		ray += SDF * ray_step * fma(dither, 0.4, 0.6);
+		
 		dither = fract(dither + 0.6117);
-		
-		float16_t st = 0.0;
-		if (h > 0.0 && ray.y > 600.0 - h * 100.0 && ray.y < 600.0 + h * 100.0) st = 1.0;
-		n += (prev + st) * 0.0625;
-		prev = st;
-		
-		// Thickness
-		f16vec3 lray = ray + H * 50.0 * (2.0 - dither);
-		h = cloud_depth_map(lray.xz * 0.0006);
-		if (h > 0.0 && lray.y > 600.0 - h * 100.0 && lray.y < 600.0 + h * 100.0)
-			thickness += h;
+
+		// Check intersect
+		if (h > 0.01 && ray.y > b1 && ray.y < b2) {
+			// Step back to intersect
+			ray -= (b1 - ray.y) * ray_step * 0.5;
+			
+			color.a = 1.0;
+			color.rgb *= 0.75 + (ray.y - cloud_med) / cloud_half * 0.5 * clamp(sphere.y / 80.0, 0.0, 1.0);
+			break;
+		}
 	}
 	
-	thickness = smoothstep(0.0, 3.0, thickness);
-	n *= 1.1;
-	
-	return f16vec4(mist_color * (1.5 - thickness * 0.7) + pow(dotS, 3.0) * suncolor * 0.5 * (1.0 - extShadow), max(n - 0.1, 0.0) * smoothstep(0.0, 30.0, sphere.y));
+	if (color.a > 0.0) {
+		color.rgb += pow(dotS, 3.0) * suncolor * 0.5 * (1.0 - extShadow) * (1.0 - color.a);
+		color.a *= smoothstep(0.0, 30.0, sphere.y);
+	}
+
+	return color;
 }
 #endif
 

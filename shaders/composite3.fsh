@@ -62,7 +62,7 @@ void main() {
 				if (!isEyeInWater) mclight.y = water_sky_light * 8.5;
 				glossy.albedo = vec3(1.0);
 				glossy.roughness = 0.05;
-				glossy.metalic = 0.03;
+				glossy.metalic = 0.01;
 				
 				vec3 water_plain_normal = mat3(gbufferModelViewInverse) * glossy.N;
 				if (isEyeInWater) water_plain_normal = -water_plain_normal;
