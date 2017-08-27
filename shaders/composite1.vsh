@@ -30,7 +30,13 @@ varying vec2 texcoord;
 #define _VERTEX_SHADER_
 #include "Utilities.glsl.frag"
 
+#define VOLUMETRIC_CLOUDS
+
 void main() {
 	gl_Position = ftransform();
 	texcoord = gl_MultiTexCoord0.st;
+	
+	#ifdef VOLUMETRIC_CLOUDS
+	calcCommons();
+	#endif
 }

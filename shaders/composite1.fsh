@@ -9,6 +9,8 @@ varying vec2 texcoord;
 #include "CompositeUniform.glsl.frag"
 #include "Utilities.glsl.frag"
 #include "Material.glsl.frag"
+#include "Lighting.glsl.frag"
+#include "Atomosphere.glsl.frag"
 
 Mask mask;
 
@@ -30,21 +32,37 @@ vec3 blurAO (vec2 uv) {
 #endif
 #endif
 
+#ifdef VOLUMETRIC_CLOUDS
+
+#endif
+
 void main() {
 	// build up mask
 	init_mask(mask, texture2D(gaux1, texcoord).a);
 
 	vec3 color = vec3(1.0f);
-	#ifdef WISDOM_AMBIENT_OCCLUSION
+	vec4 cloud = vec4(0.0f);
 	if (!mask.is_sky) {
+	#ifdef WISDOM_AMBIENT_OCCLUSION
 		#ifdef HQ_AO
 		color = blurAO(texcoord);
 		#else
 		color = texture2D(composite, texcoord).rgb;
 		#endif
-	}
 	#endif
+	} else {
+	#ifdef VOLUMETRIC_CLOUDS
+		vec4 viewPosition = fetch_vpos(texcoord, 1.0);
+		float dotS = dot(normalize(viewPosition.xyz), lightPosition);
+		
+		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * 512.0;
+		worldPosition.y += cameraPosition.y;
 
-/* DRAWBUFFERS:3 */
-	gl_FragData[0] = vec4(color, 1.0f);
+		cloud = volumetric_clouds(worldPosition.xyz - vec3(0.0, cameraPosition.y, 0.0), cameraPosition, dotS);
+	#endif
+	}
+		
+/* DRAWBUFFERS:13 */
+	gl_FragData[0] = cloud;
+	gl_FragData[1] = vec4(color, 1.0f);
 }

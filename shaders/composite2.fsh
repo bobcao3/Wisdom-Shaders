@@ -4,6 +4,8 @@
 
 varying vec2 texcoord;
 
+const bool colortex1MipmapEnabled = true;
+
 #define WATER_CAUSTICS
 
 #include "GlslConfig"

@@ -1,6 +1,5 @@
 #version 120
 #include "compat.glsl"
-#extension GL_ARB_shader_texture_lod : require
 #pragma optimize (on)
 
 varying vec2 texcoord;
