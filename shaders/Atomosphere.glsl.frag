@@ -16,7 +16,7 @@ void calc_fog_height(Material mat, in float16_t start, in float16_t end, inout f
 	original = mix(original, col, coeif);
 }
 
-const f16vec3 vaporRGB = mix(f16vec3(1.0), skyRGB, 0.4);
+const f16vec3 vaporRGB = vec3(0.6) + skyRGB * 0.4;
 f16vec3 mist_color = vaporRGB * f16vec3(luma(suncolor) * 0.1);
 
 f16vec3 calc_atmosphere(in f16vec3 sphere, in f16vec3 vsphere) {
