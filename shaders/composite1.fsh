@@ -53,7 +53,7 @@ void main() {
 	} else {
 	#ifdef VOLUMETRIC_CLOUDS
 		vec4 viewPosition = fetch_vpos(texcoord, 1.0);
-		float dotS = dot(normalize(viewPosition.xyz), lightPosition);
+		float dotS = max(dot(normalize(viewPosition.xyz), lightPosition), 0.0);
 		
 		vec4 worldPosition = normalize(gbufferModelViewInverse * viewPosition) * 512.0;
 		worldPosition.y += cameraPosition.y;
