@@ -1,9 +1,7 @@
 #ifndef _INCLUDE_ATMOS
 #define _INCLUDE_ATMOS
 
-const f16vec3 wavelengthRGB = vec3(0.7, 0.5461, 0.4358);
-const f16vec3 skyOriginalRGB = vec3(1.0) / pow(wavelengthRGB, vec3(4.0));
-const f16vec3 skyRGB = skyOriginalRGB / skyOriginalRGB.b;
+const f16vec3 skyRGB = vec3(0.1502, 0.4056, 1.0);
 
 void calc_fog(in float depth, in float start, in float end, inout vec3 original, in vec3 col) {
 	original = mix(col, original, pow(clamp((end - depth) / (end - start), 0.0, 1.0), (1.0 - rainStrength) * 0.5 + 0.5));

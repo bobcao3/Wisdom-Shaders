@@ -24,17 +24,8 @@
 #version 120
 #pragma optimize(on)
 
-uniform vec3 skyColor;
-//varying vec4 color;
-
-const vec3 wavelengthRGB = vec3(0.7, 0.5461, 0.4358);
-const vec3 skyOriginalRGB = vec3(1.0) / pow(wavelengthRGB, vec3(4.0));
-const vec3 skyRGB = skyOriginalRGB / skyOriginalRGB.b * 1.5;
-
-float luma(in vec3 color) { return dot(color,vec3(0.2126, 0.7152, 0.0722)); }
-
 /* DRAWBUFFERS:02 */
 void main() {
-	gl_FragData[0] = vec4(luma(skyColor) * skyRGB, 1.0);
+	gl_FragData[0] = vec4(1.0);
 	gl_FragData[1] = vec4(0.0, 0.0, 0.2, 1.0);
 }
