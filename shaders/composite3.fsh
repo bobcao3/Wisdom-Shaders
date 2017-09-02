@@ -154,12 +154,12 @@ void main() {
 				dist_diff += total_internal_reflection * 4.0;
 				float dist_diff_N = min(1.0, dist_diff * 0.0625);
 			
-				// Absorbtion
-				float absorbtion = 2.0 / (dist_diff_N + 1.0) - 1.0;
-				vec3 watercolor = color * pow(vec3(absorbtion), vec3(2.0, 0.8, 1.0));
+				// Absorption
+				float absorption = 2.0 / (dist_diff_N + 1.0) - 1.0;
+				vec3 watercolor = color * pow(vec3(absorption), vec3(2.0, 0.8, 1.0));
 				float light_att = (isEyeInWater) ? (eyeBrightness.y * 0.0215 * (total_internal_reflection + 1.0) + 0.01) : max(water_sky_light, 1.0 - shadow);
-				vec3 waterfog = max(luma(ambient) * 0.18, 0.0) * light_att * vec3(0.00,0.8,0.8);
-				color = mix(waterfog, watercolor, pow(smoothstep(0.0, 1.0, absorbtion), 2.0));
+				vec3 waterfog = max(luma(ambient) * 0.18, 0.0) * light_att * vec3(0.1,0.7,0.8);
+				color = mix(waterfog, watercolor, pow(absorption, 2.0));
 			}
 			
 			#ifndef SPACE

@@ -149,7 +149,7 @@ void tonemap(inout vec3 color, float adapted_lum) {
 	const float e = 0.14f;
 	color = (color*(a*color+b))/(color*(c*color+d)+e);
 	//color = clamp(color, vec3(0.0), vec3(1.0));
-	color = pow(color, vec3(1.3, 1.20, 1.0));
+	color = pow(color, vec3(1.1, 1.05, 1.0));
 	
 	#ifdef VIGNETTE
 	color = vignette(color);
