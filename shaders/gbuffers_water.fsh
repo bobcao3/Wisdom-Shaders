@@ -37,7 +37,7 @@ varying vec4 coords;
 void main() {
 	vec4 color = vec4(0.0);
 	if (iswater > 0.78f && iswater < 0.8f)
-		color = vec4(vec3(0.1,0.19,0.22) * pow(skyLight, 3.0), 1.0);
+		color = vec4(vec3(0.0537,0.3562,0.5097) * skyLight * 0.2, 1.0);
 	else
 		color = texture2D(tex, texcoord);
 	

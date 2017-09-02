@@ -87,8 +87,9 @@ void main() {
 		sun.light.attenuation = 1.0 - max(extShadow, shadow);
 		#ifdef WATER_CAUSTICS
 		if (((!isEyeInWater && mask.is_water) || (isEyeInWater && !mask.is_water)) && shadow < 0.95) {
-			sun.light.attenuation *= 1.3 - get_caustic(land.wpos + cameraPosition);
-			sun.light.attenuation *= mclight.y;
+			sun.light.attenuation *= fma(worldLightPosition.y, 0.98, 0.02) * (1.3 - get_caustic(land.wpos + cameraPosition));
+			
+			if (isEyeInWater) sun.light.attenuation *= mclight.y;
 		}
 		#endif
 		sun.L = lightPosition;
