@@ -56,9 +56,9 @@ void calcCommons() {
 	float TimeSunset   = ((clamp(wTimeF, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(wTimeF, 12500.0, 12750.0) - 12500.0) / 250.0);
 	float TimeMidnight = ((clamp(wTimeF, 12500.0, 12750.0) - 12500.0) / 250.0) - ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0);
 
-	const vec3 suncolor_sunrise = vec3(0.8843, 0.6, 0.313) * 2.72;
-	const vec3 suncolor_noon = vec3(1.392, 1.1635, 1.036) * 4.2;
-	const vec3 suncolor_sunset = vec3(0.9943, 0.619, 0.0945) * 3.6;
+	const vec3 suncolor_sunrise = vec3(0.9243, 0.5, 0.0913) * 3.22;
+	const vec3 suncolor_noon = vec3(1.412, 1.2135, 1.036) * 4.1;
+	const vec3 suncolor_sunset = vec3(0.9943, 0.519, 0.0945) * 3.6;
 	const vec3 suncolor_midnight = vec3(0.34, 0.5, 0.6) * 0.4;
 	
 	float day = wTimeF / 24000.0;
@@ -72,10 +72,10 @@ void calcCommons() {
 	extShadow = (clamp((wTimeF-12450.0)/100.0,0.0,1.0)-clamp((wTimeF-12900.0)/100.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 
 	#ifndef SPACE
-	const vec3 ambient_sunrise = vec3(0.543, 0.672, 0.886) * 0.15;
-	const vec3 ambient_noon = vec3(0.676, 0.792, 1.0) * 0.24;
-	const vec3 ambient_sunset = vec3(0.443, 0.772, 0.847) * 0.2;
-	const vec3 ambient_midnight = vec3(0.03, 0.078, 0.117) * 0.2;
+	const vec3 ambient_sunrise = vec3(0.543, 0.772, 0.786) * 0.21;
+	const vec3 ambient_noon = vec3(0.686, 0.702, 0.73) * 0.24;
+	const vec3 ambient_sunset = vec3(0.543, 0.772, 0.747) * 0.23;
+	const vec3 ambient_midnight = vec3(0.06, 0.088, 0.117) * 0.2;
 
 	ambient = ambient_sunrise * TimeSunrise + ambient_noon * TimeNoon + ambient_sunset * TimeSunset + ambient_midnight * TimeMidnight;
 	ambient *= 1.0 + cloud_coverage;
