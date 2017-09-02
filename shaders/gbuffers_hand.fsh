@@ -52,6 +52,7 @@ varying vec3 binormal;
 vec2 normalEncode(vec3 n) {return sqrt(-n.z*0.125+0.125) * normalize(n.xy) + 0.5;}
 
 //#define SPECULAR_TO_PBR_CONVERSION
+//#define CONTINUUM2_TEXTURE_FORMAT
 
 /* DRAWBUFFERS:0245 */
 void main() {
@@ -79,7 +80,11 @@ void main() {
 	float spec_strength = dot(spec, vec3(0.3, 0.6, 0.1));
 	gl_FragData[2] = vec4(spec_strength, spec_strength, 0.0, 1.0);
 	#else
+	#ifdef CONTINUUM2_TEXTURE_FORMAT
+	gl_FragData[2] = vec4(texture2D(specular, texcoord).brg, 1.0);
+	#else
 	gl_FragData[2] = vec4(texture2D(specular, texcoord).rgb, 1.0);
+	#endif
 	#endif
 	gl_FragData[3] = vec4(lmcoord, n2);
 }

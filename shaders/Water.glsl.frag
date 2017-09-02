@@ -24,12 +24,12 @@ float16_t sea_octave_micro(f16vec2 uv, float16_t choppy) {
 }
 #endif
 const float16_t SEA_CHOPPY = 4.5;
-const float16_t SEA_SPEED = 1.2;
+const float16_t SEA_SPEED = 0.8;
 const float16_t SEA_FREQ = 0.12;
 const f16mat2 octave_m = f16mat2(1.4,1.1,-1.2,1.4);
 
 const float16_t height_mul[4] = float[4] (
-	0.52, 0.34, 0.20, 0.22
+	0.32, 0.24, 0.20, 0.22
 );
 const float16_t total_height =
   height_mul[0] + 

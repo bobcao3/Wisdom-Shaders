@@ -25,6 +25,8 @@
 
 #pragma optimize(on)
 
+uniform int worldTime;
+
 varying vec2 texcoord;
 
 void main() {

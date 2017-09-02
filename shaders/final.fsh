@@ -14,7 +14,6 @@ vec2 texcoord = tex;
 #include "Utilities.glsl.frag"
 #include "Effects.glsl.frag"
 
-//#define SSEDAA
 //#define BLACK_AND_WHITE
 
 #define LF
@@ -58,7 +57,7 @@ vec3 lensFlare(vec3 color, vec2 uv) {
 #endif
 // ==========================
 
-#define SATURATION 1.5 // [0.6 1.0 1.5 2.0]
+#define SATURATION 2.0 // [0.6 1.0 1.5 2.0]
 
 #define SCREEN_RAIN_DROPS
 #define DISTORTION_FIX
@@ -95,23 +94,7 @@ void main() {
 	vec3 color;
 	bit8(color);
 	#else
-	#ifdef SSEDAA
 	vec3 color = texture2D(composite, texcoord).rgb;
-	float size = 1.0 / length(fetch_vpos(texcoord, depthtex0).xyz);
-	vec3 edge = applyEffect(1.0, size,
-		-1.0, -1.0, -1.0,
-		-1.0,  8.0, -1.0,
-		-1.0, -1.0, -1.0,
-		composite, texcoord);
-	vec3 blur = applyEffect(6.8, size,
-		0.3, 1.0, 0.3,
-		1.0, 1.6, 1.0,
-		0.3, 1.0, 0.3,
-		composite, texcoord);
-	color = mix(color, blur, edge);
-	#else
-	vec3 color = texture2D(composite, texcoord).rgb;
-	#endif
 	#endif
 
 	#ifdef MOTION_BLUR

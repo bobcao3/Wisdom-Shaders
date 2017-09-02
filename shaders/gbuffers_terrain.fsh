@@ -154,6 +154,7 @@ vec2 ParallaxMapping(in vec2 coord) {
 #endif
 
 //#define SPECULAR_TO_PBR_CONVERSION
+//#define CONTINUUM2_TEXTURE_FORMAT
 
 /* DRAWBUFFERS:0245 */
 void main() {
@@ -190,7 +191,11 @@ void main() {
 	float spec_strength = dot(spec, vec3(0.3, 0.6, 0.1));
 	gl_FragData[2] = vec4(spec_strength, spec_strength, 0.0, 0.0);
 	#else
+	#ifdef CONTINUUM2_TEXTURE_FORMAT
+	gl_FragData[2] = texture2D(specular, texcoord_adj).brga;
+	#else
 	gl_FragData[2] = texture2D(specular, texcoord_adj);
+	#endif
 	#endif
 	gl_FragData[3] = vec4(lmcoord, n2);
 }

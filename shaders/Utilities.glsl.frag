@@ -57,7 +57,7 @@ void calcCommons() {
 	float TimeMidnight = ((clamp(wTimeF, 12500.0, 12750.0) - 12500.0) / 250.0) - ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0);
 
 	const vec3 suncolor_sunrise = vec3(0.9243, 0.5, 0.0913) * 3.22;
-	const vec3 suncolor_noon = vec3(1.412, 1.2135, 1.036) * 4.1;
+	const vec3 suncolor_noon = vec3(1.2311, 1.0, 0.8286) * 4.1;
 	const vec3 suncolor_sunset = vec3(0.9943, 0.519, 0.0945) * 3.6;
 	const vec3 suncolor_midnight = vec3(0.34, 0.5, 0.6) * 0.4;
 	
@@ -72,9 +72,9 @@ void calcCommons() {
 	extShadow = (clamp((wTimeF-12450.0)/100.0,0.0,1.0)-clamp((wTimeF-12900.0)/100.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 
 	#ifndef SPACE
-	const vec3 ambient_sunrise = vec3(0.543, 0.772, 0.786) * 0.21;
-	const vec3 ambient_noon = vec3(0.686, 0.702, 0.73) * 0.24;
-	const vec3 ambient_sunset = vec3(0.543, 0.772, 0.747) * 0.23;
+	const vec3 ambient_sunrise = vec3(0.543, 0.772, 0.786) * 0.31;
+	const vec3 ambient_noon = vec3(0.686, 0.702, 0.73) * 0.34;
+	const vec3 ambient_sunset = vec3(0.543, 0.772, 0.747) * 0.33;
 	const vec3 ambient_midnight = vec3(0.06, 0.088, 0.117) * 0.2;
 
 	ambient = ambient_sunrise * TimeSunrise + ambient_noon * TimeNoon + ambient_sunset * TimeSunset + ambient_midnight * TimeMidnight;
@@ -163,7 +163,7 @@ void tonemap(inout vec3 color, float adapted_lum) {
 //==============================================================================
 
 float get_exposure() {
-	return EXPOSURE * (1.6 - clamp(pow(eyeBrightnessSmooth.y / 240.0, 6.0) * 0.8 * luma(suncolor), 0.0, 1.0)) * 0.8;
+	return EXPOSURE * (1.6 - clamp(pow(eyeBrightnessSmooth.y / 240.0, 6.0) * 0.8 * luma(suncolor), 0.0, 1.0));
 }
 
 //==============================================================================
