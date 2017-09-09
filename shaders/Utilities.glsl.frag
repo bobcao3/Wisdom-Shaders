@@ -10,7 +10,6 @@ varying vec3 worldLightPosition;
 
 varying float cloud_coverage;
 varying float wind_speed;
-varying float animate_speed;
 
 #define hash_fast(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
@@ -56,34 +55,32 @@ void calcCommons() {
 	float TimeSunset   = ((clamp(wTimeF, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(wTimeF, 12500.0, 12750.0) - 12500.0) / 250.0);
 	float TimeMidnight = ((clamp(wTimeF, 12500.0, 12750.0) - 12500.0) / 250.0) - ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0);
 
-	const vec3 suncolor_sunrise = vec3(0.9243, 0.5, 0.0913) * 3.22;
-	const vec3 suncolor_noon = vec3(1.2311, 1.0, 0.8286) * 4.1;
-	const vec3 suncolor_sunset = vec3(0.9943, 0.519, 0.0945) * 3.6;
+	const vec3 suncolor_sunrise = vec3(0.9243, 0.4, 0.0913) * 3.22;
+	const vec3 suncolor_noon = vec3(1.2311, 1.0, 0.8286) * 4.3;
+	const vec3 suncolor_sunset = vec3(0.9943, 0.419, 0.0945) * 3.6;
 	const vec3 suncolor_midnight = vec3(0.34, 0.5, 0.6) * 0.4;
-	
+
 	float day = wTimeF / 24000.0;
 	float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
 	cloud_coverage = mix(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, 0.7, max(rainStrength, wetness));
 	wind_speed = mix(noise(vec2(day_cycle * 2.0, 0.0)) * 0.5 + 1.0, 2.0, rainStrength);
-	animate_speed = frameTimeCounter * wind_speed;
 
 	suncolor = suncolor_sunrise * TimeSunrise + suncolor_noon * TimeNoon + suncolor_sunset * TimeSunset + suncolor_midnight * TimeMidnight;
 	suncolor *= 1.0 - cloud_coverage;
-	extShadow = (clamp((wTimeF-12450.0)/100.0,0.0,1.0)-clamp((wTimeF-12900.0)/100.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
+	extShadow = (clamp((wTimeF-12350.0)/100.0,0.0,1.0)-clamp((wTimeF-13050.0)/100.0,0.0,1.0) + clamp((wTimeF-22800.0)/200.0,0.0,1.0)-clamp((wTimeF-23400.0)/200.0,0.0,1.0));
 
 	#ifndef SPACE
-	const vec3 ambient_sunrise = vec3(0.543, 0.772, 0.786) * 0.31;
+	const vec3 ambient_sunrise = vec3(0.543, 0.772, 0.786) * 0.27;
 	const vec3 ambient_noon = vec3(0.686, 0.702, 0.73) * 0.34;
-	const vec3 ambient_sunset = vec3(0.543, 0.772, 0.747) * 0.33;
-	const vec3 ambient_midnight = vec3(0.06, 0.088, 0.117) * 0.2;
+	const vec3 ambient_sunset = vec3(0.543, 0.772, 0.747) * 0.26;
+	const vec3 ambient_midnight = vec3(0.06, 0.088, 0.117) * 0.1;
 
 	ambient = ambient_sunrise * TimeSunrise + ambient_noon * TimeNoon + ambient_sunset * TimeSunset + ambient_midnight * TimeMidnight;
-	ambient *= 1.0 + cloud_coverage;
 	#else
 	ambient = vec3(0.0);
 	suncolor = vec3(1.0);
 	#endif
-	
+
 	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition);
 }
 
@@ -123,11 +120,11 @@ const float circle_count = 25.0;
 
 // Color adjustment
 
-const vec3 agamma = vec3(0.7 / gamma);
+const vec3 agamma = vec3(0.8 / gamma);
 
 float luma(in vec3 color) { return dot(color,vec3(0.2126, 0.7152, 0.0722)); }
 
-#define EXPOSURE 2.0 // [1.0 2.0 3.0]
+#define EXPOSURE 1.4 // [1.0 1.2 1.4 1.6 1.8]
 
 #define VIGNETTE
 #ifdef VIGNETTE
@@ -149,12 +146,12 @@ void tonemap(inout vec3 color, float adapted_lum) {
 	const float e = 0.14f;
 	color = (color*(a*color+b))/(color*(c*color+d)+e);
 	//color = clamp(color, vec3(0.0), vec3(1.0));
-	color = pow(color, vec3(1.1, 1.05, 1.0));
-	
+	//color = pow(color, vec3(1.07, 1.04, 1.0));
+
 	#ifdef VIGNETTE
 	color = vignette(color);
 	#endif
-	
+
 	color = pow(color, agamma);
 }
 
@@ -162,9 +159,26 @@ void tonemap(inout vec3 color, float adapted_lum) {
 // Light utilities
 //==============================================================================
 
+#define AVERAGE_EXPOSURE
+#ifdef AVERAGE_EXPOSURE
 float get_exposure() {
-	return EXPOSURE * (1.6 - clamp(pow(eyeBrightnessSmooth.y / 240.0, 6.0) * 0.8 * luma(suncolor), 0.0, 1.0));
+	float basic_exp = EXPOSURE * (1.8 - clamp(pow(eyeBrightnessSmooth.y / 240.0, 6.0) * luma(suncolor), 0.0, 1.2));
+
+	#ifdef BLOOM
+	vec3 center = texture2D(gcolor, vec2(0.5) * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.025f)).rgb;
+	#else
+	vec3 center = texture2D(composite, vec2(0.5)).rgb;
+	#endif
+	float avr_exp = (0.5 - clamp(luma(center), 0.0, 2.0)) * 1.5;
+	basic_exp = mix(basic_exp, max(0.1, basic_exp + avr_exp), 0.8);
+
+	return basic_exp;
 }
+#else
+float get_exposure() {
+	return EXPOSURE * (1.8 - clamp(pow(eyeBrightnessSmooth.y / 240.0, 6.0) * luma(suncolor), 0.0, 1.2));
+}
+#endif
 
 //==============================================================================
 // Vector stuff
@@ -177,7 +191,7 @@ vec4 fetch_vpos (vec2 uv, float z) {
 	vec4 v = gbufferProjectionInverse * vec4(fma(vec3(uv, z), vec3(2.0f), vec3(-1.0)), 1.0);
 	v /= v.w;
 	v.xy *= mulfov;
-	
+
 	return v;
 }
 
@@ -251,18 +265,18 @@ float simplex2D(vec2 p){
     const float K3 = K2*2.;
 
     vec2 i = floor( p + dot(p,vec2(K1)) );
-    
+
     vec2 a = p - i + dot(i,vec2(K2));
     vec2 o = 1.-clamp((a.yx-a)*1.e35,0.,1.);
     vec2 b = a - o + K2;
     vec2 c = a - 1.0 + K3;
 
     vec3 h = clamp( .5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0. ,1. );
-    
+
     h*=h;
     h*=h;
 
-    vec3 n = vec3( 
+    vec3 n = vec3(
         dot(a,hash22(i   )-.5),
         dot(b,hash22(i+o )-.5),
         dot(c,hash22(i+1.)-.5)

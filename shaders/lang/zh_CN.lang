@@ -54,6 +54,7 @@ option.DIRTY_LENS_TEXTURE.comment=需要新版Optifine的材质载入支持
 option.SCREEN_RAIN_DROPS=镜头雨点
 
 option.EXPOSURE=曝光
+option.AVERAGE_EXPOSURE=动态曝光
 option.BLACK_AND_WHITE=黑白滤镜
 option.PRIME_RENDER=素模渲染滤镜
 option.ambientOcclusionLevel=方块交界暗化

@@ -54,6 +54,7 @@ option.DIRTY_LENS_TEXTURE.comment=Need newer Optifine's texture loading function
 option.SCREEN_RAIN_DROPS=Rain Drops on Camera
 
 option.EXPOSURE=Exposure
+option.AVERAGE_EXPOSURE=Average Exposure
 option.BLACK_AND_WHITE=Black and White Filter
 option.PRIME_RENDER=Prime Render
 option.ambientOcclusionLevel=Vanilla Edge Occlusion

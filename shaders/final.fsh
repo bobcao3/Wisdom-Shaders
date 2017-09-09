@@ -109,9 +109,9 @@ void main() {
 
 	#ifdef BLOOM
 	vec3 b = bloom(color);
-	color += max(vec3(0.0), b * exposure);
+	color += max(vec3(0.0), b) * exposure * (1.0 + float(isEyeInWater));
 	#endif
-	
+
 	#ifdef LF
 	color = lensFlare(color, texcoord);
 	#endif
@@ -120,22 +120,22 @@ void main() {
 	#ifdef BLACK_AND_WHITE
 	color = vec3(luma(color));
 	#endif
-	
+
 	#ifdef NOISE_AND_GRAIN
 	noise_and_grain(color);
 	#endif
-	
+
 	#ifdef FILMIC_CINEMATIC
 	filmic_cinematic(color);
 	#endif
-	
+
 	tonemap(color, exposure);
 	// Apply night vision gamma
 	color = pow(color, vec3(1.0 - nightVision * 0.6));
 	// Apply blindness
 	color = pow(color, vec3(1.0 + blindness));
-	
+
 	saturation(color, SATURATION);
-	
+
 	gl_FragColor = vec4(color, 1.0f);
 }

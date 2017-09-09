@@ -9,7 +9,7 @@ const int colortex1Format = RGBA16;
 const int gnormalFormat = RGBA16;
 const int compositeFormat = R11F_G11F_B10F;
 const int gaux1Format = RGBA8;
-const int gaux2Format = RGBA8;
+const int gaux2Format = RGBA16;
 const int gaux3Format = RGB8;
 const int gaux4Format = RGBA8;
 const int noiseTextureResolution = 512;
@@ -43,7 +43,7 @@ void main() {
 	float flag = (normaltex.b < 0.11 && normaltex.b > 0.01) ? normaltex.b : max(normaltex.b, water_normal_tex.b);
 	if (normaltex.b < 0.09 && water_normal_tex.b > 0.9) flag = 0.99;
 	if (normaltex.b > 0.19 && normaltex.b < 0.21 && water_normal_tex.b > 0.98) flag = 0.45;
-	
+
 
 	// build up mask
 	init_mask(mask, flag);
@@ -56,7 +56,7 @@ void main() {
 		color.gb = normaltex.rg;
 		#endif
 	}
-	
+
 	// rebuild hybrid data
 	vec4 specular_data = flag > 0.89f ? texture2D(gaux4, texcoord) : texture2D(gaux1, texcoord);
 	specular_data.a = flag;
