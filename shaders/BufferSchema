@@ -1,0 +1,32 @@
+================================================================================
+ Buffer Format
+================================================================================
+
+0 colortex0 : RGBA8
+1 colortex1 : RGBA8
+2 colortex2 : RGBA16 [RG: Normal, BA: lmcoord]
+3 colortex3 : RGBA8F
+4 gaux1     : RGB16 [RG: Normal, B: Flag]
+5 gaux2     : RGBA16F
+6 gaux3     :
+7 gaux4     :
+
+================================================================================
+ Buffer Usage
+================================================================================
+
+GBuffers_X stage
+0       1       2       3       4       5       6       7
+Albedo  PBR     NrmFlat         Data
+
+DeferredX
+0       1       2       3       4       5       6       7
+                        Misc            Compo
+
+GBuffers_water
+0       1       2       3       4       5       6       7
+                NrmFlat CompoO          CompoI
+
+Composite
+0       1       2       3       4       5       6       7
+                        Misc

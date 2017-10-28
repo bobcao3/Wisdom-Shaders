@@ -1,5 +1,5 @@
-const int shadowMapResolution = 2048; // [512 1024 1512 2048 4096]
-const float shadowDistance = 160.0; // [64.0 90.0 128.0 160.0 256.0]
+const int shadowMapResolution = 1512; // [512 1024 1512 2048 4096]
+const float shadowDistance = 128.0; // [64.0 90.0 128.0 160.0 256.0]
 const float sunPathRotation = -39.0;
 const float shadowDistanceRenderMul = 1.0;
 const float shadowIntervalSize = 2.0;
@@ -8,9 +8,4 @@ const float ambientOcclusionLevel = 0.0f; // [0.0f 0.5f 1.0f]
 #define SHADOW_MAP_BIAS 0.85f
 const float negShadowBias = 1.0f - SHADOW_MAP_BIAS;
 
-const float gamma = 2.2f;
-
-#define WISDOM_AMBIENT_OCCLUSION
-#define HQ_AO
-
-#define Version 3212
+#define Version 3230

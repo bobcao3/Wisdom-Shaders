@@ -23,7 +23,7 @@
 
 #version 120
 
-#include "compat.glsl"
+#include "libs/compat.glsl"
 
 #pragma optimize(on)
 
@@ -49,17 +49,31 @@ varying vec3 tangent;
 varying vec3 binormal;
 #endif
 
-vec2 normalEncode(vec3 n) {return sqrt(-n.z*0.125+0.125) * normalize(n.xy) + 0.5;}
+#include "libs/encoding.glsl"
 
 //#define SPECULAR_TO_PBR_CONVERSION
 //#define CONTINUUM2_TEXTURE_FORMAT
 
-/* DRAWBUFFERS:0245 */
+/* DRAWBUFFERS:0124 */
 void main() {
 	vec4 t = texture2D(texture, texcoord);
 
 	gl_FragData[0] = t * color;
+
+	#ifdef SPECULAR_TO_PBR_CONVERSION
+	vec3 spec = texture2D(specular, texcoord).rgb;
+	float spec_strength = dot(spec, vec3(0.3, 0.6, 0.1));
+	gl_FragData[1] = vec4(spec_strength, spec_strength, 0.0, 1.0);
+	#else
+	#ifdef CONTINUUM2_TEXTURE_FORMAT
+	gl_FragData[1] = vec4(texture2D(specular, texcoord).brg, 1.0);
+	#else
+	gl_FragData[1] = vec4(texture2D(specular, texcoord).rgb, 1.0);
+	#endif
+	#endif
+
 	vec2 n2 = normalEncode(normal);
+	gl_FragData[2] = vec4(n2, lmcoord);
 	#ifdef NORMALS
 		vec3 normal2 = texture2D(normals, texcoord).xyz * 2.0 - 1.0;
 		const float bumpmult = 0.5;
@@ -71,20 +85,8 @@ void main() {
 		normal2 = normal2 * tbnMatrix;
 		vec2 d = normalEncode(normal2);
 		if (!(d.x > 0.0 && d.y > 0.0)) d = n2;
-		gl_FragData[1] = vec4(d, 0.3, 1.0);
+		gl_FragData[3] = vec4(d, terrianFlag, 1.0);
 	#else
-		gl_FragData[1] = vec4(n2, 0.3, 1.0);
+		gl_FragData[3] = vec4(n2, terrianFlag, 1.0);
 	#endif
-	#ifdef SPECULAR_TO_PBR_CONVERSION
-	vec3 spec = texture2D(specular, texcoord).rgb;
-	float spec_strength = dot(spec, vec3(0.3, 0.6, 0.1));
-	gl_FragData[2] = vec4(spec_strength, spec_strength, 0.0, 1.0);
-	#else
-	#ifdef CONTINUUM2_TEXTURE_FORMAT
-	gl_FragData[2] = vec4(texture2D(specular, texcoord).brg, 1.0);
-	#else
-	gl_FragData[2] = vec4(texture2D(specular, texcoord).rgb, 1.0);
-	#endif
-	#endif
-	gl_FragData[3] = vec4(lmcoord, n2);
 }

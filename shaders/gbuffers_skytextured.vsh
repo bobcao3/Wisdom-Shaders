@@ -24,11 +24,11 @@
 #version 120
 #pragma optimize(on)
 
-#include "gbuffers.inc.vsh"
-
 varying vec2 texcoord;
 
-VSH {
+#include "libs/encoding.glsl"
+
+void main() {
 	gl_Position = ftransform();
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 }

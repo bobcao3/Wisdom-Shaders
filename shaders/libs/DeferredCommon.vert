@@ -1,5 +1,3 @@
-#version 120
-
 /*
  * Copyright 2017 Cheng Cao
  *
@@ -16,4 +14,14 @@
  * limitations under the License.
  */
 
-#include "libs/DeferredCommon.vert"
+varying vec2 uv;
+
+void main() {
+  gl_Position = ftransform();
+
+  uv = gl_MultiTexCoord0.st;
+
+  #ifdef Functions
+  functions();
+  #endif
+}

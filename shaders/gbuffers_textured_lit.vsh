@@ -33,9 +33,9 @@ varying vec4 coords;
 #define texcoord coords.rg
 #define lmcoord coords.ba
 
-#include "gbuffers.inc.vsh"
+#include "libs/encoding.glsl"
 
-VSH {
+void main() {
 	color = gl_Color;
 	gl_Position = ftransform();
 	normal = normalEncode(gl_NormalMatrix * gl_Normal);

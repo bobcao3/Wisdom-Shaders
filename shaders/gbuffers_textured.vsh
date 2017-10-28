@@ -28,9 +28,9 @@ varying vec4 color;
 varying vec2 normal;
 varying vec2 texcoord;
 
-#include "gbuffers.inc.vsh"
+#include "libs/encoding.glsl"
 
-VSH {
+void main() {
 	color = gl_Color;
 	gl_Position = ftransform();
 	normal = normalEncode(normalize(gl_Normal));

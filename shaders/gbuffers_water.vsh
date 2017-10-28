@@ -26,38 +26,27 @@
 
 attribute vec4 mc_Entity;
 
-uniform sampler2D noisetex;
+varying vec4 data;
+varying vec2 uv;
+varying vec3 uv1;
 
-uniform mat4 gbufferModelViewInverse;
-uniform mat4 gbufferModelView;
-uniform vec3 cameraPosition;
-uniform float frameTimeCounter;
+uniform mat4 gbufferProjection;
 
-const float PI = 3.14159f;
+#include "libs/encoding.glsl"
 
-varying vec2 normal;
-varying vec4 coords;
+void main() {
+	data.b = (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) ? waterFlag : transparentFlag;
 
-uniform bool isEyeInWater;
-
-#define texcoord coords.rg
-#define skyLight coords.b
-#define iswater coords.a
-
-#include "gbuffers.inc.vsh"
-
-VSH {
-	iswater = 0.95f;
 	vec4 pos = gl_Vertex;
-	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
-		iswater = 0.79f;
-		pos.y += float(isEyeInWater) * 0.3 - 0.2;
-	}
 	pos = gl_ModelViewMatrix * pos;
 	gl_Position = gl_ProjectionMatrix * pos;
-	
-	normal = normalEncode(gl_NormalMatrix * gl_Normal);
-	
-	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
-	skyLight = (gl_TextureMatrix[1] * gl_MultiTexCoord1).y;
+
+	//normal = normalEncode(gl_NormalMatrix * gl_Normal);
+
+	uv = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
+	//skyLight = (gl_TextureMatrix[1] * gl_MultiTexCoord1).y;
+
+	vec4 clip = gbufferProjection * pos;
+	clip /= clip.w;
+	uv1 = clip.xyz * 0.5 + 0.5;
 }

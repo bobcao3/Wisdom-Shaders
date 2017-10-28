@@ -24,11 +24,13 @@
 #version 120
 
 
-#include "compat.glsl"
+#include "libs/compat.glsl"
 
 #pragma optimize(on)
 
 //#define SMOOTH_TEXTURE
+
+#include "libs/encoding.glsl"
 
 #define NORMALS
 
@@ -36,9 +38,8 @@ uniform sampler2D texture;
 uniform sampler2D specular;
 #ifdef NORMALS
 uniform sampler2D normals;
-#else
-varying vec2 n2;
 #endif
+varying vec2 nflat;
 
 varying f16vec4 color;
 varying vec4 coords;
@@ -55,8 +56,6 @@ varying float dis;
 #ifdef NORMALS
 varying f16vec3 tangent;
 varying f16vec3 binormal;
-
-f16vec2 normalEncode(f16vec3 n) {return sqrt(-n.z*0.125f+0.125f) * normalize(n.xy) + 0.5f;}
 #endif
 
 uniform ivec2 atlasSize;
@@ -65,15 +64,10 @@ uniform ivec2 atlasSize;
 #ifdef ParallaxOcclusion
 varying f16vec3 tangentpos;
 
-#define TILE_RESOLUTION 0 // [32 64 128 256 512 1024]
+#define tileResolution 128 // [32 64 128 256 512 1024]
 
 vec2 atlas_offset(in vec2 coord, in vec2 offset) {
 	const ivec2 atlasTiles = ivec2(32, 16);
-	#if TILE_RESOLUTION == 0
-	int tileResolution = atlasSize.x / atlasTiles.x * 2;
-	#else
-	int tileResolution = TILE_RESOLUTION;
-	#endif
 
 	coord *= atlasSize;
 
@@ -115,31 +109,31 @@ vec2 ParallaxMapping(in vec2 coord) {
 	s = s / s.z * scale / maxSteps;
 
 	float lazyx = 0.5;
-	const float lazyinc = 0.25 / maxSteps;
+	const float lazyinc = 0.5 / maxSteps;
 
 	if (heightmap < 0.0f) {
 		for (int i = 0; i < maxSteps; i++) {
 			float prev = offset.z;
-			
+
 			offset += (heightmap - prev) * lazyx * s;
 			lazyx += lazyinc;
-			
+
 			adjusted = atlas_offset(coord.st, offset.st);
 			heightmap = texture2D(normals, adjusted).a - 1.0f;
 			if (max(0.0, offset.z - heightmap) < 0.05) break;
 		}
-		
+
 		#ifdef PARALLAX_SELF_SHADOW
 		s = normalize(sun);
 		s = s * scale * 10.0 / maxSteps;
 		vec3 light_offset = offset;
-		
+
 		for (int i = 0; i < maxSteps; i++) {
 			float prev = offset.z;
-			
+
 			light_offset += s;
 			lazyx += lazyinc;
-			
+
 			heightmap = texture2D(normals, atlas_offset(coord.st, light_offset.st)).a - 1.0f;
 			if (heightmap > light_offset.z) {
 				parallax_lit = 0.5;
@@ -156,7 +150,7 @@ vec2 ParallaxMapping(in vec2 coord) {
 //#define SPECULAR_TO_PBR_CONVERSION
 //#define CONTINUUM2_TEXTURE_FORMAT
 
-/* DRAWBUFFERS:0245 */
+/* DRAWBUFFERS:0124 */
 void main() {
 	vec2 texcoord_adj = texcoord;
 	#ifdef ParallaxOcclusion
@@ -170,8 +164,22 @@ void main() {
 	#endif
 
 	gl_FragData[0] = t * color;
+
+	#ifdef SPECULAR_TO_PBR_CONVERSION
+	vec3 spec = texture2D(specular, texcoord_adj).rgb;
+	float spec_strength = dot(spec, vec3(0.3, 0.6, 0.1));
+	gl_FragData[1] = vec4(spec_strength, spec_strength, 0.0, 1.0);
+	#else
+	#ifdef CONTINUUM2_TEXTURE_FORMAT
+	gl_FragData[1] = vec4(texture2D(specular, texcoord_adj).brg, 1.0);
+	#else
+	gl_FragData[1] = vec4(texture2D(specular, texcoord_adj).rgb, 1.0);
+	#endif
+	#endif
+
+	gl_FragData[2] = vec4(nflat, lmcoord);
+
 	#ifdef NORMALS
-		f16vec2 n2 = normalEncode(normal);
 		f16vec3 normal2 = normal;
 		if (dis < 64.0) {
 			normal2 = texture2D(normals, texcoord_adj).xyz * 2.0 - 1.0;
@@ -181,21 +189,9 @@ void main() {
 			normal2 = tbnMatrix * normal2;
 		}
 		vec2 d = normalEncode(normal2);
-		if (!(d.x > 0.0 && d.y > 0.0)) d = n2;
-		gl_FragData[1] = vec4(d, flag, 1.0);
+		if (!(d.x > 0.0 && d.y > 0.0)) d = nflat;
+		gl_FragData[3] = vec4(d, flag, 1.0);
 	#else
-		gl_FragData[1] = vec4(n2, flag, 1.0);
+		gl_FragData[3] = vec4(nflat, flag, 1.0);
 	#endif
-	#ifdef SPECULAR_TO_PBR_CONVERSION
-	vec3 spec = texture2D(specular, texcoord_adj).rgb;
-	float spec_strength = dot(spec, vec3(0.3, 0.6, 0.1));
-	gl_FragData[2] = vec4(spec_strength, spec_strength, 0.0, 0.0);
-	#else
-	#ifdef CONTINUUM2_TEXTURE_FORMAT
-	gl_FragData[2] = texture2D(specular, texcoord_adj).brga;
-	#else
-	gl_FragData[2] = texture2D(specular, texcoord_adj);
-	#endif
-	#endif
-	gl_FragData[3] = vec4(lmcoord, n2);
 }

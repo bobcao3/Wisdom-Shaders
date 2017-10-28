@@ -30,11 +30,11 @@ varying vec4 color;
 varying vec2 normal;
 varying vec2 texcoord;
 
-#include "gbuffers.inc.vsh"
+#include "libs/encoding.glsl"
 
 #define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
-VSH {
+void main() {
 	color = gl_Color;
 	vec4 position = gl_Vertex;
 	float rand_ang = hash(position.xz);

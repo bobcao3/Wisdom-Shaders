@@ -33,5 +33,5 @@ varying vec2 texcoord;
 /* DRAWBUFFERS:0 */
 void main() {
 	vec4 tex = texture2D(texture, texcoord);
-	gl_FragData[0] = tex * color;
+	gl_FragData[0] = tex.bbba * color;
 }

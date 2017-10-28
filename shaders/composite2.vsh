@@ -1,6 +1,4 @@
 #version 120
-#include "compat.glsl"
-#pragma optimize (on)
 
 /*
  * Copyright 2017 Cheng Cao
@@ -18,21 +16,21 @@
  * limitations under the License.
  */
 
-// =============================================================================
-//  PLEASE FOLLOW THE LICENSE AND PLEASE DO NOT REMOVE THE LICENSE HEADER
-// =============================================================================
-//  ANY USE OF THE SHADER ONLINE OR OFFLINE IS CONSIDERED AS INCLUDING THE CODE
-//  IF YOU DOWNLOAD THE SHADER, IT MEANS YOU AGREE AND OBSERVE THIS LICENSE
-// =============================================================================
+//varying vec3 sunLight;
 
-varying vec2 texcoord;
+//varying vec3 ambientU;
 
-#define _VERTEX_SHADER_
-#include "Utilities.glsl.frag"
+#include "libs/atmosphere.glsl"
 
-void main() {
-	gl_Position = ftransform();
-	texcoord = gl_MultiTexCoord0.st;
+uniform mat4 gbufferModelViewInverse;
+uniform vec3 sunPosition;
+/*
+void functions() {
+  vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
+  sunLight = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra);
 
-	calcCommons();
+  ambientU = scatter(vec3(0., 25e2, 0.), vec3(0.0, 1.0, 0.0), worldLightPosition, Ra);
 }
+
+#define Functions*/
+#include "libs/DeferredCommon.vert"

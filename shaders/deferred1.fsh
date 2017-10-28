@@ -23,6 +23,8 @@ varying vec2 uv;
 
 #include "GlslConfig"
 
+//#define DIRECTIONAL_LIGHTMAP
+
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
 #include "libs/encoding.glsl"
@@ -33,12 +35,10 @@ varying vec2 uv;
 
 Mask mask;
 Material frag;
+//LightSourcePBR sun;
+//LightSourceHarmonics ambient;
 
-#define CrespecularRays
 #include "libs/atmosphere.glsl"
-
-varying vec3 sunLight;
-varying vec3 ambientU;
 
 void main() {
   vec3 color = texture2D(gaux2, uv).rgb;
@@ -51,16 +51,12 @@ void main() {
   vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 
   if (!mask.is_sky) {
-    float fog_coord = min(length(frag.wpos) / 512.0, 1.0);
-    color *= 1.0 - fog_coord * 0.8;
-    vec3 direction = normalize(frag.wpos + vec3(0.0, cameraPosition.y - 75.0, 0.0));
-
-    float vl_raw;
-    float lit_distance = VL(uv, frag.wpos, vl_raw);
-
-    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), direction, worldLightPosition, 6365e3 + fog_coord * 15e3) * lit_distance;
+    vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
+    vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.61, 0.0)), wN);
+    color += light_calc_PBR_IBL(reflected, frag, scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra));
   }
 
-/* DRAWBUFFERS:5 */
-  gl_FragData[0] = vec4(color, 0.0);
+/* DRAWBUFFERS:56 */
+gl_FragData[0] = vec4(color, 0.0);
+gl_FragData[1] = vec4(color, 0.0);
 }

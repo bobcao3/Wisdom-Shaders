@@ -1,15 +1,23 @@
 #ifndef _INCLUDE_LIGHT
 #define _INCLUDE_LIGHT
 
-//#include "Material.frag.glsl"
-#include "Utilities.glsl.frag"
-
 //==============================================================================
 // Definitions
 //==============================================================================
 
 struct LightSource {
 	vec3 color;
+	float attenuation;
+};
+
+struct LightSourceHarmonics {
+	vec3 color0;
+	vec3 color1;
+	vec3 color2;
+	vec3 color3;
+	vec3 color4;
+	vec3 color5;
+
 	float attenuation;
 };
 
@@ -26,6 +34,20 @@ vec3 light_calc_diffuse(LightSource Li, Material mat) {
 	return Li.attenuation * mat.albedo * Li.color;
 }
 
+vec3 light_calc_diffuse_harmonics(LightSourceHarmonics Li, Material mat, vec3 N) {
+	vec3 x;
+
+	x  = (0.5 * dot(N, vec3( 1.0, 0.0, 0.0)) + 0.5) * Li.color1;
+	x += (0.5 * dot(N, vec3(-1.0, 0.0, 0.0)) + 0.5) * Li.color2;
+	x += (0.5 * dot(N, vec3( 0.0, 0.0, 1.0)) + 0.5) * Li.color3;
+	x += (0.5 * dot(N, vec3( 0.0, 0.0,-1.0)) + 0.5) * Li.color4;
+	x += (0.5 * dot(N, vec3( 0.0, 1.0, 0.0)) + 0.5) * Li.color0;
+	x += (0.5 * dot(N, vec3( 0.0,-1.0, 0.0)) + 0.5) * Li.color5;
+	x *= 0.3333333;
+
+	return Li.attenuation * mat.albedo * x;
+}
+
 float light_mclightmap_attenuation(in float l) {
 	float light_distance = clamp((1.0 - pow(l, 4.6)), 0.08, 1.0);
 	const float max_light = 100.0;
@@ -38,19 +60,8 @@ float light_mclightmap_attenuation(in float l) {
 	return clamp(pow(light_constant1 / light_distance, light_quadratic) + l * light_constant_linear - light_constant2, 0.0, max_light);
 }
 
-// #define FAKE_GI_REFLECTION
-
-float light_mclightmap_simulated_GI(in float Ld, in vec3 L, in vec3 N) {
-	float simulatedGI = 0.4 * (-1.333 / (3.0 * pow(Ld, 3.0) + 1.0) + 1.333);
-
-	#ifdef FAKE_GI_REFLECTION
-	vec3 sunRef = reflect(L, upVec);
-	simulatedGI *= 1.5 + 0.5 * max(0.0, dot(sunRef, N));
-	#else
-	simulatedGI *= 2.0;
-	#endif
-
-	return simulatedGI;
+float light_mclightmap_simulated_GI(in float Ld) {
+ 	return 0.5 * (-1.333 / (3.0 * pow(Ld, 2.0) + 1.0) + 1.333);
 }
 
 //==============================================================================
@@ -63,7 +74,7 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 	shadowposition /= shadowposition.w;
 
 	float distb = length(shadowposition.xy);
-	float distortFactor = negShadowBias + distb * SHADOW_MAP_BIAS;
+	float distortFactor = negShadowBias + distb * 0.85;
 	shadowposition.xy /= distortFactor;
 
 	return shadowposition.xyz * 0.5f + 0.5f;
@@ -97,7 +108,7 @@ float shadowTexSmooth(in sampler2D s, in vec3 spos, in float bias, out float dep
 
 #define VARIANCE_SHADOW_MAPS
 
-float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float thickness) {
+float light_fetch_shadow(in sampler2D smap, in float bias, in vec3 spos, out float thickness) {
 	float shade = 0.0; thickness = 0.0;
 
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return shade;
@@ -108,10 +119,10 @@ float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float 
 
 		float a = 0.0;
 		float xs = 0.0;
-		float n = bayer_4x4(texcoord.st, vec2(viewWidth, viewHeight));
+		float n = bayer_4x4(uv, vec2(viewWidth, viewHeight));
 		for (int i = -1; i < 2; i++) {
 			for (int j = -1; j < 2; j++) {
-				vec2 offset = vec2(i, j) * (fract(n + i * j * 0.17) * (1.0 + cloud_coverage * 2.0) * 0.7 + 0.3);
+				vec2 offset = vec2(i, j) * (fract(n + i * j * 0.17) * 0.7 + 0.3);
 				a = texture2D(smap, spos.st + offset * 0.001f).x + bias * (1.0 + n);
 				M2 += a * a;
 				M1 += a;
@@ -132,10 +143,10 @@ float light_fetch_shadow(sampler2D smap, in float bias, in vec3 spos, out float 
 		thickness = distance(spos.z, M1) * 64.0 * shade;
 		#else
 		float avd = 0.0;
-		float n = bayer_4x4(texcoord.st, vec2(viewWidth, viewHeight));
+		float n = bayer_4x4(uv, vec2(viewWidth, viewHeight));
 		for (int i = -1; i < 2; i++) {
 			for (int j = -1; j < 2; j++) {
-				vec2 offset = vec2(i, j) * (fract(n + i * j * 0.17) * (1.0 + cloud_coverage * 2.0) * 0.7 + 0.3);
+				vec2 offset = vec2(i, j) * (fract(n + i * j * 0.17) * 0.7 + 0.3);
 				float shadowDepth = texture2D(smap, spos.st + offset * 0.001f).x + bias * (1.0 + n);
 				avd += shadowDepth;
 				shade += float(shadowDepth + bias < spos.z);
@@ -225,10 +236,10 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 float lightmap_normals(vec3 N, float lm, vec3 tangent, vec3 binormal, vec3 normal) {
 	if (lm < 0.0001 || lm > 0.98) return 1.0;
 
-	float dither = bayer_64x64(texcoord, vec2(viewWidth, viewHeight)) * 0.1 - 0.05;
+	//float dither = bayer_64x64(uv, vec2(viewWidth, viewHeight)) * 0.1 - 0.05;
 
-	float Lx = dFdx(lm) * 120.0 + dither;
-	float Ly = dFdy(lm) * 120.0 - dither;
+	float Lx = dFdx(lm) * 120.0;// + dither;
+	float Ly = dFdy(lm) * 120.0;// - dither;
 
 	vec3 TL = normalize(vec3(Lx * tangent + 0.0005 * normal + Ly * binormal));
 
@@ -326,7 +337,7 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal) {
 		if(sampleDepth < testDepth + 0.00005 && testDepth - sampleDepth < 0.000976 * (1.0 + testDepth * 200.0 + float(i))){
 			float flag = texture2D(gaux1, uv).a;
 			if (flag < 0.71f || flag > 0.79f) {
-				hitColor.rgb = max(vec3(0.0), texture2DLod(composite, uv, int(metal * 3.0)).rgb);
+				hitColor.rgb = max(vec3(0.0), texture2DLod(gaux2, uv, int(metal * 3.0)).rgb);
 				hitColor.a = 1.0;
 			} else { hitColor.a = 0.0; }
 
@@ -338,7 +349,7 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal) {
 	if (!hit) {
 		float flag = texture2D(gaux1, uv).a;
 		if (flag < 0.71f || flag > 0.79f) {
-			hitColor = vec4(max(vec3(0.0), texture2DLod(composite, uv, int(metal * 3.0)).rgb), 0.0);
+			hitColor = vec4(max(vec3(0.0), texture2DLod(gaux2, uv, int(metal * 3.0)).rgb), 0.0);
 			hitColor.a = 1.0;
 		}
 	}

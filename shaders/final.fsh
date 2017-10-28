@@ -1,141 +1,47 @@
 #version 120
-#include "compat.glsl"
-#pragma optimize (on)
 
-varying vec2 tex;
-vec2 texcoord = tex;
+/*
+ * Copyright 2017 Cheng Cao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+varying vec2 uv;
+
+const int RGBA8 = 0, R11_G11_B10 = 1, R8 = 2, RGBA16F = 3, RGBA16 = 4, RG16 = 5;
+
+const int colortex0Format = RGBA8;
+const int colortex1Format = RGBA8;
+const int colortex2Format = RGBA16;
+const int colortex3Format = RGBA8;
+const int gaux1Format = RGBA16;
+const int gaux2Format = R11_G11_B10;
+const int gaux3Format = RGBA16F;
+const int gaux4Format = RGBA8;
 
 #include "GlslConfig"
 
-#define MOTION_BLUR
-#define BLOOM
+#define VIGNETTE
 
-#include "CompositeUniform.glsl.frag"
-#include "Utilities.glsl.frag"
-#include "Effects.glsl.frag"
+#include "libs/uniforms.glsl"
+#include "libs/color.glsl"
 
-//#define BLACK_AND_WHITE
-
-#define LF
-#ifdef LF
-// =========== LF ===========
-
-uniform float aspectRatio;
-
-varying float sunVisibility;
-varying vec2 lf1Pos;
-varying vec2 lf2Pos;
-varying vec2 lf3Pos;
-varying vec2 lf4Pos;
-
-#define MANHATTAN_DISTANCE(DELTA) abs(DELTA.x)+abs(DELTA.y)
-
-#define LENS_FLARE(COLOR, UV, LFPOS, LFSIZE, LFCOLOR) { \
-				vec2 delta = UV - LFPOS; delta.x *= aspectRatio; \
-				if(MANHATTAN_DISTANCE(delta) < LFSIZE * 2.0) { \
-					float d = max(LFSIZE - sqrt(dot(delta, delta)), 0.0); \
-					COLOR += LFCOLOR.rgb * LFCOLOR.a * smoothstep(0.0, LFSIZE * 0.25, d) * sunVisibility;\
-				} }
-
-#define LF1SIZE 0.026
-#define LF2SIZE 0.03
-#define LF3SIZE 0.05
-
-const vec4 LF1COLOR = vec4(1.0, 1.0, 1.0, 0.05);
-const vec4 LF2COLOR = vec4(1.0, 0.6, 0.4, 0.03);
-const vec4 LF3COLOR = vec4(0.2, 0.6, 0.8, 0.05);
-
-vec3 lensFlare(vec3 color, vec2 uv) {
-	if(sunVisibility <= 0.0)
-		return color;
-	LENS_FLARE(color, uv, lf1Pos, LF1SIZE, (LF1COLOR * vec4(suncolor, 1.0) * (1.0 - extShadow)));
-	LENS_FLARE(color, uv, lf2Pos, LF2SIZE, (LF2COLOR * vec4(suncolor, 1.0) * (1.0 - extShadow)));
-	LENS_FLARE(color, uv, lf3Pos, LF3SIZE, (LF3COLOR * vec4(suncolor, 1.0) * (1.0 - extShadow)));
-	return color;
-}
-
-#endif
-// ==========================
-
-#define SATURATION 2.0 // [0.6 1.0 1.5 2.0]
-
-#define SCREEN_RAIN_DROPS
-#define DISTORTION_FIX
-
-uniform float nightVision;
-uniform float blindness;
-
-//uniform float aspectRatio;
-
-#ifdef DISTORTION_FIX
-varying vec3 vUV;
-varying vec2 vUVDot;
-#endif
+uniform float screenBrightness;
 
 void main() {
-	#ifdef DISTORTION_FIX
-	vec3 distort = dot(vUVDot, vUVDot) * vec3(-0.5, -0.5, -1.0) + vUV;
-	texcoord = distort.xy / distort.z;
-	#endif
-	#ifdef SCREEN_RAIN_DROPS
-	float real_strength = rainStrength * smoothstep(0.8, 1.0, float(eyeBrightness.y) / 240.0);
-	if (rainStrength > 0.0) {
-		vec2 adj_tex = texcoord * vec2(aspectRatio, 1.0);
-		float n = noise((adj_tex + vec2(0.1, 1.0) * frameTimeCounter) * 2.0);
-		n -= 0.6 * abs(noise((adj_tex * 2.0 + vec2(0.1, 1.0) * frameTimeCounter) * 3.0));
-		n *= (n * n) * (n * n);
-		n *= real_strength * 0.007;
-		vec2 uv = texcoord + vec2(n, -n);
-		texcoord = mix(uv, texcoord, pow(abs(uv - vec2(0.5)) * 2.0, vec2(2.0)));
-	}
-	#endif
+  vec3 color = texture2D(gaux2, uv).rgb;
 
-	#ifdef EIGHT_BIT
-	vec3 color;
-	bit8(color);
-	#else
-	vec3 color = texture2D(composite, texcoord).rgb;
-	#endif
+  ACEStonemap(color, screenBrightness * 0.5 + 1.0);
 
-	#ifdef MOTION_BLUR
-	if (texture2D(gaux1, texcoord).a > 0.11) motion_blur(composite, color, texcoord, fetch_vpos(texcoord, depthtex0).xyz);
-	#endif
-
-	#ifdef DOF
-	dof(color);
-	#endif
-
-	float exposure = get_exposure();
-
-	#ifdef BLOOM
-	vec3 b = bloom(color);
-	color += max(vec3(0.0), b) * exposure * (1.0 + float(isEyeInWater));
-	#endif
-
-	#ifdef LF
-	color = lensFlare(color, texcoord);
-	#endif
-
-	// This will turn it into gamma space
-	#ifdef BLACK_AND_WHITE
-	color = vec3(luma(color));
-	#endif
-
-	#ifdef NOISE_AND_GRAIN
-	noise_and_grain(color);
-	#endif
-
-	#ifdef FILMIC_CINEMATIC
-	filmic_cinematic(color);
-	#endif
-
-	tonemap(color, exposure);
-	// Apply night vision gamma
-	color = pow(color, vec3(1.0 - nightVision * 0.6));
-	// Apply blindness
-	color = pow(color, vec3(1.0 + blindness));
-
-	saturation(color, SATURATION);
-
-	gl_FragColor = vec4(color, 1.0f);
+  gl_FragColor = vec4(toGamma(color),1.0);
 }

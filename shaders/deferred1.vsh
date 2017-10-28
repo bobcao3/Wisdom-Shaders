@@ -16,4 +16,18 @@
  * limitations under the License.
  */
 
+varying vec3 sunLight;
+
+varying vec3 ambientU;
+varying vec3 ambient0;
+varying vec3 ambient1;
+varying vec3 ambient2;
+varying vec3 ambient3;
+varying vec3 ambientD;
+
+#include "libs/atmosphere.glsl"
+
+uniform mat4 gbufferModelViewInverse;
+uniform vec3 sunPosition;
+
 #include "libs/DeferredCommon.vert"

@@ -23,7 +23,7 @@
 
 #version 120
 
-#include "compat.glsl"
+#include "libs/compat.glsl"
 
 #pragma optimize(on)
 
@@ -49,11 +49,11 @@ varying vec3 tangent;
 varying vec3 binormal;
 #endif
 
-#define WAVING_FOILAGE
+#include "libs/encoding.glsl"
 
 void main() {
 	color = gl_Color;
-	
+
 	normal = gl_NormalMatrix * gl_Normal;
 
 	#ifdef NORMALS

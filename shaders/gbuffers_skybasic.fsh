@@ -24,8 +24,10 @@
 #version 120
 #pragma optimize(on)
 
-/* DRAWBUFFERS:02 */
+#include "libs/encoding.glsl"
+
+/* DRAWBUFFERS:04 */
 void main() {
 	gl_FragData[0] = vec4(1.0);
-	gl_FragData[1] = vec4(0.0, 0.0, 0.2, 1.0);
+	gl_FragData[1] = vec4(0.0, 0.0, airFlag, 1.0);
 }

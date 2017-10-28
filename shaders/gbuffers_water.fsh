@@ -26,21 +26,25 @@
 
 uniform sampler2D tex;
 
-varying vec2 normal;
-varying vec4 coords;
+varying vec4 data;
+varying vec2 uv;
+varying vec3 uv1;
 
-#define texcoord coords.rg
-#define skyLight coords.b
-#define iswater coords.a
+#include "libs/uniforms.glsl"
+#include "libs/encoding.glsl"
+#include "libs/color.glsl"
 
-/* DRAWBUFFERS:71 */
+/* DRAWBUFFERS:5 */
 void main() {
 	vec4 color = vec4(0.0);
-	if (iswater > 0.78f && iswater < 0.8f)
-		color = vec4(vec3(0.0537,0.3562,0.5097) * skyLight * 0.2, 1.0);
-	else
-		color = texture2D(tex, texcoord);
-	
+	if (maskFlag(data.b, waterFlag)) {
+		color = texture2D(gaux3, uv1.st);
+
+		color = vec4(mix(color.rgb, vec3(0.0537,0.3562,0.5097), 0.2), 1.0);
+	} else {
+		color = texture2D(tex, uv);
+		color = fromGamma(color);
+	}
+
 	gl_FragData[0] = color;
-	gl_FragData[1] = vec4(normal, iswater, 1.0);
 }

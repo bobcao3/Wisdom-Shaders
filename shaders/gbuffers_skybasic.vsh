@@ -24,9 +24,6 @@
 #version 120
 #pragma optimize(on)
 
-#include "gbuffers.inc.vsh"
-
-
-VSH {
+void main() {
 	gl_Position = ftransform();
 }

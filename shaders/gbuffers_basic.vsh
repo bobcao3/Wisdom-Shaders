@@ -26,9 +26,7 @@
 
 varying vec4 color;
 
-#include "gbuffers.inc.vsh"
-
-VSH {
+void main() {
 	color = gl_Color;
 	gl_Position = ftransform();
 }

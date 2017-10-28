@@ -23,7 +23,7 @@
 
 #version 120
 
-#include "compat.glsl"
+#include "libs/compat.glsl"
 
 #pragma optimize(on)
 
@@ -55,10 +55,9 @@ varying f16vec3 binormal;
 #else
 f16vec3 tangent;
 f16vec3 binormal;
-
-f16vec2 normalEncode(f16vec3 n) {return sqrt(-n.z*0.125f+0.125f) * normalize(n.xy) + 0.5f;}
-varying vec2 n2;
 #endif
+
+varying vec2 nflat;
 
 #define ParallaxOcclusion
 #ifdef ParallaxOcclusion
@@ -76,17 +75,19 @@ uniform vec3 shadowLightPosition;
 
 #define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
+#include "libs/encoding.glsl"
+
 void main() {
 	color = gl_Color;
-	
+
 	normal = gl_NormalMatrix * gl_Normal;
 
 	tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
-    binormal = cross(tangent, normal);
+  binormal = cross(tangent, normal);
 
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
-	flag = 0.7;
+	flag = terrianFlag;
 
 	#ifdef WAVING_FOILAGE
 	float maxStrength = 1.0 + rainStrength * 0.5;
@@ -103,7 +104,7 @@ void main() {
 		}
 		#endif
 		color.a *= 0.4;
-		flag = 0.50;
+		flag = foilage1Flag;
 	} else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0) {
 		#ifdef WAVING_FOILAGE
 		float rand_ang = hash(position.xz);
@@ -111,8 +112,8 @@ void main() {
 		reset = max( reset * reset, max(rainStrength, 0.1));
 		position.xyz += (sin(rand_ang * 5.0 + time + position.y) * 0.035 + 0.035) * (reset * maxStrength) * tangent;
 		#endif
-		flag = 0.50;
-	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115) flag = 0.51;
+		flag = foilage1Flag;
+	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115) flag = foilage2Flag;
 
 	position = gl_ModelViewMatrix * position;
 	vec3 wpos = position.xyz;
@@ -127,10 +128,8 @@ void main() {
 	sun = TBN * normalize(shadowLightPosition);
 	#endif
 	#endif
-	
-	#ifndef NORMALS
-	n2 = normalEncode(normal);
-	#endif
-	
+
+	nflat = normalEncode(normal);
+
 	dis = length(wpos);
 }
