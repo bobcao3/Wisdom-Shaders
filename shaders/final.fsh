@@ -18,16 +18,16 @@
 
 varying vec2 uv;
 
-const int RGBA8 = 0, R11_G11_B10 = 1, R8 = 2, RGBA16F = 3, RGBA16 = 4, RG16 = 5;
+const int RGBA8 = 0, R11_G11_B10 = 1, R8 = 2, RGBA16F = 3, RGBA16 = 4, RGBA32F = 5;
 
 const int colortex0Format = RGBA8;
 const int colortex1Format = RGBA8;
 const int colortex2Format = RGBA16;
-const int colortex3Format = RGBA8;
+const int colortex3Format = RGBA16;
 const int gaux1Format = RGBA16;
 const int gaux2Format = R11_G11_B10;
 const int gaux3Format = RGBA16F;
-const int gaux4Format = RGBA8;
+const int gaux4Format = RGBA16;
 
 #include "GlslConfig"
 
@@ -35,13 +35,31 @@ const int gaux4Format = RGBA8;
 
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
+#include "libs/Effects.glsl"
 
 uniform float screenBrightness;
 
-void main() {
-  vec3 color = texture2D(gaux2, uv).rgb;
+#define DISTORTION_FIX
+#ifdef DISTORTION_FIX
+varying vec3 vUV;
+varying vec2 vUVDot;
+#endif
 
-  ACEStonemap(color, screenBrightness * 0.5 + 1.0);
+void main() {
+	#ifdef DISTORTION_FIX
+	vec3 distort = dot(vUVDot, vUVDot) * vec3(-0.5, -0.5, -1.0) + vUV;
+	vec2 uv_adj = distort.xy / distort.z;
+	#else
+	vec2 uv_adj = uv;
+	#endif
+
+	vec3 color = applyEffect(1.0, 1.0,
+		0.0, -0.2, 0.0,
+		-0.2, 1.8, -0.2,
+		0.0, -0.2, 0.0,
+		gaux2, uv_adj);
+
+  ACEStonemap(color, screenBrightness * 0.5 + 1.5);
 
   gl_FragColor = vec4(toGamma(color),1.0);
 }

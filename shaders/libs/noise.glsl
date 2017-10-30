@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#ifndef _INCLUDE_NOISE
+#define _INCLUDE_NOISE
+
 uniform sampler2D noisetex;
 
 float16_t hash(f16vec2 p) {
@@ -21,6 +24,8 @@ float16_t hash(f16vec2 p) {
 	p3 += dot(p3, p3.yzx + 19.19);
 	return fract((p3.x + p3.y) * p3.z);
 }
+
+//#define TAA
 
 float16_t noise(f16vec2 p) {
 	f16vec2 i = floor(p);
@@ -38,6 +43,9 @@ float noise_tex(in vec2 p) {
 
 float16_t bayer2(f16vec2 a){
     a = floor(a);
+		#ifdef TAA
+		a += mod(frameTimeCounter, 4) * 0.25;
+		#endif
     return fract( dot(a, vec2(.5f, a.y * .75f)) );
 }
 
@@ -66,3 +74,4 @@ float16_t bayer_32x32(in f16vec2 pos, in f16vec2 view) {
 float16_t bayer_64x64(in f16vec2 pos, in f16vec2 view) {
 	return bayer64(pos * view);
 }
+#endif

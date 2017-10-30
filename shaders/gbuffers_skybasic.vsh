@@ -24,6 +24,17 @@
 #version 120
 #pragma optimize(on)
 
+//#define TAA
+#ifdef TAA
+#include "libs/TAAjitter.glsl"
+#endif
+
 void main() {
 	gl_Position = ftransform();
+
+#ifdef TAA
+	gl_Position.xyz /= gl_Position.w;
+	TemporalJitterProjPos(gl_Position);
+	gl_Position.xyz *= gl_Position.w;
+#endif
 }

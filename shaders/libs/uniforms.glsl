@@ -41,6 +41,8 @@ uniform mat4 shadowProjectionInverse;           // inverse shadowProjection
 uniform mat4 shadowModelView;                   // modelview matrix when the shadow map was generated
 uniform mat4 shadowModelViewInverse;            // inverse shadowModelView
 
+uniform int frameCounter;
+#define frameCounter
 uniform float frameTimeCounter;                 // run time, seconds (resets to 0 after 3600s)
 uniform float sunAngle;                         // 0.0-1.0
 uniform float shadowAngle;                      // 0.0-1.0

@@ -50,7 +50,7 @@ void material_build(
 }
 
 void material_sample(out Material mat, in vec2 uv, out float flag) {
-	vec4 vpos = fetch_vpos(uv, depthtex1);
+	vec4 vpos = fetch_vpos(uv, depthtex0);
 	vec3 normal = texture2D(gaux1, uv).rgb;
   flag = normal.b;
   normal = normalDecode(normal.rg);
@@ -77,13 +77,15 @@ struct Mask {
 	bool is_trans;
 	bool is_plant;
 	bool is_sky;
+	bool is_sky_object;
 	bool is_entity;
 };
 
 void init_mask(inout Mask m, in float flag, in vec2 uv) {
 	m.flag = flag;
 
-	m.is_sky = maskFlag(flag, airFlag);
+	m.is_sky_object = maskFlag(flag, skyObjectFlag);
+	m.is_sky = maskFlag(flag, airFlag) || m.is_sky_object;
 	m.is_water = maskFlag(flag, waterFlag);
 	m.is_trans = maskFlag(flag, transparentFlag);
 	m.is_valid = flag > 0.01;

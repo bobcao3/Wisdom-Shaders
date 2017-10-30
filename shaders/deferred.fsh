@@ -81,9 +81,6 @@ void main() {
     color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN);
   } else {
     vec3 nwpos = normalize(frag.wpos + vec3(0.0, cameraPosition.y - 64.0, 0.0));
-    //float att = max(dot(nwpos, normalize(100.0 * worldLightPosition - nwpos)), 0.0);
-    //att = 2.0 - sqrt(1 - att * att);
-    //vec3 c = vec3(1.0) * (1.0 / pow(vec3(0.700, 0.540, 0.400), vec3(4.0))) * 0.01 * att;
     color = scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
   }
 

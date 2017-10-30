@@ -40,6 +40,8 @@ Material frag;
 varying vec3 sunLight;
 varying vec3 ambientU;
 
+const bool gaux4Clear = false;
+
 void main() {
   vec3 color = texture2D(gaux2, uv).rgb;
 
@@ -61,6 +63,8 @@ void main() {
     color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), direction, worldLightPosition, 6365e3 + fog_coord * 15e3) * lit_distance;
   }
 
-/* DRAWBUFFERS:5 */
-  gl_FragData[0] = vec4(color, 0.0);
+/* DRAWBUFFERS:357 */
+  gl_FragData[0] = texture2D(gaux4, uv); // TXAA
+  gl_FragData[1] = vec4(color, 1.0);
+  gl_FragData[2] = vec4(color, 1.0);
 }

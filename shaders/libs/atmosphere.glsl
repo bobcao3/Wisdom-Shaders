@@ -52,7 +52,7 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 
 	float dl = L / float(steps);
 	for (int i = 0; i < steps; ++i) {
-		float l = float(i) * dl;
+		float l = (float(i) + ) * dl;
 		vec3 p = o + d * l;
 
 		float dR, dM;

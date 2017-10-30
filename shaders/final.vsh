@@ -16,4 +16,43 @@
  * limitations under the License.
  */
 
-#include "libs/DeferredCommon.vert"
+#define DISTORTION_FIX
+#ifdef DISTORTION_FIX
+uniform mat4 gbufferProjection;
+
+const float strength = 1.0;
+const float cylindricalRatio = 1.0;
+uniform float aspectRatio;
+
+uniform bool isEyeInWater;
+
+varying vec3 vUV;
+varying vec2 vUVDot;
+#endif
+
+varying vec2 uv;
+
+void main() {
+  gl_Position = ftransform();
+
+  uv = gl_MultiTexCoord0.st;
+
+  #ifdef DISTORTION_FIX
+	float fov = atan(1./gbufferProjection[1][1]);
+	if (isEyeInWater) fov *= 0.85;
+	float height = tan(fov / aspectRatio * 0.5);
+
+	float scaledHeight = strength * height;
+	float cylAspectRatio = aspectRatio * cylindricalRatio;
+	float aspectDiagSq = aspectRatio * aspectRatio + 1.0;
+	float diagSq = scaledHeight * scaledHeight * aspectDiagSq;
+	vec2 signedUV = (2.0 * uv + vec2(-1.0, -1.0));
+
+	float z = 0.5 * sqrt(diagSq + 1.0) + 0.5;
+	float ny = (z - 1.0) / (cylAspectRatio * cylAspectRatio + 1.0);
+
+	vUVDot = sqrt(ny) * vec2(cylAspectRatio, 1.0) * signedUV;
+	vUV = vec3(0.5, 0.5, 1.0) * z + vec3(-0.5, -0.5, 0.0);
+	vUV.xy += uv;
+	#endif
+}

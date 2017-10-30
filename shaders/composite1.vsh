@@ -22,15 +22,4 @@
 
 #include "libs/atmosphere.glsl"
 
-uniform mat4 gbufferModelViewInverse;
-uniform vec3 sunPosition;
-/*
-void functions() {
-  vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
-  sunLight = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra);
-
-  ambientU = scatter(vec3(0., 25e2, 0.), vec3(0.0, 1.0, 0.0), worldLightPosition, Ra);
-}
-
-#define Functions*/
 #include "libs/DeferredCommon.vert"

@@ -23,51 +23,54 @@ varying vec2 uv;
 
 #include "GlslConfig"
 
-//#define DIRECTIONAL_LIGHTMAP
-
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
 #include "libs/encoding.glsl"
 #include "libs/vectors.glsl"
 #include "libs/Material.frag"
 #include "libs/noise.glsl"
-#include "libs/Lighting.frag"
+//#include "libs/Lighting.frag"
 
 Mask mask;
 Material frag;
-//LightSourcePBR sun;
-//LightSourceHarmonics ambient;
 
-#include "libs/atmosphere.glsl"
+//#define CrespecularRays
+//#include "libs/atmosphere.glsl"
+
+//#define TAA
 
 void main() {
   vec3 color = texture2D(gaux2, uv).rgb;
+  vec4 taa = vec4(0.0);
 
   float flag;
   material_sample(frag, uv, flag);
 
   init_mask(mask, flag, uv);
 
-  vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
+  #ifdef TAA
+  float TAA_weight = 0.3;
+  vec4 prev_pos = vec4(frag.wpos + cameraPosition - previousCameraPosition, 1.0);
+  prev_pos = gbufferPreviousModelView * prev_pos;
+  vec4 prev_vpos = prev_pos;
+  prev_pos = gbufferPreviousProjection * prev_pos;
+  prev_pos /= prev_pos.w;
 
-  if (!mask.is_sky) {
-    vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
-    vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.61, 0.0)), wN);
-    vec3 reflectedV = reflect(frag.vpos, frag.N);
+  vec2 uv1 = prev_pos.st * 0.5 + 0.5;
+  if (uv1.x < 0.001 || uv1.x > 0.999 || uv1.y < 0.001 || uv1.y > 0.999) TAA_weight = 1.0;
+  vec4 prev_col = texture2D(colortex3, uv1);
 
-    vec4 ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic);
-    if (ray_traced.a < 0.9) {
-      ray_traced.rgb = mix(
-        scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra),
-        ray_traced.rgb,
-        ray_traced.a
-      );
-    }
+  float depth = texture2D(depthtex0, uv).r;
 
-    color += light_calc_PBR_IBL(reflected, frag, ray_traced.rgb);
-  }
+  vec4 vpos_prev = fetch_vpos(uv1, prev_col.a);
+  TAA_weight = max(TAA_weight, smoothstep(0.0, distance(prev_pos.z, frag.vpos.z) * 0.005, distance(linearizeDepth(depth), linearizeDepth(prev_col.a))));
+  //TAA_weight = max(TAA_weight, min(abs(luma(color) - luma(prev_col.rgb)) * 2.0, 1.0));
 
-/* DRAWBUFFERS:56 */
+  color = mix(prev_col.rgb, color, TAA_weight);
+  taa = vec4(color, depth);
+  #endif
+
+/* DRAWBUFFERS:57 */
   gl_FragData[0] = vec4(color, 0.0);
-  gl_FragData[1] = vec4(color, 0.0);
+  gl_FragData[1] = taa;
 }

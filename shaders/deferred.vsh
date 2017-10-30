@@ -31,6 +31,11 @@ varying vec3 ambientD;
 uniform mat4 gbufferModelViewInverse;
 uniform vec3 sunPosition;
 
+//#define TAA
+#ifdef TAA
+#include "libs/TAAjitter.glsl"
+#endif
+
 void functions() {
   vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
   float f = pow(max(worldLightPosition.y, 0.0), 0.9);
@@ -42,6 +47,12 @@ void functions() {
   ambient2 = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  0.1,  1.0), worldLightPosition, Ra) * f;
   ambient3 = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  0.1, -1.0), worldLightPosition, Ra) * f;
   ambientD = scatter(vec3(0., 25e2, 0.), vec3( 0.0, -1.0,  0.0), worldLightPosition, Ra) * f;
+
+  #ifdef TAA
+  gl_Position.xyz /= gl_Position.w;
+  TemporalAntiJitterProjPos(gl_Position);
+  gl_Position.xyz *= gl_Position.w;
+  #endif
 }
 
 #define Functions

@@ -26,27 +26,47 @@
 
 attribute vec4 mc_Entity;
 
-varying vec4 data;
+varying float data;
 varying vec2 uv;
-varying vec3 uv1;
+varying vec3 vpos;
+
+varying vec3 N;
+varying vec3 worldLightPosition;
 
 uniform mat4 gbufferProjection;
+uniform mat4 gbufferModelViewInverse;
+uniform vec3 shadowLightPosition;
+uniform vec3 sunPosition;
 
 #include "libs/encoding.glsl"
 
+varying vec3 sunLight;
+varying vec3 ambientU;
+
+varying vec2 lmcoord;
+
+#define AT_LSTEP
+#include "libs/atmosphere.glsl"
+
 void main() {
-	data.b = (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) ? waterFlag : transparentFlag;
+	data = (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) ? waterFlag : transparentFlag;
 
 	vec4 pos = gl_Vertex;
 	pos = gl_ModelViewMatrix * pos;
 	gl_Position = gl_ProjectionMatrix * pos;
 
-	//normal = normalEncode(gl_NormalMatrix * gl_Normal);
-
 	uv = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
-	//skyLight = (gl_TextureMatrix[1] * gl_MultiTexCoord1).y;
+	vpos = pos.xyz;
 
-	vec4 clip = gbufferProjection * pos;
-	clip /= clip.w;
-	uv1 = clip.xyz * 0.5 + 0.5;
+	// ===============
+	vec3 worldSunPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
+  float f = pow(max(worldSunPosition.y, 0.0), 0.9);
+  sunLight = scatter(vec3(0., 25e2, 0.), worldSunPosition, worldSunPosition, Ra) * f;
+
+  ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldSunPosition, Ra) * f;
+
+	N = gl_NormalMatrix * gl_Normal;
+	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+
+	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition);
 }

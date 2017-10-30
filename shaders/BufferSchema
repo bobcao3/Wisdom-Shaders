@@ -5,10 +5,10 @@
 0 colortex0 : RGBA8
 1 colortex1 : RGBA8
 2 colortex2 : RGBA16 [RG: Normal, BA: lmcoord]
-3 colortex3 : RGBA8F
+3 colortex3 : RGBA16F [Non-Clear Temporal]
 4 gaux1     : RGB16 [RG: Normal, B: Flag]
 5 gaux2     : RGBA16F
-6 gaux3     :
+6 gaux3     : RGBA16F
 7 gaux4     :
 
 ================================================================================
