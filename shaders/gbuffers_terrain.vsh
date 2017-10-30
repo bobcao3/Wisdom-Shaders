@@ -77,6 +77,11 @@ uniform vec3 shadowLightPosition;
 
 #include "libs/encoding.glsl"
 
+//#define TAA
+#ifdef TAA
+#include "libs/TAAjitter.glsl"
+#endif
+
 void main() {
 	color = gl_Color;
 
@@ -117,7 +122,14 @@ void main() {
 
 	position = gl_ModelViewMatrix * position;
 	vec3 wpos = position.xyz;
-	gl_Position = gl_ProjectionMatrix * position;
+	position = gl_ProjectionMatrix * position;
+	#ifdef TAA
+	position.xyz /= position.w;
+	TemporalJitterProjPos(position);
+	position.xyz *= position.w;
+	#endif
+	gl_Position = position;
+
 	texcoord = gl_MultiTexCoord0.st;
 	lmcoord = (gl_TextureMatrix[1] *  gl_MultiTexCoord1).xy;
 
