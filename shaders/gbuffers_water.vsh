@@ -33,6 +33,12 @@ varying vec3 vpos;
 varying vec3 N;
 varying vec3 worldLightPosition;
 
+varying vec3 wN;
+varying vec3 wT;
+varying vec3 wB;
+
+varying vec3 wpos;
+
 uniform mat4 gbufferProjection;
 uniform mat4 gbufferModelViewInverse;
 uniform vec3 shadowLightPosition;
@@ -48,6 +54,8 @@ varying vec2 lmcoord;
 #define AT_LSTEP
 #include "libs/atmosphere.glsl"
 
+attribute vec4 at_tangent;
+
 void main() {
 	data = (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) ? waterFlag : transparentFlag;
 
@@ -57,6 +65,10 @@ void main() {
 
 	uv = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 	vpos = pos.xyz;
+
+	wN = normalize(mat3(gbufferModelViewInverse) * (gl_NormalMatrix * gl_Normal));
+	wT = normalize(mat3(gbufferModelViewInverse) * (gl_NormalMatrix * at_tangent.xyz));
+  wB = cross(wT, wN);
 
 	// ===============
 	vec3 worldSunPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
@@ -69,4 +81,7 @@ void main() {
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
 	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition);
+
+	vec4 p = gbufferModelViewInverse * vec4(vpos, 1.0);
+	wpos = p.xyz / p.w;
 }

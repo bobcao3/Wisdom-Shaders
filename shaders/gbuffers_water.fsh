@@ -36,6 +36,12 @@ varying vec3 ambientU;
 varying vec3 N;
 varying vec2 lmcoord;
 
+varying vec3 wN;
+varying vec3 wT;
+varying vec3 wB;
+
+varying vec3 wpos;
+
 varying vec3 worldLightPosition;
 
 #include "GlslConfig"
@@ -49,6 +55,9 @@ varying vec3 worldLightPosition;
 #include "libs/Lighting.frag"
 #include "libs/atmosphere.glsl"
 
+#define WATER_PARALLAX
+#include "libs/Water.frag"
+
 LightSourcePBR sun;
 Material frag;
 
@@ -57,58 +66,86 @@ uniform ivec2 eyeBrightness;
 /* DRAWBUFFERS:5 */
 void main() {
 	vec4 color = vec4(0.0);
-	vec3 wpos = (gbufferModelViewInverse * vec4(vpos, 1.0)).xyz;
 
-	sun.light.color = sunLight * 6.0;
-	sun.L = lightPosition;
-
-	float thickness = 1.0, shade = 0.0;
-	shade = light_fetch_shadow(shadowtex0, 0.1, wpos2shadowpos(wpos), thickness);
-	sun.light.attenuation = 1.0 - shade;
+	vec3 worldN;
 
 	if (maskFlag(data, waterFlag)) {
-		vec4 p = gbufferProjection * vec4(vpos, 1.0);
-		p /= p.w;
-		vec2 uv1 = p.st * 0.5 + 0.5;
+		// Water Rendering starts here
+		vec4 p = gbufferProjection * vec4(vpos, 1.0);  // Reproject vpos to clip pos
+		p /= p.w;                                      //
+		vec2 uv1 = p.st * 0.5 + 0.5;                   // Clip pos to UV
 
-		color = texture2D(gaux3, uv1.st);
+		color = texture2D(gaux3, uv1.st);                       // Read deferred state composite
+		float land_depth = texture2D(depthtex0, uv1.st).r;      // Read deferred state depth
+		vec3 land_vpos = fetch_vpos(uv1.st, land_depth).xyz;    // Read deferred state vpos
 
-		vec3 land_vpos = fetch_vpos(uv1.st, depthtex0).xyz;
+		float dist_diff = distance(land_vpos, vpos);            // Distance difference - raw (Water absorption)
+		float dist_diff_N = min(1.0, dist_diff * 0.0625);       // Distance clamped (0.0 ~ 1.0)
+		if (land_depth > 0.9999) dist_diff_N = 1.0;             // Clamp out the sky behind
 
-		float dist_diff = distance(land_vpos, vpos);
-		float dist_diff_N = min(1.0, dist_diff * 0.0625);
-
-		float absorption = 2.0 / (dist_diff_N + 1.0) - 1.0;
-		vec3 watercolor = color.rgb * pow(vec3(absorption), vec3(2.0, 0.8, 1.0));
-		float light_att = lmcoord.y;
+		float absorption = 2.0 / (dist_diff_N + 1.0) - 1.0;     // Water absorption factor
+		vec3 watercolor = color.rgb
+		   * pow(vec3(absorption), vec3(2.0, 0.8, 1.0))         // Water absorption color
+			 * (max(dot(lightPosition, N), 0.0) * 0.8 + 0.2);     // Scatter-in factor
+		float light_att = lmcoord.y;                            // Sky scatter factor
 		vec3 waterfog = max(luma(ambientU), 0.0) * light_att * vec3(0.1,0.7,0.8);
+
+		// Refraction color composite
 		color = vec4(mix(waterfog, watercolor, pow(absorption, 2.0)), 1.0);
 
+		// Build material
 		material_build(
 			frag,
 			vpos, wpos, N, N,
 			vec3(1.0), vec3(0.98,0.1,0.0), lmcoord);
 
-		color.rgb += light_calc_PBR_brdf(sun, frag);
+		// Waving water & parallax
+		WaterParallax(frag.wpos, 1.0, wN);
+		frag.vpos = (gbufferModelView * vec4(frag.wpos, 1.0)).xyz;
+		frag.nvpos = normalize(frag.nvpos);
+
+		float16_t wave = getwave2(frag.wpos + cameraPosition, 1.0);
+		worldN = get_water_normal(frag.wpos + cameraPosition, wave, 1.0, wN, wT, wB);
+		frag.N = mat3(gbufferModelView) * worldN;
+
+		// Parallax cut-out (depth test)
+		if (frag.vpos.z < land_vpos.z) discard;
 	} else {
+		// Glass / Other transperancy render
+		worldN = wN;
+
+		// Get material texture
 		color = texture2D(tex, uv);
 		color = vec4(fromGamma(color.rgb), color.a);
 
+		// Build material
 		material_build(
 			frag,
 			vpos, wpos, N, N,
 			color.rgb, vec3(0.9,0.6,0.0), lmcoord);
+	}
 
+	// Setup Sun object
+	sun.light.color = sunLight * 6.0;
+	sun.L = lightPosition;
+
+	float thickness = 1.0, shade = 0.0;
+	shade = light_fetch_shadow(shadowtex0, 0.1, wpos2shadowpos(frag.wpos), thickness);
+	sun.light.attenuation = 1.0 - shade;
+
+	// PBR lighting (Diffuse + brdf)
+	if (maskFlag(data, waterFlag)) {
+		color.rgb += light_calc_PBR_brdf(sun, frag);
+	} else {
 		color.rgb = light_calc_PBR(sun, frag, 1.0);
 	}
 
-	vec3 wN = mat3(gbufferModelViewInverse) * N;
-	vec3 reflected = reflect(normalize(wpos - vec3(0.0, 1.61, 0.0)), wN);
-	vec3 reflectedV = reflect(vpos, N);
+	// IBL reflection
+	vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.62, 0.0)), worldN);
+	vec3 reflectedV = reflect(vpos, frag.N);
 
-	vec4 ray_traced = ray_trace_ssr(reflectedV, vpos, frag.metalic);
-	ray_traced.a = 0.0;
-	if (ray_traced.a < 0.9) {
+	vec4 ray_traced = ray_trace_ssr(reflectedV, vpos, frag.metalic, gaux3, N);
+	if (ray_traced.a < 0.95) {
 		ray_traced.rgb = mix(
 			scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra),
 			ray_traced.rgb,
@@ -118,5 +155,6 @@ void main() {
 
 	color.rgb += light_calc_PBR_IBL(reflected, frag, ray_traced.rgb);
 
+	// Output
 	gl_FragData[0] = color;
 }
