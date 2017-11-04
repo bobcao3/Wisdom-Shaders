@@ -55,7 +55,7 @@ void main() {
     vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.61, 0.0)), wN);
     vec3 reflectedV = reflect(frag.vpos, frag.N);
 
-    vec4 ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic);
+    vec4 ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux2, frag.N);
     if (ray_traced.a < 0.9) {
       ray_traced.rgb = mix(
         scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra),

@@ -20,7 +20,7 @@
 uniform sampler2D noisetex;
 
 float16_t hash(f16vec2 p) {
-	vec3 p3 = fract(vec3(p.xyx) * 0.2031);
+	f16vec3 p3 = fract(vec3(p.xyx) * 0.2031);
 	p3 += dot(p3, p3.yzx + 19.19);
 	return fract((p3.x + p3.y) * p3.z);
 }

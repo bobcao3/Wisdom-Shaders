@@ -1,4 +1,6 @@
 #version 120
+#include "libs/compat.glsl"
+#pragma optimize(on)
 
 /*
  * Copyright 2017 Cheng Cao
@@ -49,9 +51,9 @@ void functions() {
   ambientD = scatter(vec3(0., 25e2, 0.), vec3( 0.0, -1.0,  0.0), worldLightPosition, Ra) * f;
 
   #ifdef TAA
-  gl_Position.xyz /= gl_Position.w;
-  TemporalAntiJitterProjPos(gl_Position);
-  gl_Position.xyz *= gl_Position.w;
+  //gl_Position.xyz /= gl_Position.w;
+  //TemporalAntiJitterProjPos(gl_Position);
+  //gl_Position.xyz *= gl_Position.w;
   #endif
 }
 

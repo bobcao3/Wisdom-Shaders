@@ -25,6 +25,7 @@ uniform sampler2D gaux4;
 
 uniform sampler2D depthtex0;
 uniform sampler2D depthtex1;
+uniform sampler2D depthtex2;
 
 uniform sampler2D shadowtex0;
 //uniform sampler2D shadowtex1;

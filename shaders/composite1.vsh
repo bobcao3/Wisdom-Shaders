@@ -16,10 +16,4 @@
  * limitations under the License.
  */
 
-//varying vec3 sunLight;
-
-//varying vec3 ambientU;
-
-#include "libs/atmosphere.glsl"
-
 #include "libs/DeferredCommon.vert"

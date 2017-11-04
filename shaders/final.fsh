@@ -53,11 +53,12 @@ void main() {
 	vec2 uv_adj = uv;
 	#endif
 
-	vec3 color = applyEffect(1.0, 1.0,
+/*	vec3 color = applyEffect(1.0, 1.0,
 		0.0, -0.2, 0.0,
 		-0.2, 1.8, -0.2,
 		0.0, -0.2, 0.0,
-		gaux2, uv_adj);
+		gaux2, uv_adj);*/
+	vec3 color = texture2D(gaux2, uv_adj).rgb;
 
   ACEStonemap(color, screenBrightness * 0.5 + 1.5);
 

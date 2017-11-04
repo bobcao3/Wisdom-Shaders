@@ -52,7 +52,7 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 
 	float dl = L / float(steps);
 	for (int i = 0; i < steps; ++i) {
-		float l = (float(i) + ) * dl;
+		float l = float(i) * dl;
 		vec3 p = o + d * l;
 
 		float dR, dM;
@@ -111,7 +111,7 @@ float VL(vec2 uv, vec3 owpos, out float vl) {
 
 	for (int i = 0; i < vl_loop; i++) {
 		swpos -= dir;
-		dither = fract(dither + 0.11);
+		dither = fract(cos(dither * 10.0) + 0.618);
 		vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
 		float sdepth = texture2D(shadowtex0, shadowpos.xy).x;
 
