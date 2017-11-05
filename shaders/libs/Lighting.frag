@@ -153,7 +153,7 @@ float light_fetch_shadow(in sampler2D smap, in float bias, in vec3 spos, out flo
 
 					xs += float(a < spos.z);
 
-					n = fract(cos(n) + n * 0.618);
+					n = fract(n + 0.618);
 				}
 			}
 			const float d13f = 1.0 / 13.0;
@@ -178,7 +178,7 @@ float light_fetch_shadow(in sampler2D smap, in float bias, in vec3 spos, out flo
 				avd += shadowDepth;
 				shade += float(shadowDepth + bias < spos.z);
 
-				n = fract(cos(n) + n * 0.618);
+				n = fract(n + 0.618);
 			}
 		}
 		shade /= 9.0f; avd /= 9.0f;
@@ -347,12 +347,13 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 	vec2 uv = vec2(0.0);
 	vec4 hitColor = vec4(0.0);
 
-	float h = min(0.01 * length(start), 0.25);
+	float h = 0.15;
 	bool bi = false;
-	float bayer = bayer_64x64(uv, vec2(viewWidth, viewHeight));
+	float bayer = bayer_64x64(uv, vec2(viewWidth, viewHeight)) * 0.5;
 
 	for(int i = 0; i < SSR_STEPS; i++) {
-		testPoint += direction * h;
+		testPoint += direction * h * (0.75 + bayer);
+		bayer = fract(bayer + 0.618);
 		uv = screen_project(testPoint);
 		if(clamp(uv, vec2(0.0), vec2(1.0)) != uv) {
 			hit = true;
@@ -367,11 +368,10 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 		if (bi) {
 			h = (sampleDepth - testDepth) * 0.618 * far;
 		} else {
-			h *= 1.0 + bayer;
-			bayer = fract(cos(bayer * 10.0) + bayer * 0.618);
+			h *= 1.0 + h * 0.01;
 		}
 
-		if(sampleDepth < testDepth + 0.00005 && testDepth - sampleDepth < 0.000976 * (1.0 + testDepth * 200.0)){
+		if(sampleDepth < testDepth + 0.00005 && testDepth - sampleDepth < 0.000976 * (1.0 + testDepth * 100.0)){
 			hitColor.rgb = max(vec3(0.0), texture2DLod(colorbuf, uv, int(metal * 3.0)).rgb);
 			hitColor.a = 1.0;
 
@@ -407,7 +407,7 @@ float calcAO (vec3 cNormal, float cdepth, vec3 vpos, vec2 uv) {
 
 	float16_t rand = bayer_64x64(uv, vec2(viewWidth, viewHeight));
 	for (int i = 0; i < Sample_Directions; i++) {
-		rand = fract(cos(rand * 10.0) + rand * 0.618);
+		rand = fract(rand + 0.618);
 		float dx = radius * pow(rand, 2.0);
 		vec2 dir = normalize(mix(ao_offset_table[i], ao_offset_table[i + 1], fract(rand + 0.5))) * (dx + pixel * 2.0);
 

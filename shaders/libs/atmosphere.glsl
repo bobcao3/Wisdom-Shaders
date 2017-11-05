@@ -111,7 +111,7 @@ float VL(vec2 uv, vec3 owpos, out float vl) {
 
 	for (int i = 0; i < vl_loop; i++) {
 		swpos -= dir;
-		dither = fract(cos(dither * 10.0) + 0.618);
+		dither = fract(dither + 0.618);
 		vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
 		float sdepth = texture2D(shadowtex0, shadowpos.xy).x;
 

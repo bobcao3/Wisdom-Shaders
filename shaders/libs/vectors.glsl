@@ -25,7 +25,7 @@ float getLinearDepthOfViewCoord(vec3 viewCoord) {
 f16vec2 screen_project (vec3 vpos) {
 	f16vec4 p = f16mat4(gbufferProjection) * f16vec4(vpos, 1.0f);
 	p /= p.w;
-	if(abs(p.z) > 1)
+	if(abs(p.z) > 1.0)
 		return f16vec2(-1.0);
 	return fma(p.st, vec2(0.5f), vec2(0.5f));
 }

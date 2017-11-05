@@ -63,6 +63,9 @@ Material frag;
 
 uniform ivec2 eyeBrightness;
 
+#define REFRACTION
+#define ADVANCED_REFRACTION
+
 /* DRAWBUFFERS:5 */
 void main() {
 	vec4 color = vec4(0.0);
@@ -75,23 +78,10 @@ void main() {
 		p /= p.w;                                      //
 		vec2 uv1 = p.st * 0.5 + 0.5;                   // Clip pos to UV
 
-		color = texture2D(gaux3, uv1.st);                       // Read deferred state composite
 		float land_depth = texture2D(depthtex0, uv1.st).r;      // Read deferred state depth
 		vec3 land_vpos = fetch_vpos(uv1.st, land_depth).xyz;    // Read deferred state vpos
 
 		float dist_diff = distance(land_vpos, vpos);            // Distance difference - raw (Water absorption)
-		float dist_diff_N = min(1.0, dist_diff * 0.0625);       // Distance clamped (0.0 ~ 1.0)
-		if (land_depth > 0.9999) dist_diff_N = 1.0;             // Clamp out the sky behind
-
-		float absorption = 2.0 / (dist_diff_N + 1.0) - 1.0;     // Water absorption factor
-		vec3 watercolor = color.rgb
-		   * pow(vec3(absorption), vec3(2.0, 0.8, 1.0))         // Water absorption color
-			 * (max(dot(lightPosition, N), 0.0) * 0.8 + 0.2);     // Scatter-in factor
-		float light_att = lmcoord.y;                            // Sky scatter factor
-		vec3 waterfog = max(luma(ambientU), 0.0) * light_att * vec3(0.1,0.7,0.8);
-
-		// Refraction color composite
-		color = vec4(mix(waterfog, watercolor, pow(absorption, 2.0)), 1.0);
 
 		// Build material
 		material_build(
@@ -107,6 +97,34 @@ void main() {
 		float16_t wave = getwave2(frag.wpos + cameraPosition, 1.0);
 		worldN = get_water_normal(frag.wpos + cameraPosition, wave, 1.0, wN, wT, wB);
 		frag.N = mat3(gbufferModelView) * worldN;
+
+		// Refraction
+		#ifdef REFRACTION
+		vec3 refracted = frag.vpos + refract(frag.nvpos, frag.N, 1.0 / 1.22) * dist_diff;
+		vec2 uv_refra = screen_project(refracted);
+		color = texture2D(gaux3, uv_refra);                     // Read deferred state composite, refracted
+
+		#ifdef ADVANCED_REFRACTION
+		land_depth = texture2D(depthtex0, uv1.st).r;            // Re-read deferred state depth
+		land_vpos = fetch_vpos(uv1.st, land_depth).xyz;         // Re-read deferred state vpos
+		dist_diff = distance(land_vpos, vpos);                  // Recalc distance difference - raw (Water absorption)
+		#endif
+		#else
+		color = texture2D(gaux3, uv1.st);                       // Read deferred state composite
+		#endif
+
+		float dist_diff_N = min(1.0, dist_diff * 0.0625);       // Distance clamped (0.0 ~ 1.0)
+		if (land_depth > 0.9999) dist_diff_N = 1.0;             // Clamp out the sky behind
+
+		float absorption = 2.0 / (dist_diff_N + 1.0) - 1.0;     // Water absorption factor
+		vec3 watercolor = color.rgb
+		   * pow(vec3(absorption), vec3(2.0, 0.8, 1.0))         // Water absorption color
+			 * (max(dot(lightPosition, N), 0.0) * 0.8 + 0.2);     // Scatter-in factor
+		float light_att = lmcoord.y;                            // Sky scatter factor
+		vec3 waterfog = max(luma(ambientU), 0.0) * light_att * vec3(0.1,0.7,0.8);
+
+		// Refraction color composite
+		color = vec4(mix(waterfog, watercolor, pow(absorption, 2.0)), 1.0);
 
 		// Parallax cut-out (depth test)
 		if (frag.vpos.z < land_vpos.z) discard;
