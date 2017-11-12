@@ -59,7 +59,7 @@ void main() {
   vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 
   if (!mask.is_sky) {
-    sun.light.color = sunLight * 6.0;
+    sun.light.color = sunLight;
     sun.L = lightPosition;
 
     float thickness = 1.0, shade = 0.0;
@@ -79,9 +79,13 @@ void main() {
     vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
 
     color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN);
+
+    color = mix(color, frag.albedo, frag.emmisive);
   } else {
-    vec3 nwpos = normalize(frag.wpos + vec3(0.0, cameraPosition.y - 64.0, 0.0));
+    vec3 nwpos = normalize(frag.wpos);
     color = scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
+
+    if (mask.is_sky_object) color += vec3(0.4);
   }
 
 /* DRAWBUFFERS:5 */
