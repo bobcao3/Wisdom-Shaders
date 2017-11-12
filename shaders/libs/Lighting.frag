@@ -74,7 +74,7 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 	shadowposition /= shadowposition.w;
 
 	float distb = length(shadowposition.xy);
-	float distortFactor = negShadowBias + distb * 0.85;
+	float distortFactor = negShadowBias + distb * 0.9;
 	shadowposition.xy /= distortFactor;
 
 	return shadowposition.xyz * 0.5f + 0.5f;
@@ -124,39 +124,43 @@ float light_fetch_shadow(in sampler2D smap, in float bias, in vec3 spos, out flo
 		bool test_flag = true, cull_flag = true;
 
 		// Test sample 1
-		a = texture2D(smap, spos.st + vec2(-2.0, 0.0) * 0.001f).x + bias;
+		a = texture2D(smap, spos.st + vec2(-3.2, 0.0) * 0.0005f).x + bias;
 		M2 += a * a; M1 += a; xs += float(a < spos.z);
 		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
 		// Test sample 2
-		a = texture2D(smap, spos.st + vec2(2.0, 0.0) * 0.001f).x + bias;
+		a = texture2D(smap, spos.st + vec2(3.2, 0.0) * 0.0005f).x + bias;
 		M2 += a * a; M1 += a; xs += float(a < spos.z);
 		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
 		// Test sample 3
-		a = texture2D(smap, spos.st + vec2(0.0, -2.0) * 0.001f).x + bias;
+		a = texture2D(smap, spos.st + vec2(0.0, -3.2) * 0.0005f).x + bias;
 		M2 += a * a; M1 += a; xs += float(a < spos.z);
 		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
 		// Test sample 4
-		a = texture2D(smap, spos.st + vec2(0.0, 2.0) * 0.001f).x + bias;
+		a = texture2D(smap, spos.st + vec2(0.0, 3.2) * 0.0005f).x + bias;
+		M2 += a * a; M1 += a; xs += float(a < spos.z);
+		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
+		// Test sample 5
+		a = texture2D(smap, spos.st).x + bias;
 		M2 += a * a; M1 += a; xs += float(a < spos.z);
 		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
 
-		if (test_flag && cull_flag) {
-			const float d4f = 1.0 / 4.0;
+		if (cull_flag || test_flag) {
+			const float d4f = 1.0 / 5.0;
 			M1 *= d4f; M2 *= d4f; xs *= d4f;
 		} else {
-			for (int i = -1; i < 2; i++) {
-				for (int j = -1; j < 2; j++) {
+			for (int i = -2; i < 3; i++) {
+				for (int j = -2; j < 3; j++) {
 					vec2 offset = vec2(i, j) * (fract(n + i * j * 0.17) * 0.7 + 0.3);
-					a = texture2D(smap, spos.st + offset * 0.001f).x + bias * (1.0 + n);
+					a = texture2D(smap, spos.st + offset * 0.0005f).x + bias * (1.0 + n);
 					M2 += a * a;
 					M1 += a;
 
 					xs += float(a < spos.z);
 
-					n = fract(n + 0.618);
+				//	n = fract(n + 0.618);
 				}
 			}
-			const float d13f = 1.0 / 13.0;
+			const float d13f = 1.0 / 30.0;
 			M1 *= d13f; M2 *= d13f; xs *= d13f;
 		}
 
@@ -347,9 +351,12 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 	vec2 uv = vec2(0.0);
 	vec4 hitColor = vec4(0.0);
 
-	float h = 0.15;
+	float h = 0.1;
 	bool bi = false;
 	float bayer = bayer_64x64(uv, vec2(viewWidth, viewHeight)) * 0.5;
+
+	float sampleDepth = 0.1;
+	float testDepth = far;
 
 	for(int i = 0; i < SSR_STEPS; i++) {
 		testPoint += direction * h * (0.75 + bayer);
@@ -359,16 +366,16 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 			hit = true;
 			break;
 		}
-		float sampleDepth = texture2D(depthtex1, uv).x;
+		sampleDepth = texture2D(depthtex1, uv).x;
 		sampleDepth = linearizeDepth(sampleDepth);
-		float testDepth = getLinearDepthOfViewCoord(testPoint);
+		testDepth = getLinearDepthOfViewCoord(testPoint);
 
-		if (!bi) bi = sampleDepth < testDepth + h * 0.035;
+		if (!bi) bi = sampleDepth < testDepth + 0.005;
 
 		if (bi) {
-			h = (sampleDepth - testDepth) * 0.618 * far;
+			h = far * (sampleDepth - testDepth) * 0.618;
 		} else {
-			h *= 1.0 + h * 0.01;
+			h *= 2.2;
 		}
 
 		if(sampleDepth < testDepth + 0.00005 && testDepth - sampleDepth < 0.000976 * (1.0 + testDepth * 100.0)){
@@ -381,7 +388,8 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 	}
 
 	if (!hit && (clamp(uv, vec2(0.0), vec2(1.0)) == uv)) {
-		hitColor = vec4(max(vec3(0.0), texture2DLod(colorbuf, uv, int(metal * 3.0)).rgb), 1.0 - max(uv.x, uv.y));
+		hitColor.rgb = max(vec3(0.0), texture2DLod(colorbuf, uv, int(metal * 3.0)).rgb);
+		hitColor.a = clamp((sampleDepth - testDepth) * far * 0.2, 0.0, 1.0);
 	}
 
 	return hitColor;
