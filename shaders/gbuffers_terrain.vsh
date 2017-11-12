@@ -64,7 +64,7 @@ varying vec2 nflat;
 varying f16vec3 tangentpos;
 #endif
 
-#define PARALLAX_SELF_SHADOW
+//#define PARALLAX_SELF_SHADOW
 #ifdef PARALLAX_SELF_SHADOW
 varying vec3 sun;
 
