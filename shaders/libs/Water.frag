@@ -24,8 +24,8 @@ float16_t sea_octave_micro(f16vec2 fuv, float16_t choppy) {
 }
 #endif
 const float16_t SEA_CHOPPY = 4.5;
-const float16_t SEA_SPEED = 4.3;
-const float16_t SEA_FREQ = 0.11;
+const float16_t SEA_SPEED = 3.3;
+const float16_t SEA_FREQ = 0.14;
 const f16mat2 octave_m = f16mat2(1.4,1.1,-1.2,1.4);
 
 const float16_t height_mul[4] = float[4] (
@@ -93,7 +93,7 @@ void WaterParallax(inout vec3 wpos, in float lod, in f16vec3 N) {
 
 	vec3 stepin = vec3(0.0);
 	vec3 nwpos = normalize(wpos);
-	nwpos /= max(0.01, abs(nwpos.y));
+	nwpos /= max(0.01, abs(dot(nwpos, abs(N))));
 
 	for (int i = 0; i < maxLayers; i++) {
 		float h = getwave(wpos + stepin + cameraPosition, lod);
