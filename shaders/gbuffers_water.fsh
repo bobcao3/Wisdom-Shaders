@@ -22,6 +22,7 @@
 // =============================================================================
 
 #version 120
+#include "libs/compat.glsl"
 #pragma optimize(on)
 
 uniform sampler2D tex;
@@ -66,7 +67,7 @@ uniform ivec2 eyeBrightness;
 #define REFRACTION
 #define ADVANCED_REFRACTION
 
-/* DRAWBUFFERS:5 */
+/* DRAWBUFFERS:45 */
 void main() {
 	vec4 color = vec4(0.0);
 
@@ -78,24 +79,27 @@ void main() {
 		p /= p.w;                                      //
 		vec2 uv1 = p.st * 0.5 + 0.5;                   // Clip pos to UV
 
-		float land_depth = texture2D(depthtex0, uv1.st).r;      // Read deferred state depth
+		float land_depth = texture2DLod(depthtex0, uv1.st, 0).r;// Read deferred state depth
 		vec3 land_vpos = fetch_vpos(uv1.st, land_depth).xyz;    // Read deferred state vpos
 
 		float dist_diff = distance(land_vpos, vpos);            // Distance difference - raw (Water absorption)
+
+		float lod = 1.0;//abs(wN.y) * 0.5 + 0.5;
 
 		// Build material
 		material_build(
 			frag,
 			vpos, wpos, N, N,
-			vec3(1.0), vec3(0.98,0.1,0.0), lmcoord);
+			vec3(1.0), vec3(0.95,0.002,0.0), lmcoord);
 
 		// Waving water & parallax
-		WaterParallax(frag.wpos, 1.0, wN);
-		frag.vpos = (gbufferModelView * vec4(frag.wpos, 1.0)).xyz;
+		WaterParallax(frag.wpos, lod, wN);
+		vec4 reconstruct = gbufferModelView * vec4(frag.wpos, 1.0);
+		frag.vpos = reconstruct.xyz;
 		frag.nvpos = normalize(frag.nvpos);
 
-		float16_t wave = getwave2(frag.wpos + cameraPosition, 1.0);
-		worldN = get_water_normal(frag.wpos + cameraPosition, wave, 1.0, wN, wT, wB);
+		float16_t wave = getwave2(frag.wpos + cameraPosition, lod);
+		worldN = get_water_normal(frag.wpos + cameraPosition, wave, lod, wN, wT, wB);
 		frag.N = mat3(gbufferModelView) * worldN;
 
 		// Refraction
@@ -105,7 +109,7 @@ void main() {
 		color = texture2D(gaux3, uv_refra);                     // Read deferred state composite, refracted
 
 		#ifdef ADVANCED_REFRACTION
-		land_depth = texture2D(depthtex0, uv1.st).r;            // Re-read deferred state depth
+		land_depth = texture2DLod(depthtex0, uv1.st, 0).r;      // Re-read deferred state depth
 		land_vpos = fetch_vpos(uv1.st, land_depth).xyz;         // Re-read deferred state vpos
 		dist_diff = distance(land_vpos, vpos);                  // Recalc distance difference - raw (Water absorption)
 		#endif
@@ -147,9 +151,7 @@ void main() {
 	sun.light.color = sunLight * 6.0;
 	sun.L = lightPosition;
 
-	float thickness = 1.0, shade = 0.0;
-	shade = light_fetch_shadow(shadowtex0, 0.1, wpos2shadowpos(frag.wpos), thickness);
-	sun.light.attenuation = 1.0 - shade;
+	sun.light.attenuation = 1.0 - light_fetch_shadow_fast(shadowtex0, 0.02, wpos2shadowpos(frag.wpos));
 
 	// PBR lighting (Diffuse + brdf)
 	if (maskFlag(data, waterFlag)) {
@@ -160,9 +162,12 @@ void main() {
 
 	// IBL reflection
 	vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.62, 0.0)), worldN);
-	vec3 reflectedV = reflect(vpos, frag.N);
+	vec3 reflectedV = reflect(frag.nvpos, frag.N);
 
-	vec4 ray_traced = ray_trace_ssr(reflectedV, vpos, frag.metalic, gaux3, N);
+	vec4 ray_traced = vec4(0.0);
+	if (dot(reflectedV, N) > 0.0) {
+		ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux3, N);
+	}
 	if (ray_traced.a < 0.95) {
 		ray_traced.rgb = mix(
 			scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra),
@@ -171,8 +176,9 @@ void main() {
 		);
 	}
 
-	color.rgb += light_calc_PBR_IBL(reflected, frag, ray_traced.rgb);
+	color.rgb += light_calc_PBR_IBL(reflectedV, frag, ray_traced.rgb);
 
 	// Output
-	gl_FragData[0] = color;
+	gl_FragData[0] = vec4(normalEncode(frag.N), waterFlag, 1.0);
+	gl_FragData[1] = color;
 }

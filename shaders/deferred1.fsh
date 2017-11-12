@@ -53,7 +53,7 @@ void main() {
   if (!mask.is_sky) {
     vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
     vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.61, 0.0)), wN);
-    vec3 reflectedV = reflect(frag.vpos, frag.N);
+    vec3 reflectedV = reflect(frag.nvpos, frag.N);
 
     vec4 ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux2, frag.N);
     if (ray_traced.a < 0.9) {
@@ -64,7 +64,7 @@ void main() {
       );
     }
 
-    color += light_calc_PBR_IBL(reflected, frag, ray_traced.rgb);
+    color += light_calc_PBR_IBL(reflectedV, frag, ray_traced.rgb);
   }
 
 /* DRAWBUFFERS:56 */
