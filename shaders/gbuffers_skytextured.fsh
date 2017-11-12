@@ -30,8 +30,8 @@ varying vec2 texcoord;
 
 #include "libs/encoding.glsl"
 
-/* DRAWBUFFERS:02 */
+/* DRAWBUFFERS:04 */
 void main() {
 	gl_FragData[0] = texture2D(tex, texcoord);
-	gl_FragData[1] = vec4(0.0, 0.0, skyObjectFlag, 1.0);
+	gl_FragData[1] = vec4(0.0, 0.0, airFlag, 1.0);
 }
