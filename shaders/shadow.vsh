@@ -25,7 +25,7 @@
 
 #pragma optimize(on)
 
-#define SHADOW_MAP_BIAS 0.85
+#define SHADOW_MAP_BIAS 0.9
 const float negBias = 1.0f - SHADOW_MAP_BIAS;
 
 attribute vec4 mc_Entity;
