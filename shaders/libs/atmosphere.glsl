@@ -1,6 +1,6 @@
 // ============
 const float R0 = 6360e3;
-const float Ra = 6380e3;
+const float Ra = 6400e3;
 #ifdef AT_LSTEP
 const int steps = 4;
 const int stepss = 2;
@@ -41,7 +41,7 @@ float escape(in vec3 p, in vec3 d, in float R) {
 vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 	if (d.y < 0.0) d.y = 0.0004 / (-d.y + 0.02) - 0.02;
 
-	float L = escape(o, d, l);
+	float L = min(l, escape(o, d, Ra));
 	float mu = dot(d, Ds);
 	float opmu2 = 1. + mu*mu;
 	float phaseR = .0596831 * opmu2;
@@ -50,9 +50,12 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 	float depthR = 0., depthM = 0.;
 	vec3 R = vec3(0.), M = vec3(0.);
 
-	float dl = L / float(steps);
+	//float dl = L / float(steps);
+	float u0 = - (L - 100.0) / (1.0 - exp2(steps));
+
 	for (int i = 0; i < steps; ++i) {
-		float l = float(i) * dl;
+		float dl = u0 * exp2(i);
+		float l = - u0 * (1 - exp2(i + 1));//float(i) * dl;
 		vec3 p = o + d * l;
 
 		float dR, dM;
