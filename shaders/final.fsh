@@ -25,13 +25,14 @@ const int colortex1Format = RGBA8;
 const int colortex2Format = RGBA16;
 const int colortex3Format = RGBA16;
 const int gaux1Format = RGBA16;
-const int gaux2Format = R11_G11_B10;
+const int gaux2Format = RGBA16F;
 const int gaux3Format = RGBA16F;
 const int gaux4Format = RGBA16;
 
 #include "GlslConfig"
 
-#define VIGNETTE
+//#define VIGNETTE
+#define BLOOM
 
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
@@ -59,6 +60,11 @@ void main() {
 		0.0, -0.2, 0.0,
 		gaux2, uv_adj);*/
 	vec3 color = texture2D(gaux2, uv_adj).rgb;
+
+	#ifdef BLOOM
+	vec3 b = bloom(color, uv_adj);
+	color += max(vec3(0.0), b) * (1.0 + isEyeInWater);
+	#endif
 
   ACEStonemap(color, screenBrightness * 0.5 + 1.5);
 
