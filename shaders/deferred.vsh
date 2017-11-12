@@ -40,15 +40,16 @@ uniform vec3 sunPosition;
 
 void functions() {
   vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
-  float f = pow(max(worldLightPosition.y, 0.0), 0.9);
+  float f = pow(max(worldLightPosition.y, 0.0), 0.9) * 10.0;
   sunLight = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) * f;
 
+  //f;
   ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) * f;
   ambient0 = scatter(vec3(0., 25e2, 0.), vec3( 1.0,  0.1,  0.0), worldLightPosition, Ra) * f;
   ambient1 = scatter(vec3(0., 25e2, 0.), vec3(-1.0,  0.1,  0.0), worldLightPosition, Ra) * f;
   ambient2 = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  0.1,  1.0), worldLightPosition, Ra) * f;
   ambient3 = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  0.1, -1.0), worldLightPosition, Ra) * f;
-  ambientD = scatter(vec3(0., 25e2, 0.), vec3( 0.0, -1.0,  0.0), worldLightPosition, Ra) * f;
+  ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 0.18;
 
   #ifdef TAA
   //gl_Position.xyz /= gl_Position.w;
