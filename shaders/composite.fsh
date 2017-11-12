@@ -53,14 +53,14 @@ void main() {
   vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 
   if (!mask.is_sky) {
-    float fog_coord = min(length(frag.wpos) / 512.0, 1.0);
+    float fog_coord = min(length(frag.wpos) / 768.0, 1.0);
     color *= 1.0 - fog_coord * 0.8;
-    vec3 direction = normalize(frag.wpos + vec3(0.0, cameraPosition.y - 75.0, 0.0));
+    vec3 direction = normalize(frag.wpos);
 
     float vl_raw;
     float lit_distance = VL(uv, frag.wpos, vl_raw);
 
-    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), direction, worldLightPosition, 6365e3 + fog_coord * 15e3) * lit_distance;
+    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), direction, worldLightPosition, fog_coord * 600e3) * lit_distance;
   }
 
 /* DRAWBUFFERS:357 */
