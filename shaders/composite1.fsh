@@ -63,6 +63,41 @@ vec2(0.875, 0.9375), vec2(0.875, 0.6875), vec2(0.125, 0.3125), vec2(0.625, 0.812
 }
 #endif
 
+#define BLOOM
+#ifdef BLOOM
+const float padding = 0.02f;
+const bool gaux2MipmapEnabled = true;
+
+bool checkBlur(vec2 offset, float scale) {
+	return
+	(  (uv.s - offset.s + padding < 1.0f / scale + (padding * 2.0f))
+	&& (uv.t - offset.t + padding < 1.0f / scale + (padding * 2.0f)) );
+}
+
+const float weight[3] = float[] (0.2750, 0.4357, 0.2750);
+
+vec3 LODblur(in int LOD, in vec2 offset) {
+	float scale = exp2(LOD);
+	vec3 bloom = vec3(0.0);
+
+	float allWeights = 0.0f;
+	float d1 = bayer_4x4(uv, vec2(viewWidth, viewHeight)) - 1.0;
+
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			vec2 coord = vec2(i * 2.0 + d1, j * 2.0 - d1) / vec2(viewWidth, viewHeight);
+			d1 = fract(d1 + 0.3117);
+
+			vec2 finalCoord = (uv.st + coord.st - offset.st) * scale;
+
+			bloom += clamp(texture2DLod(gaux2, finalCoord, LOD / 2).rgb, vec3(0.0f), vec3(1.0f)) * weight[i] * weight[j];
+		}
+	}
+
+	return bloom;
+}
+#endif
+
 void main() {
   vec3 color = texture2D(gaux2, uv).rgb;
   vec4 taa = vec4(0.0);
@@ -100,7 +135,25 @@ void main() {
   taa = vec4(color, mix(prev_col.a, depth, TAA_weight));
   #endif
 
-/* DRAWBUFFERS:57 */
-  gl_FragData[0] = vec4(color, 0.0);
-  gl_FragData[1] = taa;
+/* DRAWBUFFERS:057 */
+// bloom
+	#ifdef BLOOM
+	vec3 blur = vec3(0.0);
+	/* LOD 2 */
+	float lod = 2.0; vec2 offset = vec2(0.0f);
+	if (uv.y < 0.25 + padding * 2.0 + 0.6251 && uv.x < 0.0078125 + 0.25f + 0.100f) {
+		if (uv.y > 0.25 + padding) {
+					 if (checkBlur(offset = vec2(0.0f, 0.3f)     + vec2(0.000f, 0.035f), exp2(lod = 3.0))) { /* LOD 3 */ }
+			else if (checkBlur(offset = vec2(0.125f, 0.3f)   + vec2(0.030f, 0.035f), exp2(lod = 4.0))) { /* LOD 4 */ }
+			else if (checkBlur(offset = vec2(0.1875f, 0.3f)  + vec2(0.060f, 0.035f), exp2(lod = 5.0))) { /* LOD 5 */ }
+			else if (checkBlur(offset = vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f), exp2(lod = 6.0))) { /* LOD 6 */ }
+			else lod = 0.0f;
+		} else if (uv.x > 0.25 + padding) lod = 0.0f;
+		if (lod > 1.0f) blur = LODblur(int(lod), offset);
+	}
+	gl_FragData[0] = vec4(blur, 1.0);
+	#endif
+// TAA
+  gl_FragData[1] = vec4(color, 0.0);
+  gl_FragData[2] = taa;
 }
