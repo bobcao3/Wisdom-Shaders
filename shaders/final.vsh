@@ -24,7 +24,7 @@ const float strength = 1.0;
 const float cylindricalRatio = 1.0;
 uniform float aspectRatio;
 
-uniform bool isEyeInWater;
+uniform int isEyeInWater;
 
 varying vec3 vUV;
 varying vec2 vUVDot;
@@ -39,7 +39,7 @@ void main() {
 
   #ifdef DISTORTION_FIX
 	float fov = atan(1./gbufferProjection[1][1]);
-	if (isEyeInWater) fov *= 0.85;
+	if (isEyeInWater == 1) fov *= 0.85;
 	float height = tan(fov / aspectRatio * 0.5);
 
 	float scaledHeight = strength * height;
