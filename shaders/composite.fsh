@@ -53,7 +53,7 @@ void main() {
   vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 
   if (!mask.is_sky) {
-    float fog_coord = min(length(frag.wpos) / 768.0, 1.0);
+    float fog_coord = min(length(frag.wpos) / 1024.0, 1.0);
     color *= 1.0 - fog_coord * 0.8;
     vec3 direction = normalize(frag.wpos);
 

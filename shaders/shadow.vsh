@@ -38,7 +38,6 @@ uniform float frameTimeCounter;
 
 varying vec2 texcoord;
 varying vec3 color;
-varying float LOD;
 
 //uniform mat4 shadowProjection;
 

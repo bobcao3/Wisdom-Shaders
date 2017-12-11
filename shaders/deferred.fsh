@@ -62,8 +62,10 @@ void main() {
     sun.light.color = sunLight;
     sun.L = lightPosition;
 
+    vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
+
     float thickness = 1.0, shade = 0.0;
-    shade = light_fetch_shadow(shadowtex0, light_shadow_autobias(frag.cdepthN), wpos2shadowpos(frag.wpos), thickness);
+    shade = light_fetch_shadow(shadowtex0, wpos2shadowpos(frag.wpos + 0.05 * wN), thickness);
     sun.light.attenuation = 1.0 - shade;
 
     ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight);
@@ -76,7 +78,6 @@ void main() {
     ambient.color3 = ambient2;
     ambient.color4 = ambient3;
     ambient.color5 = ambientD;
-    vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
 
     color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN);
 

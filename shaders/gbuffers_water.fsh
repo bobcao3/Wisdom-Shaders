@@ -45,6 +45,8 @@ varying vec3 wpos;
 
 varying vec3 worldLightPosition;
 
+varying vec3 glcolor;
+
 #include "GlslConfig"
 
 #include "libs/uniforms.glsl"
@@ -121,11 +123,11 @@ void main() {
 		if (land_depth > 0.9999) dist_diff_N = 1.0;             // Clamp out the sky behind
 
 		float absorption = 2.0 / (dist_diff_N + 1.0) - 1.0;     // Water absorption factor
-		vec3 watercolor = color.rgb
+		vec3 watercolor = color.rgb * glcolor
 		   * pow(vec3(absorption), vec3(2.0, 0.8, 1.0))         // Water absorption color
 			 * (max(dot(lightPosition, N), 0.0) * 0.8 + 0.2);     // Scatter-in factor
 		float light_att = lmcoord.y;                            // Sky scatter factor
-		vec3 waterfog = max(luma(ambientU), 0.0) * light_att * vec3(0.1,0.7,0.8);
+		vec3 waterfog = max(luma(ambientU), 0.0) * light_att * vec3(0.1,0.7,0.8) * glcolor * 2.0;
 
 		// Refraction color composite
 		color = vec4(mix(waterfog, watercolor, pow(absorption, 2.0)), 1.0);
@@ -151,7 +153,7 @@ void main() {
 	sun.light.color = sunLight * 6.0;
 	sun.L = lightPosition;
 
-	sun.light.attenuation = 1.0 - light_fetch_shadow_fast(shadowtex0, 0.02, wpos2shadowpos(frag.wpos));
+	sun.light.attenuation = 1.0 - light_fetch_shadow_fast(shadowtex0, wpos2shadowpos(frag.wpos));
 
 	// PBR lighting (Diffuse + brdf)
 	if (maskFlag(data, waterFlag)) {

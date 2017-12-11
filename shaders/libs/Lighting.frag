@@ -84,23 +84,23 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 
 const vec2 shadowPixSize = vec2(1.0 / shadowMapResolution);
 
-float shadowTexSmooth(in sampler2D s, in vec3 spos, in float bias, out float depth) {
-	vec2 px0 = vec2(spos.xy + shadowPixSize * vec2(0.25, 0.25));
+float shadowTexSmooth(in sampler2D s, in vec3 spos, out float depth) {
+	vec2 px0 = vec2(spos.xy + shadowPixSize * vec2(0.25, 0.5));
 	depth = 0.0;
 	float texel = texture2D(s, px0).x; depth += texel;
-	float res1 = float(texel + bias < spos.z);
+	float res1 = float(texel < spos.z);
 
-	vec2 px1 = vec2(spos.xy + shadowPixSize * vec2(0.5, -0.5));
+	vec2 px1 = vec2(spos.xy + shadowPixSize * vec2(0.25, 0.0));
 	texel = texture2D(s, px1).x; depth += texel;
-	float res2 = float(texel + bias < spos.z);
+	float res2 = float(texel < spos.z);
 
-	vec2 px2 = vec2(spos.xy + shadowPixSize * vec2(-0.5, -0.5));
+	vec2 px2 = vec2(spos.xy + shadowPixSize * vec2(-0.25, 0.0));
 	texel = texture2D(s, px2).x; depth += texel;
-	float res3 = float(texel + bias < spos.z);
+	float res3 = float(texel < spos.z);
 
-	vec2 px3 = vec2(spos.xy + shadowPixSize * vec2(-0.5, 0.5));
+	vec2 px3 = vec2(spos.xy + shadowPixSize * vec2(-0.25, 0.5));
 	texel = texture2D(s, px3).x; depth += texel;
-	float res4 = float(texel + bias < spos.z);
+	float res4 = float(texel < spos.z);
 	depth *= 0.25;
 
 	return (res1 + res2 + res3 + res4) * 0.25;
@@ -108,7 +108,7 @@ float shadowTexSmooth(in sampler2D s, in vec3 spos, in float bias, out float dep
 
 #define VARIANCE_SHADOW_MAPS
 
-float light_fetch_shadow(in sampler2D smap, in float bias, in vec3 spos, out float thickness) {
+float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness) {
 	float shade = 0.0; thickness = 0.0;
 
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return shade;
@@ -124,23 +124,23 @@ float light_fetch_shadow(in sampler2D smap, in float bias, in vec3 spos, out flo
 		bool test_flag = true, cull_flag = true;
 
 		// Test sample 1
-		a = texture2D(smap, spos.st + vec2(-3.2, 0.0) * 0.0005f).x + bias;
+		a = texture2D(smap, spos.st + vec2(-3.2, 0.0) * 0.0005f).x;
 		M2 += a * a; M1 += a; xs += float(a < spos.z);
 		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
 		// Test sample 2
-		a = texture2D(smap, spos.st + vec2(3.2, 0.0) * 0.0005f).x + bias;
+		a = texture2D(smap, spos.st + vec2(3.2, 0.0) * 0.0005f).x;
 		M2 += a * a; M1 += a; xs += float(a < spos.z);
 		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
 		// Test sample 3
-		a = texture2D(smap, spos.st + vec2(0.0, -3.2) * 0.0005f).x + bias;
+		a = texture2D(smap, spos.st + vec2(0.0, -3.2) * 0.0005f).x;
 		M2 += a * a; M1 += a; xs += float(a < spos.z);
 		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
 		// Test sample 4
-		a = texture2D(smap, spos.st + vec2(0.0, 3.2) * 0.0005f).x + bias;
+		a = texture2D(smap, spos.st + vec2(0.0, 3.2) * 0.0005f).x;
 		M2 += a * a; M1 += a; xs += float(a < spos.z);
 		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
 		// Test sample 5
-		a = texture2D(smap, spos.st).x + bias;
+		a = texture2D(smap, spos.st).x;
 		M2 += a * a; M1 += a; xs += float(a < spos.z);
 		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
 
@@ -151,7 +151,7 @@ float light_fetch_shadow(in sampler2D smap, in float bias, in vec3 spos, out flo
 			for (int i = -2; i < 3; i++) {
 				for (int j = -2; j < 3; j++) {
 					vec2 offset = vec2(i, j) * (fract(n + i * j * 0.17) * 0.7 + 0.3);
-					a = texture2D(smap, spos.st + offset * 0.0005f).x + bias * (1.0 + n);
+					a = texture2D(smap, spos.st + offset * 0.0005f).x * (1.0 + n);
 					M2 += a * a;
 					M1 += a;
 
@@ -178,9 +178,9 @@ float light_fetch_shadow(in sampler2D smap, in float bias, in vec3 spos, out flo
 		for (int i = -1; i < 2; i++) {
 			for (int j = -1; j < 2; j++) {
 				vec2 offset = vec2(i, j) * (fract(n + i * j * 0.17) * 0.7 + 0.3);
-				float shadowDepth = texture2D(smap, spos.st + offset * 0.001f).x + bias * (1.0 + n);
+				float shadowDepth = texture2D(smap, spos.st + offset * 0.001f).x;
 				avd += shadowDepth;
-				shade += float(shadowDepth + bias < spos.z);
+				shade += float(shadowDepth < spos.z);
 
 				n = fract(n + 0.618);
 			}
@@ -190,7 +190,7 @@ float light_fetch_shadow(in sampler2D smap, in float bias, in vec3 spos, out flo
 		#endif
 	#else
 		float M1;
-		shade = shadowTexSmooth(smap, spos, bias, M1);
+		shade = shadowTexSmooth(smap, spos, M1);
 		thickness = distance(spos.z, M1) * 64.0 * shade;
 	#endif
 
@@ -205,11 +205,11 @@ float light_fetch_shadow(in sampler2D smap, in float bias, in vec3 spos, out flo
 	return shade;
 }
 
-float light_fetch_shadow_fast(sampler2D smap, in float bias, in vec3 spos) {
+float light_fetch_shadow_fast(sampler2D smap, in vec3 spos) {
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return 0.0;
 
 	float shadowDepth = texture2D(smap, spos.st).x;
-	float shade = float(shadowDepth + bias < spos.z);
+	float shade = float(shadowDepth < spos.z);
 /*
 	float edgeX = abs(spos.x) - 0.9f;
 	float edgeY = abs(spos.y) - 0.9f;
@@ -219,8 +219,6 @@ float light_fetch_shadow_fast(sampler2D smap, in float bias, in vec3 spos) {
 
 	return shade;
 }
-
-float light_shadow_autobias(float l) { return shadowPixSize.x * l * 2.0 + 0.00015; }
 
 //==============================================================================
 // PBR Stuff

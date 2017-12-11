@@ -30,6 +30,8 @@ varying float data;
 varying vec2 uv;
 varying vec3 vpos;
 
+varying vec3 glcolor;
+
 varying vec3 N;
 varying vec3 worldLightPosition;
 
@@ -84,4 +86,6 @@ void main() {
 
 	vec4 p = gbufferModelViewInverse * vec4(vpos, 1.0);
 	wpos = p.xyz / p.w;
+
+  glcolor = gl_Color.rgb;
 }
