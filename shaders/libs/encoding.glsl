@@ -26,8 +26,8 @@ const float foilage2Flag = 0.34f;
 
 const float entityFlag = 0.2f;
 
-const float airFlag = 0.1f;
-const float skyObjectFlag = 0.12f;
+const float airFlag = 0.0f;
+const float skyObjectFlag = 0.02f;
 
 bool maskFlag(float16_t f0, float16_t f1) {
 	return abs(f0 - f1) < 0.005;

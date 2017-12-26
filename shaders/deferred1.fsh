@@ -64,7 +64,8 @@ void main() {
       );
     }
 
-    color += light_calc_PBR_IBL(reflectedV, frag, ray_traced.rgb);
+    color = light_calc_PBR_IBL(color, reflectedV, frag, 
+ray_traced.rgb);
   }
 
 /* DRAWBUFFERS:56 */
