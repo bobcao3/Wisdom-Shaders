@@ -79,7 +79,8 @@ void main() {
     ambient.color4 = ambient3;
     ambient.color5 = ambientD;
 
-    color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN);
+    color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 
+1.0) + light_calc_diffuse_harmonics(ambient, frag, wN);
 
     color = mix(color, frag.albedo, frag.emmisive);
   } else {
