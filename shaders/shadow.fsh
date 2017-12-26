@@ -31,9 +31,5 @@ varying vec2 texcoord;
 varying vec3 color;
 
 void main() {
-  if (gl_FrontFacing) {
-    discard;
-  } else {
-    gl_FragData[0] = texture2D(tex, texcoord) * vec4(color, 1.0);
-  }
+	gl_FragData[0] = texture2D(tex, texcoord) * vec4(color, 1.0);
 }

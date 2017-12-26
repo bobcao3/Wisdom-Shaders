@@ -68,6 +68,8 @@ void main() {
 
 	position.xy /= l * SHADOW_MAP_BIAS + negBias;
 
+	position.z *= 0.5;
+
 	gl_Position = position;
 	texcoord = gl_MultiTexCoord0.st;
 }

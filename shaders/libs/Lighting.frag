@@ -37,12 +37,14 @@ vec3 light_calc_diffuse(LightSource Li, Material mat) {
 vec3 light_calc_diffuse_harmonics(LightSourceHarmonics Li, Material mat, vec3 N) {
 	vec3 x;
 
-	x  = (0.5 * dot(N, vec3( 1.0, 0.0, 0.0)) + 0.5) * Li.color1;
-	x += (0.5 * dot(N, vec3(-1.0, 0.0, 0.0)) + 0.5) * Li.color2;
-	x += (0.5 * dot(N, vec3( 0.0, 0.0, 1.0)) + 0.5) * Li.color3;
-	x += (0.5 * dot(N, vec3( 0.0, 0.0,-1.0)) + 0.5) * Li.color4;
-	x += (0.5 * dot(N, vec3( 0.0, 1.0, 0.0)) + 0.5) * Li.color0;
-	x += (0.5 * dot(N, vec3( 0.0,-1.0, 0.0)) + 0.5) * Li.color5;
+	N = normalize(N);
+
+	x  = ( 0.5 * N.x + 0.5) * Li.color1;
+	x += (-0.5 * N.x + 0.5) * Li.color2;
+	x += ( 0.5 * N.z + 0.5) * Li.color3;
+	x += (-0.5 * N.z + 0.5) * Li.color4;
+	x += ( 0.5 * N.y + 0.5) * Li.color0;
+	x += (-0.5 * N.y + 0.5) * Li.color5;
 	x *= 0.3333333;
 
 	return Li.attenuation * mat.albedo * x;
@@ -76,6 +78,8 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 	float distb = length(shadowposition.xy);
 	float distortFactor = negShadowBias + distb * 0.9;
 	shadowposition.xy /= distortFactor;
+
+	shadowposition.z *= 0.5;
 
 	return shadowposition.xyz * 0.5f + 0.5f;
 }
@@ -327,14 +331,15 @@ vec3 light_calc_PBR_brdf(LightSourcePBR Li, Material mat) {
 	return specular * radiance;
 }
 
-vec3 light_calc_PBR_IBL(in vec3 L, Material mat, in vec3 env) {
+vec3 light_calc_PBR_IBL(in vec3 color, in vec3 L, Material mat, in vec3 
+env) {
 	vec3 H = normalize(L - mat.nvpos);
 	vec3 F0 = vec3(0.02);
 	F0 = mix(F0, mat.albedo, mat.metalic);
 
 	vec3 F = light_PBR_fresnelSchlickRoughness(max(dot(H, -mat.nvpos), 0.00001), F0, mat.roughness);
 
-	return (1.0 - mat.roughness) * F * env;
+	return mix(color, env, (1.0 - mat.roughness) * F);
 }
 
 //==============================================================================
