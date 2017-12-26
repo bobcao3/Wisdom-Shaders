@@ -82,7 +82,9 @@ void main() {
 	N = gl_NormalMatrix * gl_Normal;
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
-	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition);
+	worldLightPosition = worldSunPosition; 
+//mat3(gbufferModelViewInverse) * 
+normalize(shadowLightPosition);
 
 	vec4 p = gbufferModelViewInverse * vec4(vpos, 1.0);
 	wpos = p.xyz / p.w;

@@ -81,7 +81,8 @@ void main() {
 		p /= p.w;                                      //
 		vec2 uv1 = p.st * 0.5 + 0.5;                   // Clip pos to UV
 
-		float land_depth = texture2DLod(depthtex0, uv1.st, 0).r;// Read deferred state depth
+		float land_depth = texture2DLod(depthtex1, uv1.st, 
+0).r;// Read deferred state depth
 		vec3 land_vpos = fetch_vpos(uv1.st, land_depth).xyz;    // Read deferred state vpos
 
 		float dist_diff = distance(land_vpos, vpos);            // Distance difference - raw (Water absorption)
@@ -111,7 +112,8 @@ void main() {
 		color = texture2D(gaux3, uv_refra);                     // Read deferred state composite, refracted
 
 		#ifdef ADVANCED_REFRACTION
-		land_depth = texture2DLod(depthtex0, uv1.st, 0).r;      // Re-read deferred state depth
+		land_depth = texture2DLod(depthtex1, uv1.st, 0).r;      
+// Re-read deferred state depth
 		land_vpos = fetch_vpos(uv1.st, land_depth).xyz;         // Re-read deferred state vpos
 		dist_diff = distance(land_vpos, vpos);                  // Recalc distance difference - raw (Water absorption)
 		#endif
@@ -178,7 +180,8 @@ void main() {
 		);
 	}
 
-	color.rgb += light_calc_PBR_IBL(reflectedV, frag, ray_traced.rgb);
+	color.rgb = light_calc_PBR_IBL(color.rgb, reflectedV, frag, 
+ray_traced.rgb);
 
 	// Output
 	gl_FragData[0] = vec4(normalEncode(frag.N), waterFlag, 1.0);
