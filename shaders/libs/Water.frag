@@ -1,5 +1,5 @@
 // sea
-#define SEA_HEIGHT 0.5 // [0.2 0.5 0.8]
+#define SEA_HEIGHT 0.3 // [0.1 0.2 0.3 0.4 0.5]
 
 #define NATURAL_WAVE_GENERATOR
 
@@ -24,7 +24,7 @@ float16_t sea_octave_micro(f16vec2 fuv, float16_t choppy) {
 }
 #endif
 const float16_t SEA_CHOPPY = 4.5;
-const float16_t SEA_SPEED = 3.3;
+const float16_t SEA_SPEED = 5.3;
 const float16_t SEA_FREQ = 0.14;
 const f16mat2 octave_m = f16mat2(1.4,1.1,-1.2,1.4);
 
@@ -50,7 +50,7 @@ float16_t getwave(vec3 p, in float16_t lod) {
 	for(int i = 0; i < ITER_GEOMETRY; i++) {
 		d = sea_octave_micro((fuv+wave_speed * vec2(0.1, 0.9))*freq,choppy);
 		h += d * amp;
-		fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= 0.3;
+		fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= 0.5;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
@@ -69,7 +69,7 @@ float16_t getwave2(vec3 p, in float16_t lod) {
 	for(int i = 0; i < ITER_GEOMETRY2; i++) {
 		d = sea_octave_micro((fuv+wave_speed * vec2(0.1, 0.9))*freq,choppy);
 		h += d * amp;
-		fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= 0.3;
+		fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= 0.5;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
