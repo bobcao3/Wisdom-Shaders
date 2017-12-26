@@ -40,7 +40,7 @@ uniform vec3 sunPosition;
 
 void functions() {
   vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
-  float f = pow(max(worldLightPosition.y, 0.0), 0.9) * 10.0;
+  float f = pow(max(worldLightPosition.y, 0.0), 0.9) * 15.0;
   sunLight = scatter(vec3(0., 25e2, 0.), worldLightPosition, 
 worldLightPosition, Ra) * f;
 

@@ -26,8 +26,18 @@
 
 #include "libs/encoding.glsl"
 
+varying vec4 color;
+
 /* DRAWBUFFERS:04 */
 void main() {
-	gl_FragData[0] = vec4(1.0);
+	vec4 skyColor = color;
+
+	float saturation = abs(color.r - color.g) + abs(color.r - color.b) + abs(color.g - color.b);
+
+	if (saturation > 0.01 || length(color.rgb) < 0.5) {
+		skyColor.rgb *= 0.0;
+	}
+
+	gl_FragData[0] = skyColor;
 	gl_FragData[1] = vec4(0.0, 0.0, 0.0, 1.0);
 }

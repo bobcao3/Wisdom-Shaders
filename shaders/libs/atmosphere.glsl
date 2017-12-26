@@ -11,8 +11,8 @@ const int stepss = 4;
 const float g = .76;
 const float g2 = g * g;
 const float Hr = 10e3;
-const float Hm = 2.6e3;
-const vec3 I = vec3(10.0);//vec3(1.2311, 1.0, 0.8286) * 9.0;
+const float Hm = 1.6e3;
+const vec3 I = vec3(1.2311, 1.0, 0.8286) * 20.0;
 
 #define t iTime
 

@@ -28,7 +28,7 @@ uniform sampler2D depthtex1;
 uniform sampler2D depthtex2;
 
 uniform sampler2D shadowtex0;
-//uniform sampler2D shadowtex1;
+uniform sampler2D shadowtex1;
 
 uniform mat4 gbufferModelView;                  // modelview matrix after setting up the camera transformations
 uniform mat4 gbufferModelViewInverse;           // inverse gbufferModelView

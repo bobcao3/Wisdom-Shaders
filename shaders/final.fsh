@@ -66,7 +66,7 @@ void main() {
 	color += max(vec3(0.0), b) * (1.0 + isEyeInWater);
 	#endif
 
-  ACEStonemap(color, screenBrightness * 0.5 + 1.5);
+  ACEStonemap(color, screenBrightness * 0.5 + 1.0);
 
   gl_FragColor = vec4(toGamma(color),1.0);
 }

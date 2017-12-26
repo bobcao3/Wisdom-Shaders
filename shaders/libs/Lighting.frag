@@ -125,48 +125,20 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness) {
 		float xs = 0.0;
 		float n = bayer_4x4(uv, vec2(viewWidth, viewHeight));
 
-		bool test_flag = true, cull_flag = true;
+		for (int i = -2; i < 3; i++) {
+			for (int j = -2; j < 3; j++) {
+				vec2 offset = vec2(i, j);
+				a = texture2D(smap, spos.st + offset * 0.0005f).x;
+				M2 += a * a;
+				M1 += a;
 
-		// Test sample 1
-		a = texture2D(smap, spos.st + vec2(-3.2, 0.0) * 0.0005f).x;
-		M2 += a * a; M1 += a; xs += float(a < spos.z);
-		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
-		// Test sample 2
-		a = texture2D(smap, spos.st + vec2(3.2, 0.0) * 0.0005f).x;
-		M2 += a * a; M1 += a; xs += float(a < spos.z);
-		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
-		// Test sample 3
-		a = texture2D(smap, spos.st + vec2(0.0, -3.2) * 0.0005f).x;
-		M2 += a * a; M1 += a; xs += float(a < spos.z);
-		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
-		// Test sample 4
-		a = texture2D(smap, spos.st + vec2(0.0, 3.2) * 0.0005f).x;
-		M2 += a * a; M1 += a; xs += float(a < spos.z);
-		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
-		// Test sample 5
-		a = texture2D(smap, spos.st).x;
-		M2 += a * a; M1 += a; xs += float(a < spos.z);
-		test_flag = test_flag && (a < spos.z); cull_flag = cull_flag && (a > spos.z);
+				xs += float(a < spos.z);
 
-		if (cull_flag || test_flag) {
-			const float d4f = 1.0 / 5.0;
-			M1 *= d4f; M2 *= d4f; xs *= d4f;
-		} else {
-			for (int i = -2; i < 3; i++) {
-				for (int j = -2; j < 3; j++) {
-					vec2 offset = vec2(i, j) * (fract(n + i * j * 0.17) * 0.7 + 0.3);
-					a = texture2D(smap, spos.st + offset * 0.0005f).x * (1.0 + n);
-					M2 += a * a;
-					M1 += a;
-
-					xs += float(a < spos.z);
-
-				//	n = fract(n + 0.618);
-				}
+			//	n = fract(n + 0.618);
 			}
-			const float d13f = 1.0 / 30.0;
-			M1 *= d13f; M2 *= d13f; xs *= d13f;
 		}
+		const float d13f = 1.0 / 25.0;
+		M1 *= d13f; M2 *= d13f; xs *= d13f;
 
 		if (M1 < spos.z) {
 			float t_M1 = spos.z - M1;
@@ -175,7 +147,7 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness) {
 			shade = max(xs, 1.0 - v / (v + t_M1 * t_M1));
 		}
 
-		thickness = distance(spos.z, M1) * 64.0 * shade;
+		thickness = distance(spos.z, M1) * 128.0 * shade;
 		#else
 		float avd = 0.0;
 		float n = bayer_4x4(uv, vec2(viewWidth, viewHeight));
@@ -190,12 +162,12 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness) {
 			}
 		}
 		shade /= 9.0f; avd /= 9.0f;
-		thickness = distance(spos.z, avd) * 64.0 * shade;
+		thickness = distance(spos.z, avd) * 128.0 * shade;
 		#endif
 	#else
 		float M1;
 		shade = shadowTexSmooth(smap, spos, M1);
-		thickness = distance(spos.z, M1) * 64.0 * shade;
+		thickness = distance(spos.z, M1) * 128.0 * shade;
 	#endif
 
 	/*float edgeX = abs(spos.x) - 0.9f;

@@ -23,6 +23,8 @@ varying vec2 uv;
 
 #include "GlslConfig"
 
+#define WAO
+
 //#define DIRECTIONAL_LIGHTMAP
 
 #include "libs/uniforms.glsl"
@@ -65,19 +67,25 @@ void main() {
     vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
 
     float thickness = 1.0, shade = 0.0;
-    shade = light_fetch_shadow(shadowtex0, wpos2shadowpos(frag.wpos + 0.05 * wN), thickness);
+    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos + 0.05 * wN), thickness);
     sun.light.attenuation = 1.0 - shade;
 
     ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight);
     #ifdef DIRECTIONAL_LIGHTMAP
     ambient.attenuation *= lightmap_normals(frag.N, frag.skylight, vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0));
     #endif
-    ambient.color0 = ambientU;
-    ambient.color1 = ambient0;
-    ambient.color2 = ambient1;
-    ambient.color3 = ambient2;
-    ambient.color4 = ambient3;
-    ambient.color5 = ambientD;
+
+    float ao = 1.0;
+    #ifdef WAO
+    ao = calcAO(frag.N, frag.cdepth, frag.vpos, uv);
+    #endif
+
+    ambient.color0 = ambientU * ao;
+    ambient.color1 = ambient0 * ao;
+    ambient.color2 = ambient1 * ao;
+    ambient.color3 = ambient2 * ao;
+    ambient.color4 = ambient3 * ao;
+    ambient.color5 = ambientD * ao;
 
     color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 
 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN);
@@ -85,7 +93,8 @@ void main() {
     color = mix(color, frag.albedo, frag.emmisive);
   } else {
     vec3 nwpos = normalize(frag.wpos);
-    color = scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
+    color = texture2D(colortex0, uv).rgb;
+    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
 
     if (mask.is_sky_object) color += vec3(0.4);
   }
