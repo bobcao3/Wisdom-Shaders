@@ -62,7 +62,7 @@ void main() {
 	vec3 color = texture2D(gaux2, uv_adj).rgb;
 
 	#ifdef BLOOM
-	vec3 b = bloom(color, uv_adj);
+	vec3 b = bloom(color, uv_adj) * 2.0;
 	color += max(vec3(0.0), b) * (1.0 + isEyeInWater);
 	#endif
 

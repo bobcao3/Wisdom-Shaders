@@ -90,7 +90,10 @@ vec3 LODblur(in int LOD, in vec2 offset) {
 
 			vec2 finalCoord = (uv.st + coord.st - offset.st) * scale;
 
-			bloom += clamp(texture2DLod(gaux2, finalCoord, LOD / 2).rgb, vec3(0.0f), vec3(1.0f)) * weight[i] * weight[j];
+			vec3 c = clamp(texture2DLod(gaux2, finalCoord, 
+LOD / 2).rgb, vec3(0.0f), vec3(1.0f)) * weight[i] * weight[j];
+
+			bloom += c * luma(c);
 		}
 	}
 
@@ -129,7 +132,7 @@ void main() {
   TAA_weight = max(TAA_weight, smoothstep(0.0, distance(prev_pos.z, frag.vpos.z) * 0.01, distance(linearizeDepth(depth), linearizeDepth(prev_col.a))));
   //TAA_weight = max(TAA_weight, min(abs(luma(color) - luma(prev_col.rgb)) * 2.0, 1.0));
   //TAA_weight = max(TAA_weight, smoothstep(0.0, 0.01, distance(prev_vpos.z, linearizeDepth(prev_col.a))));
-  //if (depth < 0.5) TAA_weight = 1.0;
+  if (abs(depth - prev_col.a) > 0.05) TAA_weight = 1.0;
 
   color = mix(prev_col.rgb, color, TAA_weight);
   taa = vec4(color, mix(prev_col.a, depth, TAA_weight));

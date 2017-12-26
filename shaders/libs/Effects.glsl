@@ -224,7 +224,7 @@ vec3 bloom(inout vec3 c, in vec2 uv) {
 	}
 	#endif
 
-	return color * l;
+	return color;
 }
 #endif
 
