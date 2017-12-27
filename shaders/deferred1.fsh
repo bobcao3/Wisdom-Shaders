@@ -23,6 +23,8 @@ varying vec2 uv;
 
 #include "GlslConfig"
 
+#define WAO
+
 //#define DIRECTIONAL_LIGHTMAP
 
 #include "libs/uniforms.glsl"
@@ -35,13 +37,23 @@ varying vec2 uv;
 
 Mask mask;
 Material frag;
-//LightSourcePBR sun;
-//LightSourceHarmonics ambient;
+LightSourcePBR sun;
+LightSourceHarmonics ambient;
 
 #include "libs/atmosphere.glsl"
 
+varying vec3 sunLight;
+varying vec3 ambientU;
+varying vec3 ambient0;
+varying vec3 ambient1;
+varying vec3 ambient2;
+varying vec3 ambient3;
+varying vec3 ambientD;
+
+#define WAO_ADVANCED
+
 void main() {
-  vec3 color = texture2D(gaux2, uv).rgb;
+  vec3 color = vec3(0.0);
 
   float flag;
   material_sample(frag, uv, flag);
@@ -51,24 +63,51 @@ void main() {
   vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 
   if (!mask.is_sky) {
+    sun.light.color = sunLight;
+    sun.L = lightPosition;
+
     vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
-    vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.61, 0.0)), wN);
-    vec3 reflectedV = reflect(frag.nvpos, frag.N);
 
-    vec4 ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux2, frag.N);
-    if (ray_traced.a < 0.9) {
-      ray_traced.rgb = mix(
-        scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra),
-        ray_traced.rgb,
-        ray_traced.a
-      );
-    }
+    float thickness = 1.0, shade = 0.0;
+    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos + 0.05 * wN), thickness);
+    sun.light.attenuation = 1.0 - shade;
 
-    color = light_calc_PBR_IBL(color, reflectedV, frag, 
-ray_traced.rgb);
+    ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight);
+    #ifdef DIRECTIONAL_LIGHTMAP
+    ambient.attenuation *= lightmap_normals(frag.N, frag.skylight, vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0));
+    #endif
+
+    float ao = 1.0;
+    #ifdef WAO
+    ao  = sum4(textureGather      (gaux2, uv              ));
+    #ifdef WAO_ADVANCED
+    ao += sum4(textureGatherOffset(gaux2, uv, ivec2(-1, 0)));
+    ao += sum4(textureGatherOffset(gaux2, uv, ivec2(-1,-1)));
+    ao += sum4(textureGatherOffset(gaux2, uv, ivec2( 0,-1)));
+    ao *= 0.0625;
+    #else
+    ao *= 0.25;
+    #endif
+    #endif
+
+    ambient.color0 = ambientU * ao;
+    ambient.color1 = ambient0 * ao;
+    ambient.color2 = ambient1 * ao;
+    ambient.color3 = ambient2 * ao;
+    ambient.color4 = ambient3 * ao;
+    ambient.color5 = ambientD * ao;
+
+    color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN);
+
+    color = mix(color, frag.albedo, frag.emmisive);
+  } else {
+    vec3 nwpos = normalize(frag.wpos);
+    color = texture2D(colortex0, uv).rgb;
+    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
+
+    if (mask.is_sky_object) color += vec3(0.4);
   }
 
-/* DRAWBUFFERS:56 */
+/* DRAWBUFFERS:5 */
   gl_FragData[0] = vec4(color, 0.0);
-  gl_FragData[1] = vec4(color, 0.0);
 }

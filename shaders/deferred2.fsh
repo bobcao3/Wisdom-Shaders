@@ -23,6 +23,8 @@ varying vec2 uv;
 
 #include "GlslConfig"
 
+//#define DIRECTIONAL_LIGHTMAP
+
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
 #include "libs/encoding.glsl"
@@ -33,33 +35,40 @@ varying vec2 uv;
 
 Mask mask;
 Material frag;
+//LightSourcePBR sun;
+//LightSourceHarmonics ambient;
 
-#define CrespecularRays
 #include "libs/atmosphere.glsl"
 
-varying vec3 sunLight;
-varying vec3 ambientU;
-
-const bool gaux4Clear = false;
-
 void main() {
-  vec3 color = vec3(0.0);
+  vec3 color = texture2D(gaux2, uv).rgb;
 
   float flag;
   material_sample(frag, uv, flag);
 
   init_mask(mask, flag, uv);
 
-  // Calculate atmospheric scattering depth
+  vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
+
   if (!mask.is_sky) {
-    vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
+    vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
+    vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.61, 0.0)), wN);
+    vec3 reflectedV = reflect(frag.nvpos, frag.N);
 
-    float vl_raw;
-    float lit_distance = VL(uv, frag.wpos, vl_raw);
+    vec4 ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux2, frag.N);
+    if (ray_traced.a < 0.9) {
+      ray_traced.rgb = mix(
+        scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra),
+        ray_traced.rgb,
+        ray_traced.a
+      );
+    }
 
-    color.r = lit_distance;
+    color = light_calc_PBR_IBL(color, reflectedV, frag, 
+ray_traced.rgb);
   }
 
-/* DRAWBUFFERS:0357 */
-  gl_FragData[0] = vec4(color, 1.0);
+/* DRAWBUFFERS:56 */
+  gl_FragData[0] = vec4(color, 0.0);
+  gl_FragData[1] = vec4(color, 0.0);
 }

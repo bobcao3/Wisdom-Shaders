@@ -1,6 +1,6 @@
 // ============
 const float R0 = 6360e3;
-const float Ra = 6400e3;
+const float Ra = 6380e3;
 #ifdef AT_LSTEP
 const int steps = 4;
 const int stepss = 2;
@@ -10,7 +10,7 @@ const int stepss = 4;
 #endif
 const float g = .76;
 const float g2 = g * g;
-const float Hr = 10e3;
+const float Hr = 8e3;
 const float Hm = 1.6e3;
 const vec3 I = vec3(1.2311, 1.0, 0.8286) * 20.0;
 

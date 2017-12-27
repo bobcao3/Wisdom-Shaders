@@ -52,4 +52,45 @@
 #define fma(a,b,c) ((a)*(b)+c)
 #endif
 
+// Texture gather
+#ifdef MC_GL_ARB_texture_gather
+#extension GL_ARB_texture_gather : require
+#else
+
+#ifndef VIEW_WIDTH
+#define VIEW_WIDTH
+uniform float viewWidth;                        // viewWidth
+uniform float viewHeight;                       // viewHeight
+vec2 pixel = 1.0 / vec2(viewWidth, viewHeight);
+#endif
+
+vec4 textureGather(sampler2D sampler, vec2 coord) {
+  vec2 c = coord * vec2(viewWidth, viewHeight);
+  vec2 pix = 1.0 / vec2(viewWidth, viewHeight);
+  c = round(c) * pix;
+  return vec4(
+    texture2D(sampler, c + vec2(.0,pix.y)   ).r,
+    texture2D(sampler, c + vec2(pix.x,pix.y)).r,
+    texture2D(sampler, c + vec2(.0,pix.y)   ).r,
+    texture2D(sampler, c                    ).r
+  );
+}
+
+vec4 textureGatherOffset(sampler2D sampler, vec2 coord, ivec2 offset) {
+  vec2 c = coord * vec2(viewWidth, viewHeight);
+  vec2 pix = 1.0 / vec2(viewWidth, viewHeight);
+  c = (round(c) + vec2(offset)) * pix;
+  return vec4(
+    texture2D(sampler, c + vec2(.0,pix.y)   ).r,
+    texture2D(sampler, c + vec2(pix.x,pix.y)).r,
+    texture2D(sampler, c + vec2(.0,pix.y)   ).r,
+    texture2D(sampler, c                    ).r
+  );
+}
+#endif
+
+#define sum4(x) dot(vec4(1.0), x)
+#define sum3(x) dot(vec3(1.0), x)
+#define sum2(x) (x.x + x.y)
+
 #endif

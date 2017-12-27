@@ -49,12 +49,15 @@ uniform float sunAngle;                         // 0.0-1.0
 uniform float shadowAngle;                      // 0.0-1.0
 uniform float rainStrength;                     // 0.0-1.0
 uniform float aspectRatio;                      // viewWidth / viewHeight
+#ifndef VIEW_WIDTH
+#define VIEW_WIDTH
 uniform float viewWidth;                        // viewWidth
 uniform float viewHeight;                       // viewHeight
+vec2 pixel = 1.0 / vec2(viewWidth, viewHeight);
+#endif
 uniform float near;                             // near viewing plane distance
 uniform float far;                              // far viewing plane distance
 
-vec2 pixel = 1.0 / vec2(viewWidth, viewHeight);
 
 uniform vec3 sunPosition;                       // sun position in eye space
 uniform vec3 moonPosition;                      // moon position in eye space
