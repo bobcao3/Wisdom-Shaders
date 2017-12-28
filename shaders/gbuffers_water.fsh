@@ -81,11 +81,16 @@ void main() {
 		p /= p.w;                                      //
 		vec2 uv1 = p.st * 0.5 + 0.5;                   // Clip pos to UV
 
-		float land_depth = texture2DLod(depthtex1, uv1.st, 
+		float land_depth = texture2DLod(depthtex1, uv1.st,
 0).r;// Read deferred state depth
 		vec3 land_vpos = fetch_vpos(uv1.st, land_depth).xyz;    // Read deferred state vpos
 
-		float dist_diff = distance(land_vpos, vpos);            // Distance difference - raw (Water absorption)
+		float dist_diff;
+    if (isEyeInWater == 1) {
+      dist_diff = length(vpos);
+    } else {
+      dist_diff = distance(land_vpos, vpos);               // Distance difference - raw (Water absorption)
+    }
 
 		float lod = 1.0;//abs(wN.y) * 0.5 + 0.5;
 
@@ -96,10 +101,12 @@ void main() {
 			vec3(1.0), vec3(0.95,0.002,0.0), lmcoord);
 
 		// Waving water & parallax
+    #ifdef WATER_PARALLAX
 		WaterParallax(frag.wpos, lod, wN);
 		vec4 reconstruct = gbufferModelView * vec4(frag.wpos, 1.0);
 		frag.vpos = reconstruct.xyz;
 		frag.nvpos = normalize(frag.nvpos);
+    #endif
 
 		float16_t wave = getwave2(frag.wpos + cameraPosition, lod);
 		worldN = get_water_normal(frag.wpos + cameraPosition, wave, lod, wN, wT, wB);
@@ -112,10 +119,11 @@ void main() {
 		color = texture2D(gaux3, uv_refra);                     // Read deferred state composite, refracted
 
 		#ifdef ADVANCED_REFRACTION
-		land_depth = texture2DLod(depthtex1, uv1.st, 0).r;      
-// Re-read deferred state depth
+		land_depth = texture2DLod(depthtex1, uv1.st, 0).r;
+    // Re-read deferred state depth
 		land_vpos = fetch_vpos(uv1.st, land_depth).xyz;         // Re-read deferred state vpos
-		dist_diff = distance(land_vpos, vpos);                  // Recalc distance difference - raw (Water absorption)
+		if (isEyeInWater != 1)
+      dist_diff = distance(land_vpos, vpos);                // Recalc distance difference - raw (Water absorption)
 		#endif
 		#else
 		color = texture2D(gaux3, uv1.st);                       // Read deferred state composite
@@ -180,7 +188,7 @@ void main() {
 		);
 	}
 
-	color.rgb = light_calc_PBR_IBL(color.rgb, reflectedV, frag, 
+	color.rgb = light_calc_PBR_IBL(color.rgb, reflectedV, frag,
 ray_traced.rgb);
 
 	// Output

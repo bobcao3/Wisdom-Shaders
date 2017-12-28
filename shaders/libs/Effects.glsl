@@ -181,7 +181,7 @@ vec4 texture_Bicubic(sampler2D tex, vec2 uv)
 
 vec3 bloom(inout vec3 c, in vec2 uv) {
 	vec2 tex = uv * 0.25;
-	vec2 pix_offset = 1.0 / vec2(viewWidth, viewHeight);
+	vec2 pix_offset = 0.0 / vec2(viewWidth, viewHeight);
 	vec3 color = texture_Bicubic(colortex0, tex - pix_offset).rgb;
 	tex = uv * 0.125 + vec2(0.0f, 0.3f) + vec2(0.000f, 0.035f);
 	color += texture_Bicubic(colortex0, tex - pix_offset).rgb;

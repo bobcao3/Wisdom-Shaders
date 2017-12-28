@@ -97,7 +97,7 @@ void WaterParallax(inout vec3 wpos, in float lod, in f16vec3 N) {
 
 	for (int i = 0; i < maxLayers; i++) {
 		float h = getwave(wpos + stepin + cameraPosition, lod);
-		if (isEyeInWater == 1) h = -h;
+		if (isEyeInWater == 1) h += SEA_HEIGHT;
 
 		float diff = dot(stepin,abs(N)) - h;
 		stepin += nwpos * diff * 0.5;

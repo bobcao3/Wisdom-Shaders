@@ -64,7 +64,7 @@ void main() {
       );
     }
 
-    color = light_calc_PBR_IBL(color, reflectedV, frag, 
+    color = light_calc_PBR_IBL(color, reflectedV, frag,
 ray_traced.rgb);
   }
 

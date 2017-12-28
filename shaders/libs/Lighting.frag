@@ -54,7 +54,7 @@ float light_mclightmap_attenuation(in float l) {
 	float light_distance = clamp((1.0 - pow(l, 4.6)), 0.08, 1.0);
 	const float max_light = 100.0;
 
-	const float light_quadratic = 4.9f;
+	const float light_quadratic = 2.9f;
 	const float light_constant1 = 1.09f;
 	const float light_constant_linear = 0.1;
 	const float light_constant2 = 1.09f;
@@ -303,7 +303,7 @@ vec3 light_calc_PBR_brdf(LightSourcePBR Li, Material mat) {
 	return specular * radiance;
 }
 
-vec3 light_calc_PBR_IBL(in vec3 color, in vec3 L, Material mat, in vec3 
+vec3 light_calc_PBR_IBL(in vec3 color, in vec3 L, Material mat, in vec3
 env) {
 	vec3 H = normalize(L - mat.nvpos);
 	vec3 F0 = vec3(0.02);

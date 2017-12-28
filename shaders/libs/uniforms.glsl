@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#ifndef _INCLUDE_UNIFORM
+#define _INCLUDE_UNIFORM
+
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
 uniform sampler2D colortex2;
@@ -69,3 +72,4 @@ uniform vec3 previousCameraPosition;            // last frame cameraPosition
 vec3 lightPosition = normalize(shadowLightPosition);
 
 uniform int isEyeInWater;
+#endif

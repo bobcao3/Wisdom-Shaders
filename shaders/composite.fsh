@@ -60,6 +60,6 @@ void main() {
     color.r = lit_distance;
   }
 
-/* DRAWBUFFERS:0357 */
+/* DRAWBUFFERS:0 */
   gl_FragData[0] = vec4(color, 1.0);
 }

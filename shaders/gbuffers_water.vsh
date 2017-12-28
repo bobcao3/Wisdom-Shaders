@@ -41,11 +41,6 @@ varying vec3 wB;
 
 varying vec3 wpos;
 
-uniform mat4 gbufferProjection;
-uniform mat4 gbufferModelViewInverse;
-uniform vec3 shadowLightPosition;
-uniform vec3 sunPosition;
-
 #include "libs/encoding.glsl"
 
 varying vec3 sunLight;
@@ -82,8 +77,8 @@ void main() {
 	N = gl_NormalMatrix * gl_Normal;
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
-	worldLightPosition = worldSunPosition; 
-//mat3(gbufferModelViewInverse) * 
+	worldLightPosition = worldSunPosition;
+//mat3(gbufferModelViewInverse) *
 normalize(shadowLightPosition);
 
 	vec4 p = gbufferModelViewInverse * vec4(vpos, 1.0);

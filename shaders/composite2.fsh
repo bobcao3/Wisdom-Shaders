@@ -74,26 +74,24 @@ bool checkBlur(vec2 offset, float scale) {
 	&& (uv.t - offset.t + padding < 1.0f / scale + (padding * 2.0f)) );
 }
 
-const float weight[3] = float[] (0.2750, 0.4357, 0.2750);
+const float weight[3] = float[] (0.3829, 0.0606, 0.2417);
 
 vec3 LODblur(in int LOD, in vec2 offset) {
 	float scale = exp2(LOD);
 	vec3 bloom = vec3(0.0);
 
 	float allWeights = 0.0f;
-	float d1 = bayer_4x4(uv, vec2(viewWidth, viewHeight)) - 1.0;
 
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			vec2 coord = vec2(i * 2.0 + d1, j * 2.0 - d1) / vec2(viewWidth, viewHeight);
-			d1 = fract(d1 + 0.3117);
+	for (int i = -2; i < 3; i++) {
+		for (int j = -2; j < 3; j++) {
+			vec2 coord = vec2(i + 0.5, j + 0.5) / vec2(viewWidth, viewHeight);
+			//d1 = fract(d1 + 0.3117);
 
 			vec2 finalCoord = (uv.st + coord.st - offset.st) * scale;
 
-			vec3 c = clamp(texture2DLod(gaux2, finalCoord, 
-LOD / 2).rgb, vec3(0.0f), vec3(1.0f)) * weight[i] * weight[j];
+			vec3 c = clamp(texture2DLod(gaux2, finalCoord, LOD / 2).rgb, vec3(0.0f), vec3(1.0f)) * weight[abs(i)] * weight[abs(j)];
 
-			bloom += c * luma(c);
+			bloom += c * (luma(c) + 0.05);
 		}
 	}
 
