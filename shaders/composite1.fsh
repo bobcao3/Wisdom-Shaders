@@ -59,12 +59,12 @@ void main() {
     vec3 direction = normalize(frag.wpos);
 
     // Blur and collect scattering
-    float scatter  = sum4(textureGather      (colortex0, uv              ));
-          scatter += sum4(textureGatherOffset(colortex0, uv, ivec2(-1, 0)));
-          scatter += sum4(textureGatherOffset(colortex0, uv, ivec2(-1,-1)));
-          scatter += sum4(textureGatherOffset(colortex0, uv, ivec2( 0,-1)));
-          scatter *= 0.0625;
-    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), direction, worldLightPosition, fog_coord * 600e3) * scatter;
+    float scatteram  = sum4(textureGather      (colortex0, uv              ));
+          scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2(-1, 0)));
+          scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2(-1,-1)));
+          scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2( 0,-1)));
+          scatteram *= 0.0625;
+    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), direction, worldLightPosition, fog_coord * 600e3) * scatteram;
   }
 
 /* DRAWBUFFERS:357 */
