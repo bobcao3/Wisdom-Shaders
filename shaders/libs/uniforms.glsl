@@ -61,6 +61,7 @@ vec2 pixel = 1.0 / vec2(viewWidth, viewHeight);
 uniform float near;                             // near viewing plane distance
 uniform float far;                              // far viewing plane distance
 
+uniform ivec2 eyeBrightnessSmooth;
 
 uniform vec3 sunPosition;                       // sun position in eye space
 uniform vec3 moonPosition;                      // moon position in eye space
