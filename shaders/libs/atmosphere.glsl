@@ -1,6 +1,9 @@
+#include "noise.glsl"
+#include "uniforms.glsl"
+
 // ============
 const float R0 = 6360e3;
-const float Ra = 6380e3;
+const float Ra = 6400e3;
 #ifdef AT_LSTEP
 const int steps = 4;
 const int stepss = 2;
@@ -10,15 +13,44 @@ const int stepss = 4;
 #endif
 const float g = .76;
 const float g2 = g * g;
-const float Hr = 8e3;
-const float Hm = 1.6e3;
-const vec3 I = vec3(1.2311, 1.0, 0.8286) * 20.0;
-
-#define t iTime
+const float Hr = 10e3;
+const float Hm = 2.6e3;
+const vec3 I = vec3(15.0);//vec3(1.2311, 1.0, 0.8286) * 10.0;
 
 const vec3 C = vec3(0., -R0, 0.);
 const vec3 bM = vec3(21e-6);
 const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
+
+#define CLOUDS_2D
+
+#ifdef CLOUDS_2D
+const f16mat2 octave_c = f16mat2(1.4,1.2,-1.2,1.4);
+const float cloud_coverage = 0.1;
+
+float16_t calc_clouds(in f16vec3 sphere, in f16vec3 cam) {
+	if (sphere.y < 0.0) return 0.0;
+
+	f16vec3 c = sphere / max(sphere.y, 0.001) * 768.0;
+	c += noise((c.xz + cam.xz) * 0.001 + frameTimeCounter * 0.01) * 200.0 / sphere.y;
+	f16vec2 uv = (c.xz + cam.xz);
+
+	uv.x += frameTimeCounter * 10.0;
+	uv *= 0.004;
+	uv.y *= 0.75;
+	float16_t n  = noise(uv * f16vec2(0.5, 1.0)) * 0.5;
+		uv += f16vec2(n * 0.6, 0.3) * octave_c; uv *= 3.0;
+		  n += noise(uv) * 0.25;
+		uv += f16vec2(n * 0.5, 0.2) * octave_c + f16vec2(frameTimeCounter * 0.1, 0.2); uv *= 3.01;
+		  n += noise(uv) * 0.105;
+		uv += f16vec2(n * 0.3, 0.1) * octave_c + f16vec2(frameTimeCounter * 0.03, 0.1); uv *= 3.02;
+		  n += noise(uv) * 0.0625;
+	n = smoothstep(0.0, 1.0, n + cloud_coverage);
+
+	n *= smoothstep(0.0, 140.0, sphere.y);
+
+	return n;
+}
+#endif
 
 void densities(in vec3 pos, out float rayleigh, out float mie) {
 	float h = length(pos - C) - R0;

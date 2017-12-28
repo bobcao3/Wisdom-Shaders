@@ -19,6 +19,7 @@
  */
 
 varying vec3 sunLight;
+varying vec3 sunraw;
 
 varying vec3 ambientU;
 varying vec3 ambient0;
@@ -30,9 +31,6 @@ varying vec3 ambientD;
 #define AT_LSTEP
 #include "libs/atmosphere.glsl"
 
-uniform mat4 gbufferModelViewInverse;
-uniform vec3 sunPosition;
-
 //#define TAA
 #ifdef TAA
 #include "libs/TAAjitter.glsl"
@@ -40,17 +38,16 @@ uniform vec3 sunPosition;
 
 void functions() {
   vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
-  float f = pow(max(worldLightPosition.y, 0.0), 0.9) * 15.0;
-  sunLight = scatter(vec3(0., 25e2, 0.), worldLightPosition, 
-worldLightPosition, Ra) * f;
+  float f = pow(abs(worldLightPosition.y), 0.9) * 15.0;
+  sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) + vec3(0.05, 0.07, 0.15) * max(-worldLightPosition.y, 0.0);
+  sunLight = (sunraw) * f;
 
-  ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra);
-  ambient0 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 1.0,  0.1,  0.0)), worldLightPosition, Ra);
-  ambient1 = scatter(vec3(0., 25e2, 0.), normalize(vec3(-1.0,  0.1,  0.0)), worldLightPosition, Ra);
-  ambient2 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1,  1.0)), worldLightPosition, Ra);
-  ambient3 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1, -1.0)), worldLightPosition, Ra);
-  ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 
-0.2;
+  ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) + 0.05;
+  ambient0 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 1.0,  0.1,  0.0)), worldLightPosition, Ra) + 0.05;
+  ambient1 = scatter(vec3(0., 25e2, 0.), normalize(vec3(-1.0,  0.1,  0.0)), worldLightPosition, Ra) + 0.05;
+  ambient2 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1,  1.0)), worldLightPosition, Ra) + 0.05;
+  ambient3 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1, -1.0)), worldLightPosition, Ra) + 0.05;
+  ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 0.2;
 
   #ifdef TAA
   //gl_Position.xyz /= gl_Position.w;

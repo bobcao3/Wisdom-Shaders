@@ -39,10 +39,13 @@ Mask mask;
 Material frag;
 LightSourcePBR sun;
 LightSourceHarmonics ambient;
+LightSource torch;
 
 #include "libs/atmosphere.glsl"
 
 varying vec3 sunLight;
+varying vec3 sunraw;
+
 varying vec3 ambientU;
 varying vec3 ambient0;
 varying vec3 ambient1;
@@ -97,15 +100,29 @@ void main() {
     ambient.color4 = ambient3 * ao;
     ambient.color5 = ambientD * ao;
 
-    color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN);
+    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.1;
+    torch.color = torch1900K;
+    torch.attenuation = light_mclightmap_attenuation(frag.torchlight);
+
+    color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN) + light_calc_diffuse(torch, frag);
 
     color = mix(color, frag.albedo, frag.emmisive);
   } else {
     vec3 nwpos = normalize(frag.wpos);
     color = texture2D(colortex0, uv).rgb;
-    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
 
-    if (mask.is_sky_object) color += vec3(0.4);
+    #ifdef CLOUDS_2D
+    float cmie = calc_clouds(nwpos * 512.0, cameraPosition);
+    color *= 1.0 - cmie;
+
+    float mu = abs(dot(nwpos, worldLightPosition));
+    float opmu2 = 1. + mu*mu;
+    float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
+    vec3 sunlight = sunLight * 0.06666;
+    color += sunraw * cmie * (0.3 + phaseM);
+    #endif
+
+    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
   }
 
 /* DRAWBUFFERS:5 */
