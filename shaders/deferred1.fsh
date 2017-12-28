@@ -53,6 +53,8 @@ varying vec3 ambient2;
 varying vec3 ambient3;
 varying vec3 ambientD;
 
+varying vec3 worldLightPosition;
+
 #define WAO_ADVANCED
 
 void main() {
@@ -62,8 +64,6 @@ void main() {
   material_sample(frag, uv, flag);
 
   init_mask(mask, flag, uv);
-
-  vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 
   if (!mask.is_sky) {
     sun.light.color = sunLight;

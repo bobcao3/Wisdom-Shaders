@@ -36,10 +36,12 @@ varying vec3 ambientD;
 #include "libs/TAAjitter.glsl"
 #endif
 
+varying vec3 worldLightPosition;
+
 void functions() {
-  vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
+  worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
   float f = pow(abs(worldLightPosition.y), 0.9) * 15.0;
-  sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) + vec3(0.05, 0.07, 0.15) * max(-worldLightPosition.y, 0.0);
+  sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) + vec3(0.06, 0.07, 0.1) * max(-worldLightPosition.y, 0.0);
   sunLight = (sunraw) * f;
 
   ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) + 0.05;
