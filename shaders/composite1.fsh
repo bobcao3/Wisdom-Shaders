@@ -40,6 +40,8 @@ Material frag;
 varying vec3 sunLight;
 varying vec3 ambientU;
 
+varying vec3 worldLightPosition;
+
 const bool gaux4Clear = false;
 const bool colortex0MipmapEnabled = true;
 
@@ -52,7 +54,6 @@ void main() {
   init_mask(mask, flag, uv);
 
   if (!mask.is_sky) {
-    vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 
     float fog_coord = min(length(frag.wpos) / 1024.0, 1.0);
     color *= 1.0 - fog_coord * 0.8;
@@ -65,6 +66,20 @@ void main() {
           scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2( 0,-1)));
           scatteram *= 0.0625;
     color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), direction, worldLightPosition, fog_coord * 600e3) * scatteram;
+  }
+
+  if (isEyeInWater == 1 && !mask.is_water) {
+    float dist_diff_N = min(1.0, frag.cdepth * 0.0625);             // Distance clamped (0.0 ~ 1.0)
+
+		float absorption = 2.0 / (dist_diff_N + 1.0) - 1.0;             // Water absorption factor
+		vec3 watercolor = color
+		   * pow(vec3(absorption), vec3(2.0, 0.8, 1.0))                 // Water absorption color
+			 * (abs(worldLightPosition.y) * 0.8 + 0.2);                   // Scatter-in factor
+		float light_att = float(eyeBrightnessSmooth.y) / 240.0;
+    const vec3 waterfogcolor = vec3(0.35,0.9,0.83) * 1.7;
+		vec3 waterfog = (max(luma(ambientU), 0.0) * light_att) * waterfogcolor;
+
+    color = mix(waterfog, watercolor, pow(absorption, 2.0));
   }
 
 /* DRAWBUFFERS:357 */
