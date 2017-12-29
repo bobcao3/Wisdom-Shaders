@@ -37,8 +37,8 @@ float16_t noise(f16vec2 p) {
 	u.y), -1.0f);
 }
 
-float noise_tex(in vec2 p) {
-	return fma(texture2D(noisetex, fract(p * 0.0020173)).r, 2.0, -1.0);
+float16_t noise_tex(in f16vec2 p) {
+	return fma(texture2D(noisetex, fract(p * 0.0050173)).r, 2.0, -1.0);
 }
 
 float16_t bayer2(f16vec2 a){
