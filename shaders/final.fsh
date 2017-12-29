@@ -29,6 +29,8 @@ const int gaux2Format = RGBA16F;
 const int gaux3Format = RGBA16F;
 const int gaux4Format = RGBA16;
 
+const int noiseTextureResolution = 256;
+
 #include "GlslConfig"
 
 //#define VIGNETTE

@@ -66,27 +66,19 @@ varying f16vec3 tangentpos;
 
 #define tileResolution 128 // [32 64 128 256 512 1024]
 
+vec2 tileResolutionF = vec2(tileResolution) / atlasSize;
+
+vec2 minCoord = vec2(texcoord.x - mod(texcoord.x, tileResolutionF.x), texcoord.y - mod(texcoord.y, tileResolutionF.y));
+vec2 maxCoord = minCoord + tileResolutionF;
+
 vec2 atlas_offset(in vec2 coord, in vec2 offset) {
-	const ivec2 atlasTiles = ivec2(32, 16);
+	vec2 offsetCoord = coord + mod(offset.xy, tileResolutionF);
 
-	coord *= atlasSize;
+	offsetCoord.x -= float(offsetCoord.x > maxCoord.x) * tileResolutionF.x;
+	offsetCoord.x += float(offsetCoord.x < minCoord.x) * tileResolutionF.x;
 
-	vec2 offsetCoord = coord + mod(offset.xy * atlasSize, vec2(tileResolution));
-
-	vec2 minCoord = vec2(coord.x - mod(coord.x, tileResolution), coord.y - mod(coord.y, tileResolution));
-	vec2 maxCoord = minCoord + tileResolution;
-
-	if (offsetCoord.x > maxCoord.x)
-		offsetCoord.x -= tileResolution;
-	else if (offsetCoord.x < minCoord.x)
-		offsetCoord.x += tileResolution;
-
-	if (offsetCoord.y > maxCoord.y)
-		offsetCoord.y -= tileResolution;
-	else if (offsetCoord.y < minCoord.y)
-		offsetCoord.y += tileResolution;
-
-	offsetCoord /= atlasSize;
+	offsetCoord.y -= float(offsetCoord.y > maxCoord.y) * tileResolutionF.y;
+	offsetCoord.y += float(offsetCoord.y < minCoord.y) * tileResolutionF.y;
 
 	return offsetCoord;
 }

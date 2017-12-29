@@ -59,6 +59,7 @@ varying vec3 glcolor;
 #include "libs/atmosphere.glsl"
 
 #define WATER_PARALLAX
+#define WATER_CAUSTICS
 #include "libs/Water.frag"
 
 LightSourcePBR sun;
@@ -87,14 +88,9 @@ void main() {
 0).r;// Read deferred state depth
 		vec3 land_vpos = fetch_vpos(uv1.st, land_depth).xyz;    // Read deferred state vpos
 
-		float dist_diff;
-    if (isEyeInWater == 1) {
-      dist_diff = length(vpos);
-    } else {
-      dist_diff = distance(land_vpos, vpos);               // Distance difference - raw (Water absorption)
-    }
+		float dist_diff = (isEyeInWater == 1) ? length(vpos) : distance(land_vpos, vpos); // Distance difference - raw (Water absorption)
 
-		float lod = 1.0;//abs(wN.y) * 0.5 + 0.5;
+		const float lod = 1.0;
 
 		// Build material
 		material_build(
@@ -117,7 +113,7 @@ void main() {
 		// Refraction
     bool total_refra = false;
 		#ifdef REFRACTION
-		vec3 refracted = refract(frag.nvpos, frag.N, 1.0 / 1.22);
+		vec3 refracted = refract(frag.nvpos, frag.N, (isEyeInWater == 1) ? 1.33 / 1.00029 : 1.00029 / 1.33);
          total_refra = (refracted == vec3(0.0));
          refracted = frag.vpos + refracted * dist_diff;
 		vec2 uv_refra = screen_project(refracted);
@@ -134,7 +130,14 @@ void main() {
 		color = texture2D(gaux3, uv1.st);                       // Read deferred state composite
 		#endif
 
-		float dist_diff_N = total_refra ? 1.0: min(1.0, dist_diff * 0.0625);       // Distance clamped (0.0 ~ 1.0)
+    #ifdef WATER_CAUSTICS
+    if (isEyeInWater != 1) {
+      vec3 land_wpos = (gbufferModelViewInverse * vec4(land_vpos, 1.0)).xyz;
+      color *= fma(get_caustic(land_wpos + cameraPosition), 0.8, 0.2);
+    }
+    #endif
+
+		float dist_diff_N = min(1.0, dist_diff * 0.0625);       // Distance clamped (0.0 ~ 1.0)
 		if (isEyeInWater != 1 && land_depth > 0.9999)
       dist_diff_N = 1.0;                                    // Clamp out the sky behind
 
@@ -147,10 +150,12 @@ void main() {
     const vec3 waterfogcolor = vec3(0.35,0.9,0.83) * 0.9;
 		vec3 waterfog = (max(luma(ambientU), 0.0) * light_att) * (waterfogcolor * glcolor);
 
-		// Refraction color composite
-		color = (isEyeInWater == 1) ? vec4(watercolor, 1.0) : vec4(mix(waterfog, watercolor, pow(absorption, 2.0)), 1.0);
+    if (total_refra) watercolor = waterfog * max(1.0, 2.0 - absorption * 2.0);
 
-    watermixcolor = vec4(waterfog, 1.0 - pow(absorption, 2.0));
+		// Refraction color composite
+		color = (isEyeInWater == 1) ? vec4(watercolor, 1.0) : vec4(mix(waterfog, watercolor, absorption), 1.0);
+
+    watermixcolor = vec4(waterfog, 1.0 - absorption);
 
 		// Parallax cut-out (depth test)
 		if (frag.vpos.z < land_vpos.z) discard;

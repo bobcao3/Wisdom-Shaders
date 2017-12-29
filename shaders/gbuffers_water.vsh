@@ -70,10 +70,10 @@ void main() {
 	// ===============
 	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
   float f = pow(abs(worldLightPosition.y), 0.9) * 15.0;
-  vec3 sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) + vec3(0.06, 0.07, 0.1) * max(-worldLightPosition.y, 0.0);
+  vec3 sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0);
   sunLight = (sunraw) * f;
 
-  ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) + 0.05;
+  ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) + 0.03;
 
 	N = gl_NormalMatrix * gl_Normal;
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;

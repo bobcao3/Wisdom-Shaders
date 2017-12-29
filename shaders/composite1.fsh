@@ -79,7 +79,7 @@ void main() {
     const vec3 waterfogcolor = vec3(0.35,0.9,0.83) * 1.7;
 		vec3 waterfog = (max(luma(ambientU), 0.0) * light_att) * waterfogcolor;
 
-    color = mix(waterfog, watercolor, pow(absorption, 2.0));
+    color = mix(waterfog, watercolor, absorption);
   }
 
 /* DRAWBUFFERS:357 */

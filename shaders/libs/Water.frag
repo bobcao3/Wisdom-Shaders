@@ -111,7 +111,7 @@ void WaterParallax(inout vec3 wpos, in float lod, in f16vec3 N) {
 float get_caustic (in vec3 wpos) {
 	wpos += (64.0 - wpos.y) * (worldLightPosition / worldLightPosition.y);
 	float w1 = getwave2(wpos, 1.0);
-	vec3 n = get_water_normal(wpos, w1, 1.0, vec3(0.0, 1.0, 0.0));
-	return abs(dot(n, worldLightPosition) * 2.0 - 1.0);
+	vec3 n = get_water_normal(wpos, w1, 1.0, vec3(0.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
+	return pow(dot(n, worldLightPosition) * 0.5 + 0.5, 2.0);
 }
 #endif
