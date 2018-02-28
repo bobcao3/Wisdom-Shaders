@@ -131,23 +131,23 @@ void main() {
 		#endif
 
     #ifdef WATER_CAUSTICS
-    if (isEyeInWater != 1) {
+    if (isEyeInWater == 0) {
       vec3 land_wpos = (gbufferModelViewInverse * vec4(land_vpos, 1.0)).xyz;
-      color *= fma(get_caustic(land_wpos + cameraPosition), 0.8, 0.2);
+      color *= fma(get_caustic(land_wpos + cameraPosition), 0.8, 0.5);
     }
     #endif
 
-		float dist_diff_N = min(1.0, dist_diff * 0.0625);       // Distance clamped (0.0 ~ 1.0)
+		float dist_diff_N = min(1.0, dist_diff * 0.03125);       // Distance clamped (0.0 ~ 1.0)
 		if (isEyeInWater != 1 && land_depth > 0.9999)
       dist_diff_N = 1.0;                                    // Clamp out the sky behind
 
-		float absorption = 2.0 / (dist_diff_N + 1.0) - 1.0;     // Water absorption factor
+		float absorption = pow(2.0 / (dist_diff_N + 1.0) - 1.0, 2.0);     // Water absorption factor
 		vec3 watercolor = color.rgb * glcolor
 		   * pow(vec3(absorption), vec3(2.0, 0.8, 1.0))         // Water absorption color
 			 * (abs(dot(lightPosition, N)) * 0.8 + 0.2);          // Scatter-in factor
 		float light_att = (isEyeInWater == 1) ? float(eyeBrightnessSmooth.y) / 240.0 : lmcoord.y;
 
-    const vec3 waterfogcolor = vec3(0.35,0.9,0.83) * 0.9;
+    const vec3 waterfogcolor = vec3(0.15,0.93,0.7) * 1.0;
 		vec3 waterfog = (max(luma(ambientU), 0.0) * light_att) * (waterfogcolor * glcolor);
 
     if (total_refra) watercolor = waterfog * max(1.0, 2.0 - absorption * 2.0);
@@ -178,12 +178,10 @@ void main() {
 	sun.light.color = sunLight;
 	sun.L = lightPosition;
 
-	sun.light.attenuation = 1.0 - light_fetch_shadow_fast(shadowtex0, wpos2shadowpos(frag.wpos));
+	sun.light.attenuation = 1.0 - light_fetch_shadow_fast(shadowtex0, wpos2shadowpos(frag.wpos + worldN * 0.1));
 
 	// PBR lighting (Diffuse + brdf)
-	if (maskFlag(data, waterFlag)) {
-		color.rgb += light_calc_PBR_brdf(sun, frag);
-	} else {
+	if (!maskFlag(data, waterFlag)) {
 		color.rgb = light_calc_PBR(sun, frag, 1.0);
 	}
 
@@ -208,6 +206,11 @@ void main() {
 
 	color.rgb = light_calc_PBR_IBL(color.rgb, reflectedV, frag, ray_traced.rgb);
   #endif
+
+  // PBR lighting (Diffuse + brdf)
+  if (maskFlag(data, waterFlag)) {
+  	color.rgb += light_calc_PBR_brdf(sun, frag);
+  }
 
   if (isEyeInWater == 1) color.rgb = mix(color.rgb, watermixcolor.rgb, watermixcolor.a);
 
