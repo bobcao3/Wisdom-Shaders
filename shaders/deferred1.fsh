@@ -123,6 +123,7 @@ void main() {
     #endif
 
     color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
+	color += sunraw * smoothstep(0.9995, 0.9996, mu);
   }
 
 /* DRAWBUFFERS:5 */
