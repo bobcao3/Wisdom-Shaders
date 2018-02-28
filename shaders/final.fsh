@@ -63,17 +63,17 @@ void main() {
 		gaux2, uv_adj);*/
 	vec3 color = texture2D(gaux2, uv_adj).rgb;
 
-  float exposure = 1.0;
+	float exposure = 1.0;
 
 	#ifdef BLOOM
 	vec3 b = bloom(color, uv_adj);
 
-  const vec2 tex = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
+	const vec2 tex = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
 	exposure = max(1.0 - luma(texture_Bicubic(colortex0, tex).rgb), 0.05) * 4.0;
-  color += max(vec3(0.0), b) * exposure;
+	color += max(vec3(0.0), b) * exposure;
 	#endif
 
-  ACEStonemap(color, screenBrightness * 0.5 + 1.0);
+	ACEStonemap(color, screenBrightness * 0.5 + 0.75);
 
-  gl_FragColor = vec4(toGamma(color),1.0);
+	gl_FragColor = vec4(toGamma(color),1.0);
 }
