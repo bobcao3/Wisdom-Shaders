@@ -57,7 +57,7 @@ float light_mclightmap_attenuation(in float l) {
 	const float light_quadratic = 2.9f;
 	const float light_constant1 = 1.09f;
 	const float light_constant_linear = 0.1;
-	const float light_constant2 = 1.09f;
+	const float light_constant2 = 1.29f;
 
 	return clamp(pow(light_constant1 / light_distance, light_quadratic) + l * light_constant_linear - light_constant2, 0.0, max_light);
 }
@@ -89,20 +89,20 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 const vec2 shadowPixSize = vec2(1.0 / shadowMapResolution);
 
 float shadowTexSmooth(in sampler2D s, in vec3 spos, out float depth) {
-	vec2 px0 = vec2(spos.xy + shadowPixSize * vec2(0.25, 0.5));
+	vec2 px0 = vec2(spos.xy + shadowPixSize * poisson_4[0]);
 	depth = 0.0;
 	float texel = texture2D(s, px0).x; depth += texel;
 	float res1 = float(texel < spos.z);
 
-	vec2 px1 = vec2(spos.xy + shadowPixSize * vec2(0.25, 0.0));
+	vec2 px1 = vec2(spos.xy + shadowPixSize * poisson_4[1]);
 	texel = texture2D(s, px1).x; depth += texel;
 	float res2 = float(texel < spos.z);
 
-	vec2 px2 = vec2(spos.xy + shadowPixSize * vec2(-0.25, 0.0));
+	vec2 px2 = vec2(spos.xy + shadowPixSize * poisson_4[2]);
 	texel = texture2D(s, px2).x; depth += texel;
 	float res3 = float(texel < spos.z);
 
-	vec2 px3 = vec2(spos.xy + shadowPixSize * vec2(-0.25, 0.5));
+	vec2 px3 = vec2(spos.xy + shadowPixSize * poisson_4[3]);
 	texel = texture2D(s, px3).x; depth += texel;
 	float res4 = float(texel < spos.z);
 	depth *= 0.25;
@@ -116,6 +116,9 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness) {
 	float shade = 0.0; thickness = 0.0;
 
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return shade;
+	
+	const float bias_pix = 0.5 / shadowMapResolution;
+	float bias = length(spos.xy) * bias_pix;
 
 	#ifdef SHADOW_FILTER
 		#ifdef VARIANCE_SHADOW_MAPS
@@ -123,22 +126,16 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness) {
 
 		float a = 0.0;
 		float xs = 0.0;
-		float n = bayer_4x4(uv, vec2(viewWidth, viewHeight));
 
-		for (int i = -2; i < 3; i++) {
-			for (int j = -2; j < 3; j++) {
-				vec2 offset = vec2(i, j);
-				a = texture2D(smap, spos.st + offset * 0.0005f).x;
-				M2 += a * a;
-				M1 += a;
+		for (int i = 0; i < 12; i++) {
+			a = texture2D(smap, poisson_12[i] * shadowPixSize + spos.st).x + bias;
+			M2 += a * a;
+			M1 += a;
 
-				xs += float(a < spos.z);
-
-			//	n = fract(n + 0.618);
-			}
+			xs += float(a < spos.z);
 		}
-		const float d13f = 1.0 / 25.0;
-		M1 *= d13f; M2 *= d13f; xs *= d13f;
+		const float r_12 = 1.0 / 12.0f;
+		M1 *= r_12; M2 *= r_12; xs *= r_12;
 
 		if (M1 < spos.z) {
 			float t_M1 = spos.z - M1;
@@ -147,27 +144,22 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness) {
 			shade = max(xs, 1.0 - v / (v + t_M1 * t_M1));
 		}
 
-		thickness = distance(spos.z, M1) * 128.0 * shade;
+		thickness = distance(spos.z, M1) * 256.0 * shade;
 		#else
 		float avd = 0.0;
-		float n = bayer_4x4(uv, vec2(viewWidth, viewHeight));
-		for (int i = -1; i < 2; i++) {
-			for (int j = -1; j < 2; j++) {
-				vec2 offset = vec2(i, j) * (fract(n + i * j * 0.17) * 0.7 + 0.3);
-				float shadowDepth = texture2D(smap, spos.st + offset * 0.001f).x;
-				avd += shadowDepth;
-				shade += float(shadowDepth < spos.z);
-
-				n = fract(n + 0.618);
-			}
+		for (int i = 0; i < 12; i++) {
+			float shadowDepth = texture2D(smap, poisson_12[i] * shadowPixSize + spos.st).x + bias;
+			avd += shadowDepth;
+			shade += float(shadowDepth < spos.z);
 		}
-		shade /= 9.0f; avd /= 9.0f;
-		thickness = distance(spos.z, avd) * 128.0 * shade;
+		const float r_12 = 1.0 / 12.0f;
+		shade *= r_12; avd *= r_12;
+		thickness = distance(spos.z, avd) * 256.0 * shade;
 		#endif
 	#else
 		float M1;
 		shade = shadowTexSmooth(smap, spos, M1);
-		thickness = distance(spos.z, M1) * 128.0 * shade;
+		thickness = distance(spos.z, M1) * 256.0 * shade;
 	#endif
 
 	/*float edgeX = abs(spos.x) - 0.9f;
@@ -373,38 +365,34 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 //==============================================================================
 // Light Effects
 //==============================================================================
-const int Sample_Directions = 6;
-const  vec2 ao_offset_table[Sample_Directions + 1] = vec2 [] (
-	vec2( 0.0,     1.0    ),
-	vec2( 0.7071,  0.7071 ),
-	vec2( 0.7071, -0.7071 ),
-	vec2( 0.0,    -1.0    ),
-	vec2(-0.7071, -0.7071 ),
-	vec2(-0.7071,  0.7071 ),
-	vec2( 0.0,     1.0    )
-);
+#ifdef WAO_HIGH
+const int Sample_Directions = 12;
+#define ao_offset_table poisson_12
+#else
+const int Sample_Directions = 4;
+#define ao_offset_table poisson_4
+#endif
+const float rsam = 2.0 / float16_t(Sample_Directions);
 
-float calcAO (vec3 cNormal, float cdepth, vec3 vpos, vec2 uv) {
-	float radius = 1.02 / cdepth;
-	float ao = 0.0;
+float calcAO (vec3 cNormal, float cdepth, vec3 vpos, f16vec2 uv) {
+	float16_t radius = 1.0 / cdepth;
+	float16_t ao = 0.0;
 
-	float16_t rand = bayer_64x64(uv, vec2(viewWidth, viewHeight));
+	float16_t rand = bayer_64x64(uv, f16vec2(viewWidth, viewHeight));
 	for (int i = 0; i < Sample_Directions; i++) {
 		rand = fract(rand + 0.618);
-		float dx = radius * pow(rand, 2.0);
-		vec2 dir = normalize(mix(ao_offset_table[i], ao_offset_table[i + 1], fract(rand + 0.5))) * (dx + pixel * 2.0);
+		float16_t dx = radius * pow(rand, 2.0);
+		f16vec2 dir = ao_offset_table[i] * (dx + pixel * 2.0);
 
-		vec2 h = uv + dir;
-		//if (clamp(h, vec2(0.0), vec2(1.0)) != h) continue;
-		vec3 nvpos = fetch_vpos(h, depthtex1).xyz;
+		f16vec2 h = uv + dir;
+		f16vec3 nvpos = fetch_vpos(h, depthtex1).xyz;
 
-		float d = length(nvpos - vpos);
+		float d = length(nvpos - vpos) + 0.00001;
 
 		ao += max(0.0, dot(cNormal, nvpos - vpos) / d - 0.15)
-		   * max(0.0, - (d * 0.27 - 1.0))
-		   * float(d > 0.00001);
+		   * max(0.0, - (d * 0.27 - 1.0));
 	}
 
-	return 1.0 - pow(clamp(ao * 0.265f, 0.0, 1.0), 0.5);
+	return 1.0 - sqrt(clamp(ao * rsam, 0.0, 1.0));
 }
 #endif
