@@ -35,7 +35,7 @@ float16_t calc_clouds(in f16vec3 sphere, in f16vec3 cam) {
 	f16vec2 uv = (c.xz + cam.xz);
 
 	uv.x += frameTimeCounter * 10.0;
-	uv *= 0.001;
+	uv *= 0.002;
 	float16_t n  = noise_tex(uv * f16vec2(0.5, 1.0)) * 0.5;
 		uv += f16vec2(n * 0.6, 0.0) * octave_c; uv *= 6.0;
 		  n += noise_tex(uv) * 0.25;
@@ -43,8 +43,6 @@ float16_t calc_clouds(in f16vec3 sphere, in f16vec3 cam) {
 		  n += noise(uv) * 0.105;
 		uv += f16vec2(n, 0.0) * octave_c + f16vec2(frameTimeCounter * 0.03, 0.1); uv *= 2.02;
 		  n += noise(uv) * 0.0625;
-		uv += f16vec2(n, 0.0) * octave_c + f16vec2(frameTimeCounter * 0.06, 0.1); uv *= 1.5;
-		  n += noise(uv) * 0.03;
 	n = smoothstep(0.0, 1.0, n + cloud_coverage);
 
 	n *= smoothstep(0.0, 140.0, sphere.y);
