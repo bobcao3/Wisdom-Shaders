@@ -15,7 +15,7 @@ const float g = .76;
 const float g2 = g * g;
 const float Hr = 10e3;
 const float Hm = 2.6e3;
-const vec3 I = vec3(15.0);//vec3(1.2311, 1.0, 0.8286) * 10.0;
+const vec3 I = vec3(1.2311, 1.0, 0.8286) * 12.0;
 
 const vec3 C = vec3(0., -R0, 0.);
 const vec3 bM = vec3(21e-6);
@@ -35,15 +35,16 @@ float16_t calc_clouds(in f16vec3 sphere, in f16vec3 cam) {
 	f16vec2 uv = (c.xz + cam.xz);
 
 	uv.x += frameTimeCounter * 10.0;
-	uv *= 0.003;
-	uv.y *= 0.75;
+	uv *= 0.001;
 	float16_t n  = noise_tex(uv * f16vec2(0.5, 1.0)) * 0.5;
-		uv += f16vec2(n * 0.2, 0.3) * octave_c; uv *= 4.0;
+		uv += f16vec2(n * 0.6, 0.0) * octave_c; uv *= 6.0;
 		  n += noise_tex(uv) * 0.25;
-		uv += f16vec2(n * 0.5, 0.2) * octave_c + f16vec2(frameTimeCounter * 0.1, 0.2); uv *= 3.01;
-		  n += noise_tex(uv) * 0.105;
-		uv += f16vec2(n * 0.3, 0.1) * octave_c + f16vec2(frameTimeCounter * 0.03, 0.1); uv *= 2.02;
-		  n += noise_tex(uv) * 0.0625;
+		uv += f16vec2(n * 0.4, 0.0) * octave_c + f16vec2(frameTimeCounter * 0.1, 0.2); uv *= 3.01;
+		  n += noise(uv) * 0.105;
+		uv += f16vec2(n, 0.0) * octave_c + f16vec2(frameTimeCounter * 0.03, 0.1); uv *= 2.02;
+		  n += noise(uv) * 0.0625;
+		uv += f16vec2(n, 0.0) * octave_c + f16vec2(frameTimeCounter * 0.06, 0.1); uv *= 1.5;
+		  n += noise(uv) * 0.03;
 	n = smoothstep(0.0, 1.0, n + cloud_coverage);
 
 	n *= smoothstep(0.0, 140.0, sphere.y);
