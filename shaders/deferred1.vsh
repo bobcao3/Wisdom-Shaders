@@ -44,11 +44,11 @@ void functions() {
   sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0);
   sunLight = (sunraw) * f;
 
-  ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) + 0.03;
-  ambient0 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 1.0,  0.1,  0.0)), worldLightPosition, Ra) + 0.03;
-  ambient1 = scatter(vec3(0., 25e2, 0.), normalize(vec3(-1.0,  0.1,  0.0)), worldLightPosition, Ra) + 0.03;
-  ambient2 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1,  1.0)), worldLightPosition, Ra) + 0.03;
-  ambient3 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1, -1.0)), worldLightPosition, Ra) + 0.03;
+  ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) * 0.8 + 0.01;
+  ambient0 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 1.0,  0.1,  0.0)), worldLightPosition, Ra) * 0.8 + 0.01;
+  ambient1 = scatter(vec3(0., 25e2, 0.), normalize(vec3(-1.0,  0.1,  0.0)), worldLightPosition, Ra) * 0.8 + 0.01;
+  ambient2 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1,  1.0)), worldLightPosition, Ra) * 0.8 + 0.01;
+  ambient3 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1, -1.0)), worldLightPosition, Ra) * 0.8 + 0.01;
   ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 0.2;
 
   #ifdef TAA
