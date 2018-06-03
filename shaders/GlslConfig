@@ -1,6 +1,6 @@
 const int shadowMapResolution = 1512; // [512 1024 1512 2048 4096]
 const float shadowDistance = 128.0; // [64.0 90.0 128.0 160.0 256.0 512.0]
-const float sunPathRotation = -32.5;
+const float sunPathRotation = -42.5;
 const float shadowDistanceRenderMul = 1.0;
 const float shadowIntervalSize = 2.0;
 const float ambientOcclusionLevel = 0.0f; // [0.0f 0.5f 1.0f]

@@ -91,7 +91,7 @@ vec3 LODblur(in int LOD, in vec2 offset) {
 
 			vec3 c = clamp(texture2DLod(gaux2, finalCoord, LOD / 2).rgb, vec3(0.0f), vec3(1.0f)) * weight[abs(i)] * weight[abs(j)];
 
-			bloom += c * (luma(c) + 0.05);
+			bloom += c * smoothstep(0.0, 1.0, luma(c));
 		}
 	}
 

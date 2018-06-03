@@ -20,7 +20,7 @@ varying vec2 uv;
 
 const int RGBA8 = 0, R11_G11_B10 = 1, R8 = 2, RGBA16F = 3, RGBA16 = 4, RGBA32F = 5;
 
-const int colortex0Format = RGBA8;
+const int colortex0Format = RGBA16F;
 const int colortex1Format = RGBA8;
 const int colortex2Format = RGBA16;
 const int colortex3Format = RGBA16;
@@ -69,8 +69,13 @@ void main() {
 	vec3 b = bloom(color, uv_adj);
 
 	const vec2 tex = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
-	exposure = max(1.0 - luma(texture_Bicubic(colortex0, tex).rgb), 0.05) * 4.0;
+	exposure = max(1.0 - luma(texture_Bicubic(colortex0, tex).rgb), 0.05) * 5.0;
+	//#define BLOOM_DEBUG
+	#ifdef BLOOM_DEBUG
+	color = max(vec3(0.0), b) * exposure;
+	#else
 	color += max(vec3(0.0), b) * exposure;
+	#endif
 	#endif
 
 	ACEStonemap(color, screenBrightness * 0.5 + 0.75);

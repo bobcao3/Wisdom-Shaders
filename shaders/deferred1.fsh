@@ -72,7 +72,7 @@ void main() {
     vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
 
     float thickness = 1.0, shade = 0.0;
-    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos + 0.05 * wN), thickness);
+    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos + 0.01 * wN), thickness);
     sun.light.attenuation = 1.0 - shade;
 
     ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight);
@@ -100,12 +100,23 @@ void main() {
     ambient.color4 = ambient3 * ao;
     ambient.color5 = ambientD * ao;
 
-    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.1;
+    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.06;
+	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.1;
+	//#define WHITE_LIGHT
+	#ifndef WHITE_LIGHT
     torch.color = torch1900K;
+	#else
+	torch.color = torch5500K;
+	#endif
     torch.attenuation = light_mclightmap_attenuation(frag.torchlight);
 
     color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN) + light_calc_diffuse(torch, frag);
 
+	#define WAO_DEBUG
+	#ifdef WAO_DEBUG
+	color = vec3(ao);
+	#endif
+	
     color = mix(color, frag.albedo, frag.emmisive);
   } else {
     vec3 nwpos = normalize(frag.wpos);

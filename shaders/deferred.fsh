@@ -24,6 +24,7 @@ varying vec2 uv;
 #include "GlslConfig"
 
 #define WAO
+#define WAO_HIGH
 
 //#define DIRECTIONAL_LIGHTMAP
 
