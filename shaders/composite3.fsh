@@ -44,8 +44,8 @@ vec3 LODblur(in int LOD, in vec2 offset) {
 
 	float allWeights = 0.0f;
 
-	for (int i = -3; i < 4; i++) {
-		for (int j = -3; j < 4; j++) {
+	for (int i = -2; i < 3; i++) {
+		for (int j = -2; j < 3; j++) {
 			vec2 coord = vec2(i, j) / vec2(viewWidth, viewHeight) * 0.5;
 			//d1 = fract(d1 + 0.3117);
 

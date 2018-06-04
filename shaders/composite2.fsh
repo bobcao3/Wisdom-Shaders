@@ -81,8 +81,8 @@ vec3 LODblur(in int LOD, in vec2 offset) {
 
 	float allWeights = 0.0f;
 
-	for (int i = -2; i < 3; i++) {
-		for (int j = -2; j < 3; j++) {
+	for (int i = -3; i < 4; i++) {
+		for (int j = -3; j < 4; j++) {
 			vec2 coord = vec2(i, j) / vec2(viewWidth, viewHeight) * 0.5;
 			//d1 = fract(d1 + 0.3117);
 
@@ -143,11 +143,7 @@ void main() {
 	float lod = 2.0; vec2 offset = vec2(0.0f);
 	if (uv.y < 0.25 + padding * 2.0 + 0.6251 && uv.x < 0.0078125 + 0.25f + 0.100f) {
 		if (uv.y > 0.25 + padding) {
-			if (checkBlur(offset = vec2(0.0f, 0.3f)     + vec2(0.000f, 0.035f), exp2(lod = 3.0))) { /* LOD 3 */ }
-			else if (checkBlur(offset = vec2(0.125f, 0.3f)   + vec2(0.030f, 0.035f), exp2(lod = 4.0))) { /* LOD 4 */ }
-			else if (checkBlur(offset = vec2(0.1875f, 0.3f)  + vec2(0.060f, 0.035f), exp2(lod = 5.0))) { /* LOD 5 */ }
-			else if (checkBlur(offset = vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f), exp2(lod = 6.0))) { /* LOD 6 */ }
-			else lod = 0.0f;
+			lod = 0.0f;
 		} else if (uv.x > 0.25 + padding) lod = 0.0f;
 		if (lod == 2.0f) blur = LODblur(int(lod), offset);
 	}
