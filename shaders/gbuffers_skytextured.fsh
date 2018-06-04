@@ -32,6 +32,9 @@ varying vec2 texcoord;
 
 /* DRAWBUFFERS:04 */
 void main() {
-	gl_FragData[0] = texture2D(tex, texcoord);
+	vec4 color = texture2D(tex, texcoord);
+	color.rgb = pow(color.rgb, vec3(2.2));
+	
+	gl_FragData[0] = color;
 	gl_FragData[1] = vec4(0.0, 0.0, airFlag, 1.0);
 }
