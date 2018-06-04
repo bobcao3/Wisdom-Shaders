@@ -1,4 +1,6 @@
 #version 120
+#pragma optimize(on)
+#include "libs/compat.glsl"
 
 /*
  * Copyright 2017 Cheng Cao
@@ -48,6 +50,9 @@ varying vec3 vUV;
 varying vec2 vUVDot;
 #endif
 
+varying vec3 sunLight;
+varying vec3 worldLightPosition;
+
 void main() {
 	#ifdef DISTORTION_FIX
 	vec3 distort = dot(vUVDot, vUVDot) * vec3(-0.5, -0.5, -1.0) + vUV;
@@ -69,7 +74,7 @@ void main() {
 	vec3 b = bloom(color, uv_adj);
 
 	const vec2 tex = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
-	exposure = max(1.0 - luma(texture_Bicubic(colortex0, tex).rgb), 0.05) * 5.0;
+	exposure = (1.0 + max(1.0 - eyeBrightnessSmooth.y / 240.0 * luma(sunLight) * 0.4, 0.0));
 	//#define BLOOM_DEBUG
 	#ifdef BLOOM_DEBUG
 	color = max(vec3(0.0), b) * exposure;
@@ -78,7 +83,9 @@ void main() {
 	#endif
 	#endif
 
-	ACEStonemap(color, screenBrightness * 0.5 + 0.75);
-
+	ACEStonemap(color, (screenBrightness * 0.5 + 0.75) * exposure);
+	
 	gl_FragColor = vec4(toGamma(color),1.0);
+	
+	//if (uv.y > 0.5) gl_FragColor.rgb = vec3((1.0 + max(1.0 - eyeBrightnessSmooth.y / 240.0 * luma(sunLight) * 0.4, 0.0))) * 0.5;
 }
