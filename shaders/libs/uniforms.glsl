@@ -56,6 +56,7 @@ uniform float aspectRatio;                      // viewWidth / viewHeight
 #define VIEW_WIDTH
 uniform float viewWidth;                        // viewWidth
 uniform float viewHeight;                       // viewHeight
+uniform float wetness;
 vec2 pixel = 1.0 / vec2(viewWidth, viewHeight);
 #endif
 uniform float near;                             // near viewing plane distance

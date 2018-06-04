@@ -35,7 +35,7 @@ varying vec2 texcoord;
 #define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
 
 void main() {
-	color = gl_Color;
+	color = gl_Color * vec4(1.0, 1.0, 1.0, 0.5);
 	vec4 position = gl_Vertex;
 	float rand_ang = hash(position.xz);
 	position.x += rand_ang - position.y * 0.3;

@@ -82,11 +82,11 @@ void main() {
 
     float ao = 1.0;
     #ifdef WAO
-    ao  = sum4(textureGather      (gaux2, uv              ));
+    ao  = sum4(textureGatherOffset(gaux2, uv, ivec2( 1, 1)));
     #ifdef WAO_ADVANCED
-    ao += sum4(textureGatherOffset(gaux2, uv, ivec2(-1, 0)));
+    ao += sum4(textureGatherOffset(gaux2, uv, ivec2(-1, 1)));
     ao += sum4(textureGatherOffset(gaux2, uv, ivec2(-1,-1)));
-    ao += sum4(textureGatherOffset(gaux2, uv, ivec2( 0,-1)));
+    ao += sum4(textureGatherOffset(gaux2, uv, ivec2( 1,-1)));
     ao *= 0.0625;
     #else
     ao *= 0.25;
@@ -108,7 +108,7 @@ void main() {
 	#else
 	torch.color = torch5500K;
 	#endif
-    torch.attenuation = light_mclightmap_attenuation(frag.torchlight);
+    torch.attenuation = light_mclightmap_attenuation(frag.torchlight) * ao;
 
     color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN) + light_calc_diffuse(torch, frag);
 
@@ -122,11 +122,12 @@ void main() {
     vec3 nwpos = normalize(frag.wpos);
     color = texture2D(colortex0, uv).rgb;
 
+    float mu_s = dot(nwpos, worldLightPosition);
+    float mu = abs(mu_s);
     #ifdef CLOUDS_2D
     float cmie = calc_clouds(nwpos * 512.0, cameraPosition);
     color *= 1.0 - cmie;
 
-    float mu = abs(dot(nwpos, worldLightPosition));
     float opmu2 = 1. + mu*mu;
     float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
     vec3 sunlight = sunLight * 0.06666;
@@ -134,7 +135,7 @@ void main() {
     #endif
 
     color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
-	color += sunraw * smoothstep(0.9995, 0.9996, mu);
+	color += sunraw * smoothstep(0.9995, 0.9996, mu_s);
   }
 
 /* DRAWBUFFERS:5 */
