@@ -13,8 +13,8 @@ const int stepss = 4;
 #endif
 const float g = .76;
 const float g2 = g * g;
-const float Hr = 10e3;
-const float Hm = 2.6e3;
+float Hr = (10 + wetness) * 1e3;
+float Hm = (2.6 + wetness) * 1e3;
 const vec3 I = vec3(1.2311, 1.0, 0.8286) * 12.0;
 
 const vec3 C = vec3(0., -R0, 0.);
@@ -25,7 +25,7 @@ const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
 
 #ifdef CLOUDS_2D
 const f16mat2 octave_c = f16mat2(1.4,1.2,-1.2,1.4);
-const float cloud_coverage = 0.1;
+float cloud_coverage = wetness;
 
 float16_t calc_clouds(in f16vec3 sphere, in f16vec3 cam) {
 	if (sphere.y < 0.0) return 0.0;
@@ -76,7 +76,9 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 	float mu = dot(d, Ds);
 	float opmu2 = 1. + mu*mu;
 	float phaseR = .0596831 * opmu2;
-	float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
+	float phaseM = .1193662 * (1. - g2) * opmu2;
+	float phaseM_moon = phaseM / ((2. + g2) * pow(1. + g2 + 2.*g*mu, 1.5));
+	phaseM /= ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
 
 	float depthR = 0., depthM = 0.;
 	vec3 R = vec3(0.), M = vec3(0.);
@@ -118,7 +120,7 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 		}
 	}
 
-	return I * (R * bR * phaseR + M * bM * phaseM);
+	return I * (R * bR * phaseR + M * bM * phaseM) + 0.001 + vec3(0.03, 0.035, 0.05) * max(-Ds.y, 0.0) * phaseM_moon;
 }
 // ============
 

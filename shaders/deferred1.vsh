@@ -39,23 +39,23 @@ varying vec3 ambientD;
 varying vec3 worldLightPosition;
 
 void functions() {
-  worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
-  float f = pow(abs(worldLightPosition.y), 0.9) * 9.0;
-  sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0);
-  sunLight = (sunraw) * f;
+	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
+	float f = pow(abs(worldLightPosition.y), 0.9) * (9.0 - wetness * 8.7);
+	sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0) * 0.1;
+	sunLight = (sunraw) * f;
 
-  ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) * 0.8 + 0.01;
-  ambient0 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 1.0,  0.1,  0.0)), worldLightPosition, Ra) * 0.8 + 0.01;
-  ambient1 = scatter(vec3(0., 25e2, 0.), normalize(vec3(-1.0,  0.1,  0.0)), worldLightPosition, Ra) * 0.8 + 0.01;
-  ambient2 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1,  1.0)), worldLightPosition, Ra) * 0.8 + 0.01;
-  ambient3 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1, -1.0)), worldLightPosition, Ra) * 0.8 + 0.01;
-  ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 0.2;
+	ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) * 0.8;
+	ambient0 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 1.0,  0.1,  0.0)), worldLightPosition, Ra) * 0.8;
+	ambient1 = scatter(vec3(0., 25e2, 0.), normalize(vec3(-1.0,  0.1,  0.0)), worldLightPosition, Ra) * 0.8;
+	ambient2 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1,  1.0)), worldLightPosition, Ra) * 0.8;
+	ambient3 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1, -1.0)), worldLightPosition, Ra) * 0.8;
+	ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 0.2 + 0.007;
 
-  #ifdef TAA
-  //gl_Position.xyz /= gl_Position.w;
-  //TemporalAntiJitterProjPos(gl_Position);
-  //gl_Position.xyz *= gl_Position.w;
-  #endif
+	#ifdef TAA
+	//gl_Position.xyz /= gl_Position.w;
+	//TemporalAntiJitterProjPos(gl_Position);
+	//gl_Position.xyz *= gl_Position.w;
+	#endif
 }
 
 #define Functions
