@@ -44,7 +44,7 @@ vec3 vignette(vec3 color) {
 
 void ACEStonemap(inout vec3 color, float adapted_lum) {
 	color *= adapted_lum;
-
+	
 	const float a = 2.51f;
 	const float b = 0.03f;
 	const float c = 2.43f;

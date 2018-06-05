@@ -58,7 +58,7 @@ void main() {
     vec4 ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux2, frag.N);
     if (ray_traced.a < 0.9) {
       ray_traced.rgb = mix(
-        scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra),
+        scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * frag.skylight,
         ray_traced.rgb,
         ray_traced.a
       );

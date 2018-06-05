@@ -26,6 +26,11 @@ varying vec2 uv;
 #define WAO
 #define WAO_HIGH
 
+#define GI
+#ifdef GI
+uniform sampler2D shadowcolor0;
+#endif
+
 //#define DIRECTIONAL_LIGHTMAP
 
 #include "libs/uniforms.glsl"
@@ -39,8 +44,13 @@ varying vec2 uv;
 Mask mask;
 Material frag;
 
+varying vec3 worldLightPosition;
+
 void main() {
   vec3 color = vec3(0.0);
+  #ifdef GI
+  vec3 gi = vec3(0.0);
+  #endif
 
   float flag;
   material_sample(frag, uv, flag);
@@ -51,8 +61,18 @@ void main() {
     #ifdef WAO
     color.r = calcAO(frag.N, frag.cdepth, frag.vpos, uv);
     #endif
+	
+	#ifdef GI
+	vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
+	vec3 spos = wpos2shadowpos(frag.wpos - wN * 0.07 * frag.cdepth);
+	vec3 sdir = wpos2shadowpos(frag.wpos - wN * 0.07 * frag.cdepth + reflect(worldLightPosition, vec3(0.0, 1.0, 0.0))) - spos;
+	gi = calcGI(shadowtex1, shadowcolor0, spos, sdir);
+	#endif
   }
 
-/* DRAWBUFFERS:5 */
+/* DRAWBUFFERS:53 */
   gl_FragData[0] = vec4(color, 0.0);
+  #ifdef GI
+  gl_FragData[1] = vec4(gi, 0.0);
+  #endif
 }

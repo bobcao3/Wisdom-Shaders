@@ -41,6 +41,8 @@ LightSourcePBR sun;
 LightSourceHarmonics ambient;
 LightSource torch;
 
+#define GI
+
 #include "libs/atmosphere.glsl"
 
 varying vec3 sunLight;
@@ -109,9 +111,34 @@ void main() {
 	torch.color = torch5500K;
 	#endif
     torch.attenuation = light_mclightmap_attenuation(frag.torchlight) * ao;
-
+		
     color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN) + light_calc_diffuse(torch, frag);
 
+	//#define GI_DEBUG
+	#ifdef GI
+	const float weight[3] = float[] (0.3829, 0.2417, 0.0606);
+	float d1 = linearizeDepth(texture2D(depthtex0, uv).r);
+	vec3 gi = vec3(0.0);
+
+	for (int i = -2; i < 3; i++) {
+		for (int j = -2; j < 3; j++) {
+			vec2 coord = uv + vec2(i, j) / vec2(viewWidth, viewHeight) * 1.5;
+
+			f16vec3 c = texture2D(colortex3, coord).rgb * weight[abs(i)] * weight[abs(j)];
+			float16_t d2 = linearizeDepth(texture2D(depthtex0, coord).r);
+			float16_t bilateral = 1.0 - min(abs(d2 - d1) * 2.0, 1.0);
+
+			gi += c * bilateral;
+		}
+	}
+	#ifdef GI_DEBUG
+	color = sunLight * gi;
+	#else
+	color += sunLight * gi * frag.albedo;
+	#endif
+	#endif
+
+	
 	#define WAO_DEBUG
 	#ifdef WAO_DEBUG
 	color = vec3(ao);

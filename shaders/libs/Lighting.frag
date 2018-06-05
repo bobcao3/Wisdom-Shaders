@@ -188,6 +188,31 @@ float light_fetch_shadow_fast(sampler2D smap, in vec3 spos) {
 	return shade;
 }
 
+vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 sdir) {
+	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return vec3(0.0);
+	
+	vec3 color = vec3(0.0);
+	float dither = bayer_64x64(uv, vec2(viewWidth, viewHeight));
+	//spos += sdir * dither;
+	float jitter = noise(spos.xy * 5.0);
+	
+	const float bias_pix = 20.0 / shadowMapResolution;
+	float bias = length(spos.xy) * bias_pix;
+	
+	for (int i = 0; i < 12; i++) {
+		dither = fract(dither + jitter);
+		//spos.xy += sdir.xy;
+		
+		f16vec2 uv = poisson_12[i] * 0.05 * (dither - 0.5) + spos.st;
+		float shadowDepth = texture2D(smap, uv).x;
+		//if (shadowDepth - bias_pix * abs(dither - 0.5) > spos.z) {
+			color += texture2D(smapColor, uv).rgb * max(8.0 - distance(spos.xyz, vec3(uv, shadowDepth)) * 256.0, 0.0) * 0.125;
+		//}
+	}
+	
+	return color / 48.0f;
+}
+
 //==============================================================================
 // PBR Stuff
 //==============================================================================

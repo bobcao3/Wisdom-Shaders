@@ -15,7 +15,8 @@ const float g = .76;
 const float g2 = g * g;
 float Hr = (10 + wetness) * 1e3;
 float Hm = (2.6 + wetness) * 1e3;
-const vec3 I = vec3(1.2311, 1.0, 0.8286) * 12.0;
+const vec3 I0 = vec3(1.2311, 1.0, 0.8286) * 12.0;
+vec3 I = I0 * (1.0 - wetness * 0.7);
 
 const vec3 C = vec3(0., -R0, 0.);
 const vec3 bM = vec3(21e-6);

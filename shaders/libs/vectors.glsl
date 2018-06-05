@@ -1,10 +1,10 @@
 float fov = atan(1./gbufferProjection[1][1]);
-float mulfov = (isEyeInWater == 1) ? gbufferProjection[1][1]*tan(fov * 0.85):1.0;
+//float mulfov = (isEyeInWater == 1) ? gbufferProjection[1][1]*tan(fov * 0.85):1.0;
 
 vec4 fetch_vpos (vec2 uv, float z) {
 	vec4 v = gbufferProjectionInverse * vec4(fma(vec3(uv, z), vec3(2.0f), vec3(-1.0)), 1.0);
 	v /= v.w;
-	v.xy *= mulfov;
+	//v.xy *= mulfov;
 
 	return v;
 }

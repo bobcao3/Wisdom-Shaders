@@ -36,7 +36,7 @@ bool checkBlur(vec2 offset, float scale) {
 	&& (uv.t - offset.t + padding < 1.0f / scale + (padding * 2.0f)) );
 }
 
-const float weight[3] = float[] (0.3829, 0.0606, 0.2417);
+const float weight[3] = float[] (0.3829, 0.2417, 0.0606);
 
 vec3 LODblur(in int LOD, in vec2 offset) {
 	float scale = exp2(LOD);

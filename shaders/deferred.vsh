@@ -18,4 +18,14 @@
  * limitations under the License.
  */
 
+uniform vec3 sunPosition;
+uniform mat4 gbufferModelViewInverse;
+ 
+varying vec3 worldLightPosition;
+
+void functions() {
+	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
+}
+ 
+#define Functions
 #include "libs/DeferredCommon.vert"
