@@ -39,6 +39,9 @@ uniform sampler2D specular;
 #ifdef NORMALS
 uniform sampler2D normals;
 #endif
+
+#define DIRECTIONAL_LIGHTMAP
+
 varying vec2 nflat;
 
 varying f16vec4 color;
@@ -139,6 +142,18 @@ vec2 ParallaxMapping(in vec2 coord) {
 }
 #endif
 
+#ifdef DIRECTIONAL_LIGHTMAP
+float16_t getDirectional(float lm, vec3 normal2) {
+	float Lx = dFdx(lm) * 120.0;
+	float Ly = dFdy(lm) * 120.0;
+
+	vec3 TL = normalize(vec3(Lx * tangent + 0.005 * normal + Ly * binormal));
+	float16_t dir_lighting = fma(dot(normal2, TL), 0.3, 0.7);
+	
+	return clamp(0.0, 1.0, dir_lighting * 1.4);
+}
+#endif
+
 //#define SPECULAR_TO_PBR_CONVERSION
 //#define CONTINUUM2_TEXTURE_FORMAT
 
@@ -169,8 +184,6 @@ void main() {
 	#endif
 	#endif
 
-	gl_FragData[2] = vec4(nflat, lmcoord);
-
 	#ifdef NORMALS
 		f16vec3 normal2 = normal;
 		if (dis < 64.0) {
@@ -182,8 +195,18 @@ void main() {
 		}
 		vec2 d = normalEncode(normal2);
 		if (!(d.x > 0.0 && d.y > 0.0)) d = nflat;
+		
+		#ifdef DIRECTIONAL_LIGHTMAP
+		vec2 lmFinal = lmcoord;
+		lmFinal.x *= getDirectional(lmFinal.x, normal2);
+		lmFinal.y *= getDirectional(lmFinal.y, normal2);
+		gl_FragData[2] = vec4(nflat, lmFinal);
+		#else
+		gl_FragData[2] = vec4(nflat, lmcoord);
+		#endif
 		gl_FragData[3] = vec4(d, flag, 1.0);
 	#else
+		gl_FragData[2] = vec4(nflat, lmcoord);
 		gl_FragData[3] = vec4(nflat, flag, 1.0);
 	#endif
 }

@@ -25,8 +25,6 @@ varying vec2 uv;
 
 #define WAO
 
-//#define DIRECTIONAL_LIGHTMAP
-
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
 #include "libs/encoding.glsl"

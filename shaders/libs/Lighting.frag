@@ -256,21 +256,6 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 	return a2 / denom;
 }
 
-#ifdef DIRECTIONAL_LIGHTMAP
-float lightmap_normals(vec3 N, float lm, vec3 tangent, vec3 binormal, vec3 normal) {
-	if (lm < 0.0001 || lm > 0.98) return 1.0;
-
-	//float dither = bayer_64x64(uv, vec2(viewWidth, viewHeight)) * 0.1 - 0.05;
-
-	float Lx = dFdx(lm) * 120.0;// + dither;
-	float Ly = dFdy(lm) * 120.0;// - dither;
-
-	vec3 TL = normalize(vec3(Lx * tangent + 0.0005 * normal + Ly * binormal));
-
-	return clamp(dot(N, TL) * 0.5 + 0.5, 0.1, 1.0);
-}
-#endif
-
 vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceThick) {
 	float NdotV = Positive(dot(mat.N, -mat.nvpos));
 	float NdotL = Positive(dot(mat.N, Li.L));

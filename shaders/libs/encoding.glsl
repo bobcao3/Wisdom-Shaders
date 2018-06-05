@@ -33,13 +33,17 @@ bool maskFlag(float16_t f0, float16_t f1) {
 	return abs(f0 - f1) < 0.005;
 }
 
-f16vec3 normalDecode(f16vec2 encodedNormal) {
-	encodedNormal = encodedNormal * 4.0 - 2.0;
-	float16_t f = dot(encodedNormal, encodedNormal);
-	float16_t g = sqrt(1.0 - f * 0.25);
-	return vec3(encodedNormal * g, 1.0 - f * 0.5);
+f16vec3 normalDecode(f16vec2 enc) {
+	f16vec4 nn = f16vec4(2.0 * enc - 1.0, 1.0, -1.0);
+	float16_t l = dot(nn.xyz,-nn.xyw);
+	nn.z = l;
+	nn.xy *= sqrt(l);
+	return normalize(nn.xyz * 2.0 + vec3(0.0, 0.0, -1.0));
 }
 
 f16vec2 normalEncode(f16vec3 n) {
-	return sqrt(-n.z * 0.125f + 0.125f) * normalize(n.xy) + 0.5f;
+	f16vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
+	enc = enc*0.5+0.5;
+	return enc;
 }
+
