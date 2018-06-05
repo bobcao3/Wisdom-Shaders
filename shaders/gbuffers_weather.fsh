@@ -26,6 +26,8 @@
 
 uniform sampler2D texture;
 
+uniform vec3 skyColor;
+
 varying vec4 color;
 varying vec2 normal;
 varying vec2 texcoord;
@@ -33,5 +35,5 @@ varying vec2 texcoord;
 /* DRAWBUFFERS:0 */
 void main() {
 	vec4 tex = texture2D(texture, texcoord);
-	gl_FragData[0] = tex.bbba * color;
+	gl_FragData[0] = tex * color * vec4(vec3(skyColor.b), 1.0);
 }
