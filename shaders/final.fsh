@@ -40,6 +40,7 @@ const int noiseTextureResolution = 256;
 
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
+#include "libs/noise.glsl"
 #include "libs/Effects.glsl"
 
 uniform float screenBrightness;
@@ -83,6 +84,10 @@ void main() {
 	#endif
 	#endif
 
+	#ifdef NOISE_AND_GRAIN
+	noise_and_grain(color);
+	#endif
+	
 	ACEStonemap(color, (screenBrightness * 0.5 + 0.75) * exposure);
 	
 	gl_FragColor = vec4(toGamma(color),1.0);

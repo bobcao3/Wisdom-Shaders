@@ -1,7 +1,7 @@
 #ifndef _INCLUDE_EFFECTS
 #define _INCLUDE_EFFECTS
 
-//#define NOISE_AND_GRAIN
+#define NOISE_AND_GRAIN
 #ifdef NOISE_AND_GRAIN
 void noise_and_grain(inout vec3 color) {
 	float r = hash(uv * viewWidth);
@@ -11,7 +11,11 @@ void noise_and_grain(inout vec3 color) {
 	w *= hash(uv * viewWidth - 2000.0);
 	w *= hash(uv * viewWidth - 3000.0);
 
-	color = mix(color, vec3(r,g,b) * luma(color), pow(w, 3.0));
+	float dist = distance(uv, vec2(0.5f));
+    dist = dist * 1.7 - 0.65;
+    dist = fma(smoothstep(0.0, 1.0, dist), 0.7, 0.3);
+	
+	color += abs(vec3(1.0) - vec3(r,g,b)) * 0.002 * dist;
 }
 #endif
 
