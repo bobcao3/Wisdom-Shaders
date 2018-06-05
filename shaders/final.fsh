@@ -20,14 +20,14 @@
 
 varying vec2 uv;
 
-const int RGBA8 = 0, R11_G11_B10 = 1, R8 = 2, RGBA16F = 3, RGBA16 = 4, RGBA32F = 5;
+const int RGBA8 = 0, R11_G11_B10 = 1, RGB16 = 2, RGBA16F = 3, RGBA16 = 4, RGBA32F = 5;
 
-const int colortex0Format = RGBA16F;
+const int colortex0Format = RGBA16;
 const int colortex1Format = RGBA8;
 const int colortex2Format = RGBA16;
 const int colortex3Format = RGBA16;
-const int gaux1Format = RGBA32F;
-const int gaux2Format = RGBA16F;
+const int gaux1Format = RGB16;
+const int gaux2Format = RGBA16;
 const int gaux3Format = RGBA16F;
 const int gaux4Format = RGBA16;
 
@@ -44,6 +44,9 @@ const int noiseTextureResolution = 256;
 #include "libs/Effects.glsl"
 
 uniform float screenBrightness;
+uniform float nightVision;
+uniform float blindness;
+uniform float valHurt;
 
 #define DISTORTION_FIX
 #ifdef DISTORTION_FIX
@@ -62,11 +65,6 @@ void main() {
 	vec2 uv_adj = uv;
 	#endif
 
-/*	vec3 color = applyEffect(1.0, 1.0,
-		0.0, -0.2, 0.0,
-		-0.2, 1.8, -0.2,
-		0.0, -0.2, 0.0,
-		gaux2, uv_adj);*/
 	vec3 color = texture2D(gaux2, uv_adj).rgb;
 
 	float exposure = 1.0;
@@ -87,6 +85,19 @@ void main() {
 	#ifdef NOISE_AND_GRAIN
 	noise_and_grain(color);
 	#endif
+	
+	color = pow(color, vec3(1.0 - nightVision * 0.5));
+	color *= 1.0 - blindness * 0.9;
+	
+	vec2 uv_n = uv * 0.4;
+	vec2 central = vec2(0.5) - uv_n;
+	float screwing = noise_tex(uv_n - frameTimeCounter * central);
+	uv_n += screwing * 0.04 * central;
+	screwing += noise_tex(uv_n * 2.5 + frameTimeCounter * 0.4 * central);
+	uv_n += screwing * 0.08 * central;
+	screwing += noise_tex(uv_n * 8.0 - frameTimeCounter * 0.8 * central);
+	
+	color = vignette(color, vec3(0.4, 0.00, 0.00), valHurt * fma(screwing, 0.25, 0.75));
 	
 	ACEStonemap(color, (screenBrightness * 0.5 + 0.75) * exposure);
 	

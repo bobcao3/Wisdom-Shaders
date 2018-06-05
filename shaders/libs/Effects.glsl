@@ -15,7 +15,7 @@ void noise_and_grain(inout vec3 color) {
     dist = dist * 1.7 - 0.65;
     dist = fma(smoothstep(0.0, 1.0, dist), 0.7, 0.3);
 	
-	color += abs(vec3(1.0) - vec3(r,g,b)) * 0.002 * dist;
+	color += abs(vec3(1.0) - vec3(r,g,b)) * 0.003 * dist;
 }
 #endif
 
