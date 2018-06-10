@@ -16,24 +16,4 @@
  * limitations under the License.
  */
 
-#pragma optimize(on)
-#include "libs/compat.glsl"
-
-varying vec2 uv;
-
-#include "GlslConfig"
-
-#include "libs/uniforms.glsl"
-
-#define FXAA
-#ifdef FXAA
-#include "libs/color.glsl"
-#include "libs/fxaa.glsl"
-#endif
-
-void main() {
-/* DRAWBUFFERS:5 */
-#ifdef FXAA
-	gl_FragData[0] = vec4(fxaa(gaux2, uv + 0.5 / vec2(viewWidth, viewHeight), uv, vec2(viewWidth, viewHeight)), 1.0);
-#endif
-}
+#include "libs/DeferredCommon.vert"
