@@ -39,7 +39,7 @@ LightSourcePBR sun;
 LightSourceHarmonics ambient;
 LightSource torch;
 
-#define GI
+//#define GI
 
 #include "libs/atmosphere.glsl"
 
@@ -137,7 +137,7 @@ void main() {
 	#endif
 
 	
-	#define WAO_DEBUG
+	//#define WAO_DEBUG
 	#ifdef WAO_DEBUG
 	color = vec3(ao);
 	#endif
