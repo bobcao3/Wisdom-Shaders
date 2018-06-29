@@ -89,25 +89,43 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 const vec2 shadowPixSize = vec2(1.0 / shadowMapResolution);
 
 float shadowTexSmooth(in sampler2D s, in vec3 spos, out float depth) {
-	vec2 px0 = vec2(spos.xy + shadowPixSize * poisson_4[0]);
+	const float bias_pix = 0.035 * shadowDistance / shadowMapResolution;
+	float bias = distance(spos.xy, vec2(0.5)) * bias_pix + shadowPixSize.x * 0.25;
+
+	f16vec2 uv = spos.xy * vec2(shadowMapResolution) - 1.0;
+	f16vec2 iuv = floor(uv);
+	f16vec2 fuv = uv - iuv;
+
+    float g0x = g0(fuv.x);
+    float g1x = g1(fuv.x);
+    float h0x = h0(fuv.x) * 0.75;
+    float h1x = h1(fuv.x) * 0.75;
+    float h0y = h0(fuv.y) * 0.75;
+    float h1y = h1(fuv.y) * 0.75;
+
+	vec2 p0 = (vec2(iuv.x + h0x, iuv.y + h0y) + 0.5) * shadowPixSize;
+	vec2 p1 = (vec2(iuv.x + h1x, iuv.y + h0y) + 0.5) * shadowPixSize;
+	vec2 p2 = (vec2(iuv.x + h0x, iuv.y + h1y) + 0.5) * shadowPixSize;
+	vec2 p3 = (vec2(iuv.x + h1x, iuv.y + h1y) + 0.5) * shadowPixSize;
+
 	depth = 0.0;
-	float texel = texture2D(s, px0).x; depth += texel;
-	float res1 = float(texel < spos.z);
+	float texel = texture2D(s, p0).x; depth += texel;
+	float res0 = float(texel + bias < spos.z);
 
-	vec2 px1 = vec2(spos.xy + shadowPixSize * poisson_4[1]);
-	texel = texture2D(s, px1).x; depth += texel;
-	float res2 = float(texel < spos.z);
+	texel = texture2D(s, p1).x; depth += texel;
+	float res1 = float(texel + bias < spos.z);
 
-	vec2 px2 = vec2(spos.xy + shadowPixSize * poisson_4[2]);
-	texel = texture2D(s, px2).x; depth += texel;
-	float res3 = float(texel < spos.z);
+	texel = texture2D(s, p2).x; depth += texel;
+	float res2 = float(texel + bias < spos.z);
 
-	vec2 px3 = vec2(spos.xy + shadowPixSize * poisson_4[3]);
-	texel = texture2D(s, px3).x; depth += texel;
-	float res4 = float(texel < spos.z);
+	texel = texture2D(s, p3).x; depth += texel;
+	float res3 = float(texel + bias < spos.z);
 	depth *= 0.25;
 
-	return (res1 + res2 + res3 + res4) * 0.25;
+    return g0(fuv.y) * (g0x * res0  +
+                        g1x * res1) +
+           g1(fuv.y) * (g0x * res2  +
+                        g1x * res3);
 }
 
 #define VARIANCE_SHADOW_MAPS
@@ -117,8 +135,8 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness) {
 
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return shade;
 	
-	const float bias_pix = 0.5 / shadowMapResolution;
-	float bias = length(spos.xy) * bias_pix;
+	const float bias_pix = 0.01 * shadowDistance / shadowMapResolution;
+	float bias = distance(spos.xy, vec2(0.5)) * bias_pix;
 
 	#ifdef SHADOW_FILTER
 		#ifdef VARIANCE_SHADOW_MAPS
@@ -144,22 +162,22 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness) {
 			shade = max(xs, 1.0 - v / (v + t_M1 * t_M1));
 		}
 
-		thickness = distance(spos.z, M1) * 256.0 * shade;
+		thickness = distance(spos.z, M1) * 256.0;
 		#else
 		float avd = 0.0;
-		for (int i = 0; i < 12; i++) {
-			float shadowDepth = texture2D(smap, poisson_12[i] * shadowPixSize + spos.st).x + bias;
+		for (int i = 0; i < 4; i++) {
+			float shadowDepth;
+			shade += shadowTexSmooth(smap, vec3(poisson_4[i] * shadowPixSize.x + spos.st, spos.z), shadowDepth);
 			avd += shadowDepth;
-			shade += float(shadowDepth < spos.z);
 		}
-		const float r_12 = 1.0 / 12.0f;
-		shade *= r_12; avd *= r_12;
-		thickness = distance(spos.z, avd) * 256.0 * shade;
+		const float r_4 = 1.0 / 4.0f;
+		shade *= r_4; avd *= r_4;
+		thickness = distance(spos.z, avd) * 256.0;
 		#endif
 	#else
 		float M1;
 		shade = shadowTexSmooth(smap, spos, M1);
-		thickness = distance(spos.z, M1) * 256.0 * shade;
+		thickness = distance(spos.z, M1) * 256.0;
 	#endif
 
 	/*float edgeX = abs(spos.x) - 0.9f;
@@ -188,30 +206,49 @@ float light_fetch_shadow_fast(sampler2D smap, in vec3 spos) {
 	return shade;
 }
 
-vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 sdir) {
+#ifdef GI
+uniform sampler2D shadowcolor1;
+
+vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return vec3(0.0);
 	
 	vec3 color = vec3(0.0);
 	float dither = bayer_64x64(uv, vec2(viewWidth, viewHeight));
-	//spos += sdir * dither;
 	float jitter = noise(spos.xy * 5.0);
+
+	f16vec3 snorm = mat3(shadowModelView) * wNorm;
 	
 	const float bias_pix = 20.0 / shadowMapResolution;
 	float bias = length(spos.xy) * bias_pix;
 	
+	const float16_t scale = 8.0 / shadowDistance;
+
+	vec2 fade_vec = abs(spos.xy - vec2(0.5));
+	if (fade_vec.x + fade_vec.y > 0.48) return vec3(0.0);
+	float16_t fade_dist = smoothstep(0.0, 0.58, 0.58 - fade_vec.x - fade_vec.y);
+
 	for (int i = 0; i < 12; i++) {
 		dither = fract(dither + jitter);
 		//spos.xy += sdir.xy;
 		
-		f16vec2 uv = poisson_12[i] * 0.05 * (dither - 0.5) + spos.st;
-		float shadowDepth = texture2D(smap, uv).x;
-		//if (shadowDepth - bias_pix * abs(dither - 0.5) > spos.z) {
-			color += texture2D(smapColor, uv).rgb * max(8.0 - distance(spos.xyz, vec3(uv, shadowDepth)) * 256.0, 0.0) * 0.125;
-		//}
+		f16vec2 uv = poisson_12[i] * scale * dither + spos.st;
+		float16_t shadowDepth = texture2D(smap, uv).x;
+		f16vec3 soffset = vec3(uv, shadowDepth) - spos;
+		float16_t sdist = length(soffset);
+		f16vec3 nsoffset = soffset / sdist;
+
+		f16vec3 nsample = texture2D(shadowcolor1, uv).xyz * 2.0 - 1.0;
+		nsample.xy = -nsample.xy;
+
+		float16_t factor = max(dot(vec3(nsoffset.xy, -nsoffset.z), snorm), 0.0) * max(dot(nsoffset, nsample), 0.0) * 0.02;
+
+		if (factor > 0.0)
+			color += fromGamma(texture2D(smapColor, uv).rgb) * factor;
 	}
 	
-	return color / 48.0f;
+	return color * fade_dist;
 }
+#endif
 
 //==============================================================================
 // PBR Stuff
@@ -256,13 +293,15 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 	return a2 / denom;
 }
 
-vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceThick) {
+vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceThick, bool thin_sublayer_mask) {
 	float NdotV = Positive(dot(mat.N, -mat.nvpos));
 	float NdotL = Positive(dot(mat.N, Li.L));
 
 	float oren = light_PBR_oren_diffuse(-mat.nvpos, Li.L, mat.N, mat.roughness, NdotL, NdotV);
-	float att = max(0.0, Li.light.attenuation * oren);
-	att += 0.9 * (1.0 - att) * max(0.0, pow(1.0 - subSurfaceThick, 3.0) * (0.5 + 0.5 * dot(Li.L, mat.nvpos)));
+	float att = max(0.0, Li.light.attenuation * (thin_sublayer_mask ? 1.0 : oren));
+	if (!thin_sublayer_mask) {
+		att += 0.9 * (1.0 - att) * max(0.0, pow(1.0 - subSurfaceThick, 3.0) * (0.5 + 0.5 * dot(Li.L, mat.nvpos)));
+	}
 	vec3 radiance = att * Li.light.color;
 
 	vec3 F0 = vec3(0.01);
@@ -396,10 +435,11 @@ float calcAO (vec3 cNormal, float cdepth, vec3 vpos, f16vec2 uv) {
 
 		f16vec2 h = uv + dir;
 		f16vec3 nvpos = fetch_vpos(h, depthtex1).xyz;
+		f16vec3 diff_pos = nvpos - vpos;
 
-		float d = length(nvpos - vpos) + 0.00001;
+		float d = length(diff_pos) + 0.00001;
 
-		ao += max(0.0, dot(cNormal, nvpos - vpos) / d - 0.15)
+		ao += max(0.0, dot(cNormal, diff_pos) / d - 0.15)
 		   * max(0.0, - (d * 0.27 - 1.0));
 	}
 

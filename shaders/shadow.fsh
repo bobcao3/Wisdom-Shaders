@@ -30,6 +30,11 @@ uniform sampler2D tex;
 varying vec2 texcoord;
 varying vec3 color;
 
+varying vec4 ndata;
+
+/* DRAWBUFFERS:01 */
+
 void main() {
-	gl_FragData[0] = texture2D(tex, texcoord) * vec4(color, 1.0);
+	gl_FragData[0] = mix(vec4(color, 1.0), texture2D(tex, texcoord), ndata.a) * vec4(color, 1.0);
+	gl_FragData[1] = vec4(ndata.rgb, 1.0);
 }

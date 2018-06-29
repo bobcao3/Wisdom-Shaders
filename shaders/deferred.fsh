@@ -26,7 +26,7 @@ varying vec2 uv;
 #define WAO
 #define WAO_HIGH
 
-//#define GI
+#define GI
 #ifdef GI
 uniform sampler2D shadowcolor0;
 #endif
@@ -65,8 +65,7 @@ void main() {
 	#ifdef GI
 	vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
 	vec3 spos = wpos2shadowpos(frag.wpos - wN * 0.07 * frag.cdepth);
-	vec3 sdir = wpos2shadowpos(frag.wpos - wN * 0.07 * frag.cdepth + reflect(worldLightPosition, vec3(0.0, 1.0, 0.0))) - spos;
-	gi = calcGI(shadowtex1, shadowcolor0, spos, sdir);
+	gi = calcGI(shadowtex1, shadowcolor0, spos, wN);
 	#endif
   }
 

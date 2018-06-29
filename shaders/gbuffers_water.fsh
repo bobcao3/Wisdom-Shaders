@@ -195,7 +195,7 @@ void main() {
 
 	// PBR lighting (Diffuse + brdf)
 	if (!maskFlag(data, waterFlag)) {
-		color.rgb = light_calc_PBR(sun, frag, 1.0);
+		color.rgb = light_calc_PBR(sun, frag, 1.0, false);
 	}
 
 	#define WATER_IBL
@@ -211,7 +211,7 @@ void main() {
 	}
 	if (ray_traced.a < 0.95) {
 		ray_traced.rgb = mix(
-			scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra),
+			scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * pow(lmcoord.y, 3.0),
 			ray_traced.rgb,
 			ray_traced.a
 		);

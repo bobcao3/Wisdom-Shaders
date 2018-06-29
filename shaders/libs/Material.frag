@@ -76,6 +76,7 @@ struct Mask {
 	bool is_water;
 	bool is_trans;
 	bool is_plant;
+	bool is_grass;
 	bool is_sky;
 	bool is_sky_object;
 	bool is_entity;
@@ -89,7 +90,8 @@ void init_mask(inout Mask m, in float flag, in vec2 uv) {
 	m.is_water = maskFlag(flag, waterFlag);
 	m.is_trans = maskFlag(flag, transparentFlag);
 	m.is_valid = flag > 0.01;
-	m.is_plant = maskFlag(flag, foilage1Flag) || maskFlag(flag, foilage2Flag);
+	m.is_grass = maskFlag(flag, foilage2Flag);
+	m.is_plant = m.is_grass || maskFlag(flag, foilage1Flag);
 	m.is_entity = maskFlag(flag, entityFlag);
 }
 #endif

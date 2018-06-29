@@ -51,6 +51,24 @@ void main() {
   vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 
   if (!mask.is_sky) {
+    float wetness2 = wetness * smoothstep(0.92, 1.0, frag.skylight) * float(!mask.is_plant);
+		if (wetness2 > 0.0) {
+			float wet = noise((frag.wpos + cameraPosition).xz * 0.5 - frameTimeCounter * 0.02);
+			wet += noise((frag.wpos + cameraPosition).xz * 0.6 - frameTimeCounter * 0.01) * 0.5;
+			wet = clamp(wetness2 * 3.0, 0.0, 1.0) * clamp(wet * 2.0 + wetness2, 0.0, 1.0);
+			
+			if (wet > 0.0) {
+				frag.roughness = mix(frag.roughness, 0.05, wet);
+				frag.metalic = mix(frag.metalic, 0.03, wet);
+				frag.N = mix(frag.N, frag.Nflat, wet);
+			
+				frag.N.x += noise((frag.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
+				frag.N.y -= noise((frag.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
+				frag.N = normalize(frag.N);
+			}
+    }
+
+
     vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
     vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.61, 0.0)), wN);
     vec3 reflectedV = reflect(frag.nvpos, frag.N);

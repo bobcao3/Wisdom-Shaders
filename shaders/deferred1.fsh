@@ -31,6 +31,9 @@ varying vec2 uv;
 #include "libs/vectors.glsl"
 #include "libs/Material.frag"
 #include "libs/noise.glsl"
+
+#define GI
+
 #include "libs/Lighting.frag"
 
 Mask mask;
@@ -38,8 +41,6 @@ Material frag;
 LightSourcePBR sun;
 LightSourceHarmonics ambient;
 LightSource torch;
-
-//#define GI
 
 #include "libs/atmosphere.glsl"
 
@@ -72,7 +73,7 @@ void main() {
     vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
 
     float thickness = 1.0, shade = 0.0;
-    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos + 0.01 * wN), thickness);
+    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos + (mask.is_grass ? 0.3 : 0.0) * wN), thickness);
     sun.light.attenuation = 1.0 - shade;
 
     ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight);
@@ -101,46 +102,66 @@ void main() {
     ambient.color5 = ambientD * ao;
 
     const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.06;
-	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.1;
-	//#define WHITE_LIGHT
-	#ifndef WHITE_LIGHT
+  	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.1;
+  	//#define WHITE_LIGHT
+  	#ifndef WHITE_LIGHT
     torch.color = torch1900K;
-	#else
-	torch.color = torch5500K;
-	#endif
+	  #else
+	  torch.color = torch5500K;
+	  #endif
     torch.attenuation = light_mclightmap_attenuation(frag.torchlight) * ao;
+
+    float wetness2 = wetness * smoothstep(0.92, 1.0, frag.skylight) * float(!mask.is_plant);
+		if (wetness2 > 0.0) {
+			float wet = noise((frag.wpos + cameraPosition).xz * 0.5 - frameTimeCounter * 0.02);
+			wet += noise((frag.wpos + cameraPosition).xz * 0.6 - frameTimeCounter * 0.01) * 0.5;
+			wet = clamp(wetness2 * 3.0, 0.0, 1.0) * clamp(wet * 2.0 + wetness2, 0.0, 1.0);
+			
+			if (wet > 0.0) {
+				frag.roughness = mix(frag.roughness, 0.05, wet);
+				frag.metalic = mix(frag.metalic, 0.03, wet);
+				frag.N = mix(frag.N, frag.Nflat, wet);
+			
+				frag.N.x += noise((frag.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
+				frag.N.y -= noise((frag.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
+				frag.N = normalize(frag.N);
+			}
+    }
 		
-    color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0) + light_calc_diffuse_harmonics(ambient, frag, wN) + light_calc_diffuse(torch, frag);
+    color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0, mask.is_grass) + light_calc_diffuse_harmonics(ambient, frag, wN) + light_calc_diffuse(torch, frag);
 
-	//#define GI_DEBUG
-	#ifdef GI
-	const float weight[3] = float[] (0.3829, 0.2417, 0.0606);
-	float d1 = linearizeDepth(texture2D(depthtex0, uv).r);
-	vec3 gi = vec3(0.0);
+  	//#define GI_DEBUG
+  	#ifdef GI
+	  const float weight[3] = float[] (0.3829, 0.2417, 0.0606);
+  	float d1 = linearizeDepth(texture2D(depthtex0, uv).r);
+  	vec3 gi = vec3(0.0);
 
-	for (int i = -2; i < 3; i++) {
-		for (int j = -2; j < 3; j++) {
-			vec2 coord = uv + vec2(i, j) / vec2(viewWidth, viewHeight) * 1.5;
+  	for (int i = -2; i < 3; i++) {
+	  	for (int j = -2; j < 3; j++) {
+		  	vec2 coord = uv + vec2(i, j) / vec2(viewWidth, viewHeight) * 1.5;
 
-			f16vec3 c = texture2D(colortex3, coord).rgb * weight[abs(i)] * weight[abs(j)];
-			float16_t d2 = linearizeDepth(texture2D(depthtex0, coord).r);
-			float16_t bilateral = 1.0 - min(abs(d2 - d1) * 2.0, 1.0);
+			  f16vec3 c = texture2D(colortex3, coord).rgb * weight[abs(i)] * weight[abs(j)];
+			  float16_t d2 = linearizeDepth(texture2D(depthtex0, coord).r);
+  			float16_t bilateral = 1.0 - min(abs(d2 - d1) * 2.0, 1.0);
 
-			gi += c * bilateral;
-		}
-	}
-	#ifdef GI_DEBUG
-	color = sunLight * gi;
-	#else
-	color += sunLight * gi * frag.albedo;
-	#endif
-	#endif
+	  		gi += c * bilateral;
+	  	}
+	  }
+
+    const float gi_strength = 3.0; // [1.0 3.0 5.0]
+
+	  #ifdef GI_DEBUG
+	  color = sunLight * gi;
+	  #else
+	  color += sunLight * gi * frag.albedo * gi_strength;
+	  #endif
+	  #endif
 
 	
-	//#define WAO_DEBUG
-	#ifdef WAO_DEBUG
-	color = vec3(ao);
-	#endif
+  	//#define WAO_DEBUG
+  	#ifdef WAO_DEBUG
+	  color = vec3(ao);
+	  #endif
 	
     color = mix(color, frag.albedo, frag.emmisive);
   } else {
@@ -155,12 +176,12 @@ void main() {
 
     float opmu2 = 1. + mu*mu;
     float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
-    vec3 sunlight = sunLight * 0.06666;
-    color += sunraw * cmie * (0.3 + phaseM);
+    vec3 sunlight = sunraw * 1.3;
+    color += (0.3 * luma(sunraw) + sunlight * phaseM) * cmie;
     #endif
 
     color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
-	color += sunraw * smoothstep(0.9995, 0.9996, mu_s);
+  	color += sunraw * smoothstep(0.9997, 0.99975, mu_s);
   }
 
 /* DRAWBUFFERS:5 */

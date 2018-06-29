@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-#define DISTORTION_FIX
+//#define DISTORTION_FIX
 #ifdef DISTORTION_FIX
 const float strength = 1.0;
 const float cylindricalRatio = 1.0;
@@ -36,15 +36,15 @@ varying vec3 sunLight;
 varying vec3 worldLightPosition;
 
 void main() {
-  gl_Position = ftransform();
+	gl_Position = ftransform();
 
-  uv = gl_MultiTexCoord0.st;
+	uv = gl_MultiTexCoord0.st;
   
-  worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
-  float f = pow(abs(worldLightPosition.y), 0.9) * (9.0 - wetness * 8.7);
-  sunLight = (scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0)) * f;
+	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
+	float f = pow(abs(worldLightPosition.y), 0.9) * (9.0 - wetness * 8.7);
+	sunLight = (scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0)) * f;
 
-  #ifdef DISTORTION_FIX
+	#ifdef DISTORTION_FIX
 	float fov = atan(1./gbufferProjection[1][1]);
 	if (isEyeInWater == 1) fov *= 0.85;
 	float height = tan(fov / aspectRatio * 0.5);

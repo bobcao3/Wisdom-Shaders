@@ -39,6 +39,8 @@ uniform float frameTimeCounter;
 varying vec2 texcoord;
 varying vec3 color;
 
+varying vec4 ndata;
+
 //uniform mat4 shadowProjection;
 
 #define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
@@ -72,4 +74,11 @@ void main() {
 
 	gl_Position = position;
 	texcoord = gl_MultiTexCoord0.st;
+
+	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
+		color = vec3(1.0);
+		ndata.a = 0.0;
+	}
+	ndata.xyz = gl_NormalMatrix * gl_Normal * 0.5 + 0.5;
+	ndata.a = 1.0;
 }

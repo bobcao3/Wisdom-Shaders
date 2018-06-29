@@ -97,4 +97,43 @@ const f16vec2 poisson_4[4] = f16vec2 [] (
 	f16vec2( 0.34495938,  0.29387760 )
 );
 
+// 4x4 bicubic filter using 4 bilinear texture lookups
+// See GPU Gems 2: "Fast Third-Order Texture Filtering", Sigg & Hadwiger:
+// http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter20.html
+
+// w0, w1, w2, and w3 are the four cubic B-spline basis functions
+float w0(float a) {
+    return (1.0/6.0)*(a*(a*(-a + 3.0) - 3.0) + 1.0);
+}
+
+float w1(float a) {
+    return (1.0/6.0)*(a*a*(3.0*a - 6.0) + 4.0);
+}
+
+float w2(float a) {
+    return (1.0/6.0)*(a*(a*(-3.0*a + 3.0) + 3.0) + 1.0);
+}
+
+float w3(float a) {
+    return (1.0/6.0)*(a*a*a);
+}
+
+// g0 and g1 are the two amplitude functions
+float g0(float a) {
+    return w0(a) + w1(a);
+}
+
+float g1(float a) {
+    return w2(a) + w3(a);
+}
+
+// h0 and h1 are the two offset functions
+float h0(float a) {
+    return -1.0 + w1(a) / (w0(a) + w1(a));
+}
+
+float h1(float a) {
+    return 1.0 + w3(a) / (w2(a) + w3(a));
+}
+
 #endif

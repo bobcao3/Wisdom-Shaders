@@ -48,7 +48,7 @@ uniform float nightVision;
 uniform float blindness;
 uniform float valHurt;
 
-#define DISTORTION_FIX
+//#define DISTORTION_FIX
 #ifdef DISTORTION_FIX
 varying vec3 vUV;
 varying vec2 vUVDot;
@@ -56,6 +56,8 @@ varying vec2 vUVDot;
 
 varying vec3 sunLight;
 varying vec3 worldLightPosition;
+
+uniform sampler2D shadowcolor1;
 
 void main() {
 	#ifdef DISTORTION_FIX
@@ -102,6 +104,4 @@ void main() {
 	ACEStonemap(color, (screenBrightness * 0.5 + 0.75) * exposure);
 	
 	gl_FragColor = vec4(toGamma(color),1.0);
-	
-	//if (uv.y > 0.5) gl_FragColor.rgb = vec3((1.0 + max(1.0 - eyeBrightnessSmooth.y / 240.0 * luma(sunLight) * 0.4, 0.0))) * 0.5;
 }
