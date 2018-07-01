@@ -121,7 +121,7 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 		}
 	}
 
-	return I * (R * bR * phaseR + M * bM * phaseM) + 0.001 + vec3(0.03, 0.035, 0.05) * phaseM_moon;
+	return I * (R * bR * phaseR + M * bM * phaseM) + 0.001 + vec3(0.02, 0.035, 0.08) * phaseM_moon;
 }
 // ============
 
