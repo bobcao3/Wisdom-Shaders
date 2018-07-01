@@ -57,8 +57,6 @@ varying vec2 vUVDot;
 varying vec3 sunLight;
 varying vec3 worldLightPosition;
 
-uniform sampler2D shadowcolor1;
-
 void main() {
 	#ifdef DISTORTION_FIX
 	vec3 distort = dot(vUVDot, vUVDot) * vec3(-0.5, -0.5, -1.0) + vUV;
