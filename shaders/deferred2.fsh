@@ -33,6 +33,8 @@ varying vec2 uv;
 #include "libs/noise.glsl"
 #include "libs/Lighting.frag"
 
+#define GI
+
 Mask mask;
 Material frag;
 //LightSourcePBR sun;
@@ -68,6 +70,43 @@ void main() {
 			}
     }
 
+    //#define GI_DEBUG
+  	#ifdef GI
+  	vec3 gi = vec3(0.0);
+    float weight = 0.0;
+
+  	for (int i = 0; i < 4; i++) {
+		  vec2 coord = uv + vec2(0.0, i / viewWidth * 1.5);
+
+			f16vec3 c = texture2D(colortex3, coord).rgb;
+  		float16_t bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
+      if (bilateral < 0.1) break;
+
+	  	weight += 1.0;
+      gi += c;
+	  }
+
+    for (int i = -1; i > -4; i--) {
+		  vec2 coord = uv + vec2(0.0, i / viewWidth * 1.5);
+
+			f16vec3 c = texture2D(colortex3, coord).rgb;
+  		float16_t bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
+      if (bilateral < 0.1) break;
+
+	  	weight += 1.0;
+      gi += c;
+	  }
+
+    gi /= weight;
+
+    const float gi_strength = 5.0; // [4.0 5.0 7.0]
+
+    #ifdef GI_DEBUG
+	  color = gi;
+	  #else
+	  color += gi * frag.albedo * gi_strength;
+	  #endif
+	  #endif
 
     vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
     vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.61, 0.0)), wN);
@@ -82,8 +121,7 @@ void main() {
       );
     }
 
-    color = light_calc_PBR_IBL(color, reflectedV, frag,
-ray_traced.rgb);
+    color = light_calc_PBR_IBL(color, reflectedV, frag, ray_traced.rgb);
   }
 
 /* DRAWBUFFERS:56 */

@@ -31,10 +31,9 @@ varying vec2 uv;
 #include "libs/vectors.glsl"
 #include "libs/Material.frag"
 #include "libs/noise.glsl"
+#include "libs/Lighting.frag"
 
 #define GI
-
-#include "libs/Lighting.frag"
 
 Mask mask;
 Material frag;
@@ -65,6 +64,10 @@ void main() {
   material_sample(frag, uv, flag);
 
   init_mask(mask, flag, uv);
+
+  #ifdef GI
+  vec3 gi = vec3(0.0);
+  #endif
 
   if (!mask.is_sky) {
     sun.light.color = sunLight;
@@ -130,33 +133,34 @@ void main() {
 		
     color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0, mask.is_grass) + light_calc_diffuse_harmonics(ambient, frag, wN) + light_calc_diffuse(torch, frag);
 
-  	//#define GI_DEBUG
   	#ifdef GI
-	  const float weight[3] = float[] (0.3829, 0.2417, 0.0606);
-  	float d1 = linearizeDepth(texture2D(depthtex0, uv).r);
-  	vec3 gi = vec3(0.0);
+    float weight = 0.0;
 
-  	for (int i = -2; i < 3; i++) {
-	  	for (int j = -2; j < 3; j++) {
-		  	vec2 coord = uv + vec2(i, j) / vec2(viewWidth, viewHeight) * 1.5;
+  	for (int i = 0; i < 4; i++) {
+		  vec2 coord = uv + vec2(i / viewWidth, 0.0 * 1.5);
 
-			  f16vec3 c = texture2D(colortex3, coord).rgb * weight[abs(i)] * weight[abs(j)];
-			  float16_t d2 = linearizeDepth(texture2D(depthtex0, coord).r);
-  			float16_t bilateral = 1.0 - min(abs(d2 - d1) * 2.0, 1.0);
+			f16vec3 c = texture2D(colortex3, coord).rgb;
+  		float16_t bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
+      if (bilateral < 0.1) break;
 
-	  		gi += c * bilateral;
-	  	}
+	  	weight += 1.0;
+      gi += c;
 	  }
 
-    const float gi_strength = 3.0; // [1.0 3.0 5.0]
+    for (int i = -1; i > -4; i--) {
+		  vec2 coord = uv + vec2(i / viewWidth, 0.0 * 1.5);
 
-	  #ifdef GI_DEBUG
-	  color = sunLight * gi;
-	  #else
-	  color += sunLight * gi * frag.albedo * gi_strength;
-	  #endif
-	  #endif
+			f16vec3 c = texture2D(colortex3, coord).rgb;
+  		float16_t bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
+      if (bilateral < 0.1) break;
 
+	  	weight += 1.0;
+      gi += c;
+	  }
+
+    gi /= weight;
+    gi *= sunLight;
+	  #endif
 	
   	//#define WAO_DEBUG
   	#ifdef WAO_DEBUG
@@ -184,6 +188,9 @@ void main() {
   	color += sunraw * smoothstep(0.9997, 0.99975, mu_s);
   }
 
-/* DRAWBUFFERS:5 */
+/* DRAWBUFFERS:53 */
   gl_FragData[0] = vec4(color, 0.0);
+  #ifdef GI
+  gl_FragData[1] = vec4(gi, 0.0);
+  #endif
 }

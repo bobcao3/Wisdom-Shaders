@@ -79,7 +79,7 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 	float distortFactor = negShadowBias + distb * 0.9;
 	shadowposition.xy /= distortFactor;
 
-	shadowposition.z *= 0.5;
+	shadowposition.z = shadowposition.z * 0.5 + 0.25;
 
 	return shadowposition.xyz * 0.5f + 0.5f;
 }
@@ -209,44 +209,53 @@ float light_fetch_shadow_fast(sampler2D smap, in vec3 spos) {
 #ifdef GI
 uniform sampler2D shadowcolor1;
 
-vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
+f16mat2 rotate(float16_t rad) {
+    float c = cos(rad);
+    float s = sin(rad);
+    return f16mat2(c, -s, s, c);
+}
+
+f16vec3 calcGI(sampler2D smap, sampler2D smapColor, in f16vec3 spos, in f16vec3 wNorm) {
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return vec3(0.0);
-	
-	vec3 color = vec3(0.0);
-	float dither = bayer_64x64(uv, vec2(viewWidth, viewHeight));
-	float jitter = noise(spos.xy * 5.0);
 
-	f16vec3 snorm = mat3(shadowModelView) * wNorm;
+	spos.z = (spos.z - 0.25) * 2.0;
 	
-	const float bias_pix = 20.0 / shadowMapResolution;
-	float bias = length(spos.xy) * bias_pix;
-	
-	const float16_t scale = 8.0 / shadowDistance;
+	f16vec3 color = vec3(0.0);
+	float16_t dither = bayer_32x32(uv, vec2(viewWidth, viewHeight));
+	float16_t ang = dither * 3.1415926 * 2.0;
 
-	vec2 fade_vec = abs(spos.xy - vec2(0.5));
-	if (fade_vec.x + fade_vec.y > 0.48) return vec3(0.0);
-	float16_t fade_dist = smoothstep(0.0, 0.58, 0.58 - fade_vec.x - fade_vec.y);
+	const float16_t scale = 9.0 / shadowDistance;
+	f16vec2 circleDistribution = rotate(ang) * vec2(scale);
+	//if (circleDistribution.y < 0.0) circleDistribution.y *= 3.0;
 
-	for (int i = 0; i < 12; i++) {
-		dither = fract(dither + jitter);
-		//spos.xy += sdir.xy;
-		
-		f16vec2 uv = poisson_12[i] * scale * dither + spos.st;
-		float16_t shadowDepth = texture2D(smap, uv).x;
+	f16vec3 snorm = normalize(mat3(shadowProjection) * (mat3(shadowModelView) * wNorm));
+
+	float16_t fade_dist = distance(spos.xy, vec2(0.5));
+	if (fade_dist > 0.6) return vec3(0.0);
+	fade_dist = smoothstep(0.0, 0.6, 0.6 - fade_dist);
+
+	const float16_t inv12 = 1.0 / 12.0;
+	const float16_t bias = 1.0 / shadowDistance;
+	const float16_t attenuation = shadowDistance * shadowDistance * 0.09;
+
+	for (int i = 1; i < 12; i++) {
+		f16vec2 uv = circleDistribution * pow(i * inv12, 2.0) + spos.st;
+		float16_t shadowDepth = (texture2D(smap, uv).x - 0.25) * 2.0 - bias;
 		f16vec3 soffset = vec3(uv, shadowDepth) - spos;
-		float16_t sdist = length(soffset);
-		f16vec3 nsoffset = soffset / sdist;
+		float16_t sdist = dot(soffset, soffset);
+		f16vec3 nsoffset = soffset / sqrt(sdist);
 
 		f16vec3 nsample = texture2D(shadowcolor1, uv).xyz * 2.0 - 1.0;
-		nsample.xy = -nsample.xy;
 
-		float16_t factor = max(dot(vec3(nsoffset.xy, -nsoffset.z), snorm), 0.0) * max(dot(nsoffset, nsample), 0.0) * 0.02;
+		float16_t factor = max(dot(nsoffset, snorm) - 0.1, 0.0) * max(dot(-nsoffset, nsample) - 0.1, 0.0);
 
 		if (factor > 0.0)
-			color += fromGamma(texture2D(smapColor, uv).rgb) * factor;
+			color += fromGamma(texture2D(smapColor, uv).rgb) * factor / (1.0 + sdist * attenuation);
 	}
 	
-	return color * fade_dist;
+	color *= fade_dist;
+
+	return color * inv12;
 }
 #endif
 
