@@ -148,7 +148,7 @@ float16_t getDirectional(float lm, vec3 normal2) {
 	float Ly = dFdy(lm) * 120.0;
 
 	vec3 TL = normalize(vec3(Lx * tangent + 0.005 * normal + Ly * binormal));
-	float16_t dir_lighting = fma(dot(normal2, TL), 0.3, 0.7);
+	float16_t dir_lighting = fma(max(dot(normal2, TL), 0.0), 0.33, 0.67);
 	
 	return clamp(0.0, 1.0, dir_lighting * 1.4);
 }
