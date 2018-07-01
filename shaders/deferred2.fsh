@@ -112,13 +112,16 @@ void main() {
     vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.61, 0.0)), wN);
     vec3 reflectedV = reflect(frag.nvpos, frag.N);
 
-    vec4 ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux2, frag.N);
-    if (ray_traced.a < 0.9) {
-      ray_traced.rgb = mix(
-        scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * frag.skylight,
-        ray_traced.rgb,
-        ray_traced.a
-      );
+    vec4 ray_traced = vec4(0.0);
+    if (frag.roughness > 0.1) {
+      ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux2, frag.N);
+      if (ray_traced.a < 0.9) {
+        ray_traced.rgb = mix(
+          scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * frag.skylight,
+          ray_traced.rgb,
+          ray_traced.a
+        );
+      }
     }
 
     color = light_calc_PBR_IBL(color, reflectedV, frag, ray_traced.rgb);
