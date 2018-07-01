@@ -217,12 +217,13 @@ void main() {
 		);
 	}
 
-	color.rgb = light_calc_PBR_IBL(color.rgb, reflectedV, frag, ray_traced.rgb);
+	color = light_calc_PBR_IBL(color, reflectedV, frag, ray_traced.rgb);
 	#endif
 
 	// PBR lighting (Diffuse + brdf)
 	if (maskFlag(data, waterFlag)) {
 		color.rgb += light_calc_PBR_brdf(sun, frag);
+		color.a = 1.0;
 	}
 
 	if (isEyeInWater == 1) color.rgb = mix(color.rgb, watermixcolor.rgb, watermixcolor.a);

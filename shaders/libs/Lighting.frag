@@ -353,15 +353,25 @@ vec3 light_calc_PBR_brdf(LightSourcePBR Li, Material mat) {
 	return specular * radiance;
 }
 
-vec3 light_calc_PBR_IBL(in vec3 color, in vec3 L, Material mat, in vec3
-env) {
+vec3 light_calc_PBR_IBL(in vec3 color, in vec3 L, Material mat, in vec3 env) {
 	vec3 H = normalize(L - mat.nvpos);
 	vec3 F0 = vec3(0.02);
-	F0 = mix(F0, mat.albedo, mat.metalic);
+	F0 = mix(F0, mat.albedo, mat.metalic * 0.5);
 
-	vec3 F = light_PBR_fresnelSchlickRoughness(max(dot(H, -mat.nvpos), 0.00001), F0, mat.roughness);
+	vec3 F = light_PBR_fresnelSchlickRoughness(Positive(dot(H, -mat.nvpos)), F0, mat.roughness);
 
 	return mix(color, env, (1.0 - mat.roughness) * F);
+}
+
+vec4 light_calc_PBR_IBL(in vec4 color, in vec3 L, Material mat, in vec3 env) {
+	vec3 H = normalize(L - mat.nvpos);
+	vec3 F0 = vec3(0.02);
+	F0 = mix(F0, mat.albedo, mat.metalic * 0.5);
+
+	vec3 F = light_PBR_fresnelSchlickRoughness(Positive(dot(H, -mat.nvpos)), F0, mat.roughness);
+	vec3 factor = (1.0 - mat.roughness) * F;
+
+	return vec4(mix(color.rgb, env, factor), color.a + (1.0 - color.a) * luma(factor));
 }
 
 //==============================================================================
