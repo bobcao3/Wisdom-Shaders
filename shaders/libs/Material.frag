@@ -52,8 +52,8 @@ void material_build(
 void material_sample(out Material mat, in vec2 uv, out float flag) {
 	vec4 vpos = fetch_vpos(uv, depthtex0);
 	vec3 normal = texture2D(gaux1, uv).rgb;
-  flag = normal.b;
-  normal = normalDecode(normal.rg);
+	flag = normal.b;
+	normal = normalDecode(normal.rg);
 	vec4 spec = texture2D(colortex1, uv);
 	vec4 color = texture2D(colortex0, uv);
 	vec4 n2 = texture2D(colortex2, uv);
