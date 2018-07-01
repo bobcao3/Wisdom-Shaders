@@ -34,7 +34,7 @@ attribute vec4 mc_midTexCoord;
 uniform float rainStrength;
 uniform float frameTimeCounter;
 
-//uniform mat4 gbufferModelViewInverse;
+uniform mat4 shadowProjection;
 
 varying vec2 texcoord;
 varying vec3 color;
@@ -49,7 +49,7 @@ varying vec4 ndata;
 
 void main() {
 	vec4 position = gl_Vertex;
-	color = gl_Color.rgb;
+	color = gl_Color.rgb * (gl_TextureMatrix[1] *  gl_MultiTexCoord1).y;
 
 	#ifdef WAVING_SHADOW
 	float blockId = mc_Entity.x;
@@ -70,7 +70,7 @@ void main() {
 
 	position.xy /= l * SHADOW_MAP_BIAS + negBias;
 
-	position.z *= 0.5;
+	position.z = position.z * 0.5 + 0.25;
 
 	gl_Position = position;
 	texcoord = gl_MultiTexCoord0.st;
@@ -79,6 +79,6 @@ void main() {
 		color = vec3(1.0);
 		ndata.a = 0.0;
 	}
-	ndata.xyz = gl_NormalMatrix * gl_Normal * 0.5 + 0.5;
+	ndata.xyz = normalize(mat3(shadowProjection) * (gl_NormalMatrix * gl_Normal)) * 0.5 + 0.5;
 	ndata.a = 1.0;
 }
