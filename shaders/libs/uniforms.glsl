@@ -45,8 +45,10 @@ uniform mat4 shadowProjectionInverse;           // inverse shadowProjection
 uniform mat4 shadowModelView;                   // modelview matrix when the shadow map was generated
 uniform mat4 shadowModelViewInverse;            // inverse shadowModelView
 
+#ifndef _frameCounter
+#define _frameCounter
 uniform int frameCounter;
-#define frameCounter
+#endif
 uniform float frameTimeCounter;                 // run time, seconds (resets to 0 after 3600s)
 uniform float sunAngle;                         // 0.0-1.0
 uniform float shadowAngle;                      // 0.0-1.0
@@ -56,9 +58,9 @@ uniform float aspectRatio;                      // viewWidth / viewHeight
 #define VIEW_WIDTH
 uniform float viewWidth;                        // viewWidth
 uniform float viewHeight;                       // viewHeight
-uniform float wetness;
 vec2 pixel = 1.0 / vec2(viewWidth, viewHeight);
 #endif
+uniform float wetness;
 uniform float near;                             // near viewing plane distance
 uniform float far;                              // far viewing plane distance
 
