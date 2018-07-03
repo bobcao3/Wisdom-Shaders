@@ -89,30 +89,6 @@ void motion_blur(in sampler2D screen, inout vec3 color, in vec2 uv, in vec3 view
 }
 #endif
 
-vec3 applyEffect(float total, float size,
-	float a00, float a01, float a02,
-	float a10, float a11, float a12,
-	float a20, float a21, float a22,
-	sampler2D sam, vec2 uv) {
-
-	vec3 color = texture2D(sam, uv).rgb * a11;
-
-	color += texture2D(sam, uv + size * vec2(-pixel.x, pixel.y)).rgb * a00;
-	color += texture2D(sam, uv + size * vec2(0.0, pixel.y)).rgb * a01;
-	color += texture2D(sam, uv + size * pixel).rgb * a02;
-	color += texture2D(sam, uv + size * vec2(-pixel.x, 0.0)).rgb * a10;
-	color += texture2D(sam, uv + size * vec2(pixel.x, 0.0)).rgb * a12;
-	color += texture2D(sam, uv - size * pixel).rgb * a20;
-	color += texture2D(sam, uv + size * vec2(0.0, -pixel.y)).rgb * a21;
-	color += texture2D(sam, uv + size * vec2(pixel.x, -pixel.y)).rgb * a22;
-
-	return max(color / total, vec3(0.0));
-}
-
-vec3 saturation(vec3 rgbColor, float s) {
-	return mix(vec3(luma(rgbColor)), rgbColor, s);
-}
-
 #ifdef BLOOM
 
 vec4 texture_Bicubic(sampler2D tex, vec2 uv)
@@ -142,54 +118,47 @@ vec4 texture_Bicubic(sampler2D tex, vec2 uv)
 }
 
 #define DIRTY_LENS
-#define DIRTY_LENS_TEXTURE
 
-vec3 bloom(inout vec3 c, in vec2 uv) {
+vec3 bloom(inout vec3 c, in vec2 uv, out vec3 rawblur) {
 	vec2 tex = uv * 0.25;
 	vec2 pix_offset = vec2(-.5, -.5) / vec2(viewWidth, viewHeight);
-	vec3 color = texture_Bicubic(colortex0, tex - pix_offset).rgb;
+	vec4 color = texture_Bicubic(colortex0, tex - pix_offset);
 	tex = uv * 0.125 + vec2(0.0f, 0.3f) + vec2(0.000f, 0.035f);
-	color += texture_Bicubic(colortex0, tex - pix_offset).rgb;
+	color += texture_Bicubic(colortex0, tex - pix_offset);
 	tex = uv * 0.0625 + vec2(0.125f, 0.3f) + vec2(0.030f, 0.035f);
-	color += texture_Bicubic(colortex0, tex - pix_offset).rgb;
+	color += texture_Bicubic(colortex0, tex - pix_offset);
 	tex = uv * 0.03125 + vec2(0.1875f, 0.3f) + vec2(0.060f, 0.035f);
-	color += texture_Bicubic(colortex0, tex - pix_offset).rgb;
+	color += texture_Bicubic(colortex0, tex - pix_offset);
 	tex = uv * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
-	color += texture_Bicubic(colortex0, tex - pix_offset).rgb;
+	color += texture_Bicubic(colortex0, tex - pix_offset);
 
 	color *= 0.1;
-	float l = luma(color);
+
+	rawblur = color.rgb;
+
+	float l = luma(color.rgb);
+	color.rgb *= color.a;
 
 	// Dirty lens
 	#ifdef DIRTY_LENS
 	vec2 ext_tex = (uv - 0.5) * 0.5 + 0.5;
-	tex = ext_tex * 0.03125 + vec2(0.1875f, 0.35f) + vec2(0.060f, 0.035f);
+	tex = ext_tex * 0.03125 + vec2(0.1875f, 0.3f) + vec2(0.060f, 0.035f);
 	vec3 color_huge = texture_Bicubic(colortex0, tex - pix_offset).rgb;
-	tex = ext_tex * 0.015625 + vec2(0.21875f, 0.35f) + vec2(0.090f, 0.035f);
+	tex = ext_tex * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
 	color_huge += texture_Bicubic(colortex0, tex - pix_offset).rgb;
 
 	float lh = luma(color_huge);
-	if (lh > 0.4) {
+	if (lh > 0.2) {
 		vec2 uv = uv;
 		uv.y = uv.y / viewWidth * viewHeight;
-		float col = smoothstep(0.4, 0.6, lh);
+		float col = smoothstep(0.2, 0.6, lh);
 
-		#ifdef DIRTY_LENS_TEXTURE
 		vec3 lens = texture2D(gaux3, uv).rgb;
-		c = mix(c, mix(color, color_huge * lens, 0.7), lens * col);
-		#else
-		float n = abs(simplex2D(uv * 10.0));
-		n += simplex2D(uv * 6.0 + 0.4) * 0.4;
-		n += simplex2D(uv * 3.0 + 0.7);
-
-		n = clamp(n * 0.3, 0.0, 1.0);
-
-		c = mix(c, mix(color, color_huge, 0.7), n * col * 0.5);
-		#endif
+		c = mix(c, mix(color.rgb, color_huge * lens, 0.7), lens * col);
 	}
 	#endif
 
-	return color;
+	return color.rgb;
 }
 #endif
 

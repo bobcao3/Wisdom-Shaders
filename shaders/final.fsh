@@ -33,20 +33,32 @@ const int gaux4Format = RGBA16;
 
 const int noiseTextureResolution = 256;
 
+const float eyeBrightnessHalflife = 18.5f;
+const float wetnessHalflife = 400.0f;
+const float drynessHalflife = 20.0f;
+const float centerDepthHalflife = 2.5f;
+
 #include "GlslConfig"
 
 //#define VIGNETTE
 #define BLOOM
+#define MOTION_BLUR
 
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
+#include "libs/encoding.glsl"
+#include "libs/vectors.glsl"
+#include "libs/Material.frag"
 #include "libs/noise.glsl"
 #include "libs/Effects.glsl"
+#include "libs/Lighting.frag"
 
 uniform float screenBrightness;
 uniform float nightVision;
 uniform float blindness;
 uniform float valHurt;
+
+#define RAIN_SCATTER
 
 //#define DISTORTION_FIX
 #ifdef DISTORTION_FIX
@@ -65,21 +77,38 @@ void main() {
 	vec2 uv_adj = uv;
 	#endif
 
-	vec3 color = texture2D(gaux2, uv_adj).rgb;
+	#if defined(MOTION_BLUR) || defined(RAIN_SCATTER)
+	Material frag;
+	float flag;
+	material_sample(frag, uv, flag);
+	#endif
 
-	float exposure = 1.0;
+	vec3 color = texture2D(gaux2, uv_adj).rgb;
+	
+	#ifdef MOTION_BLUR
+	motion_blur(gaux2, color, uv_adj, frag.vpos.xyz);
+	#endif
+
+	float exposure = 2.0 / (eyeBrightnessSmooth.y / 240.0 * luma(sunLight) * 0.4 + 0.7);
 
 	#ifdef BLOOM
-	vec3 b = bloom(color, uv_adj);
+	vec3 rawB;
+	vec3 b = bloom(color, uv_adj, rawB);
+
+	#ifdef RAIN_SCATTER
+	float fog_coord = min(length(frag.wpos) / 64.0 * rainStrength, 1.0);
+	color = mix(color, rawB, fog_coord);
+	#endif
 
 	const vec2 tex = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
-	exposure = (1.0 + max(1.0 - eyeBrightnessSmooth.y / 240.0 * luma(sunLight) * 0.4, 0.0));
+
 	//#define BLOOM_DEBUG
 	#ifdef BLOOM_DEBUG
 	color = max(vec3(0.0), b) * exposure;
 	#else
 	color += max(vec3(0.0), b) * exposure;
 	#endif
+	
 	#endif
 
 	#ifdef NOISE_AND_GRAIN
@@ -97,9 +126,11 @@ void main() {
 	uv_n += screwing * 0.08 * central;
 	screwing += noise_tex(uv_n * 8.0 - frameTimeCounter * 0.8 * central);
 	
+	//color = saturation(color, 1.2);
+
 	color = vignette(color, vec3(0.4, 0.00, 0.00), valHurt * fma(screwing, 0.25, 0.75));
-	
-	ACEStonemap(color, (screenBrightness * 0.5 + 0.75) * exposure);
+
+	ACEStonemap(color, (screenBrightness * 0.25 + 1.0) * exposure);
 	
 	gl_FragColor = vec4(toGamma(color),1.0);
 }
