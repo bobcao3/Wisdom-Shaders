@@ -28,20 +28,20 @@ varying vec3 ambient2;
 varying vec3 ambient3;
 varying vec3 ambientD;
 
-#define AT_LSTEP
-#include "libs/atmosphere.glsl"
-
 //#define TAA
 #ifdef TAA
-#include "libs/TAAjitter.glsl"
+//#include "libs/TAAjitter.glsl"
 #endif
+
+#define AT_LSTEP
+#include "libs/atmosphere.glsl"
 
 varying vec3 worldLightPosition;
 
 void functions() {
 	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
-	float f = pow(abs(worldLightPosition.y), 0.9) * (10.0 - wetness * 9.9);
-	sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0) * 0.1;
+	float f = pow(abs(worldLightPosition.y), 0.9) * 10.0;
+	sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) * (1.0 - wetness * 0.999) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0) * 0.1;
 	sunLight = (sunraw) * f;
 
 	ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) * 0.3;
@@ -52,9 +52,9 @@ void functions() {
 	ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 0.2;
 
 	#ifdef TAA
-	//gl_Position.xyz /= gl_Position.w;
-	//TemporalAntiJitterProjPos(gl_Position);
-	//gl_Position.xyz *= gl_Position.w;
+//	gl_Position.xyz /= gl_Position.w;
+//	TemporalAntiJitterProjPos(gl_Position);
+//	gl_Position.xyz *= gl_Position.w;
 	#endif
 }
 

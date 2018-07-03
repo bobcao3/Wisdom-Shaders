@@ -15,7 +15,7 @@
  */
 
 const float gamma = 2.2f;
-const float agamma = 0.7 / 2.2f;
+const float agamma = 0.8 / 2.2f;
 
 vec3 fromGamma(vec3 c) {
   return pow(c, vec3(gamma));
@@ -31,6 +31,10 @@ vec3 toGamma(vec3 c) {
 
 float luma(vec3 c) {
   return dot(c,vec3(0.2126, 0.7152, 0.0722));
+}
+
+vec3 saturation(vec3 rgbColor, float s) {
+	return mix(vec3(luma(rgbColor)), rgbColor, s);
 }
 
 vec3 vignette(vec3 color, vec3 vignette, float strength) {

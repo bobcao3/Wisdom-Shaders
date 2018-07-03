@@ -1,22 +1,26 @@
-#include "noise.glsl"
 #include "uniforms.glsl"
+#include "noise.glsl"
 
 // ============
 const float R0 = 6360e3;
 const float Ra = 6400e3;
 #ifdef AT_LSTEP
-const int steps = 4;
+const int steps = 8;
 const int stepss = 2;
+const vec3 I0 = vec3(1.2311, 1.0, 0.8286) * 13.0;
+
+vec3 I = I0;
 #else
 const int steps = 8;
 const int stepss = 4;
+const vec3 I0 = vec3(10.0);//vec3(1.2311, 1.0, 0.8286) * 15.0;
+
+vec3 I = I0 * (1.0 - wetness * 0.7);
 #endif
 const float g = .76;
 const float g2 = g * g;
-float Hr = (10 + wetness) * 1e3;
-float Hm = (2.6 + wetness) * 1e3;
-const vec3 I0 = vec3(1.2311, 1.0, 0.8286) * 12.0;
-vec3 I = I0 * (1.0 - wetness * 0.7);
+float Hr = 10.0 * 1e3;
+float Hm = 1.6 * 1e3;
 
 const vec3 C = vec3(0., -R0, 0.);
 const vec3 bM = vec3(21e-6);
@@ -54,8 +58,12 @@ float16_t calc_clouds(in f16vec3 sphere, in f16vec3 cam) {
 
 void densities(in vec3 pos, out float rayleigh, out float mie) {
 	float h = length(pos - C) - R0;
-	rayleigh =  exp(-h/Hr);
+	rayleigh = exp(-h/Hr);
+	#ifdef AT_LSTEP
 	mie = exp(-h/Hm);
+	#else
+	mie = exp(-h/Hm) + wetness * smoothstep(0.8, 1.0, 1.0 - h * 5e-6);
+	#endif
 }
 
 float escape(in vec3 p, in vec3 d, in float R) {
@@ -121,7 +129,7 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 		}
 	}
 
-	return I * (R * bR * phaseR + M * bM * phaseM) + 0.001 + vec3(0.02, 0.035, 0.08) * phaseM_moon;
+	return I * (R * bR * phaseR + M * bM * phaseM) + 0.001 + vec3(0.02, 0.035, 0.08) * phaseM_moon * (1.0 - wetness * 0.9);
 }
 // ============
 
