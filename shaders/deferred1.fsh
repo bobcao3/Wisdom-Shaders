@@ -76,7 +76,8 @@ void main() {
     vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
 
     float thickness = 1.0, shade = 0.0;
-    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos + (mask.is_grass ? 0.3 : 0.0) * wN), thickness);
+    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos), thickness);
+    shade = shade * smoothstep(0.0, 1.0, thickness * 5.0);
     sun.light.attenuation = 1.0 - shade;
 
     ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight);
@@ -104,8 +105,8 @@ void main() {
     ambient.color4 = ambient3 * ao;
     ambient.color5 = ambientD * ao;
 
-    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.06;
-  	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.1;
+    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.01;
+  	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.008;
   	//#define WHITE_LIGHT
   	#ifndef WHITE_LIGHT
     torch.color = torch1900K;
@@ -181,7 +182,7 @@ void main() {
     float opmu2 = 1. + mu*mu;
     float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
     vec3 sunlight = sunraw * 1.3;
-    color += (0.3 * luma(sunraw) + sunlight * phaseM) * cmie;
+    color += (1.8 * luma(ambientU) + sunlight * phaseM) * cmie;
     #endif
 
     color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);

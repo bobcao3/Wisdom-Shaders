@@ -52,12 +52,16 @@ void main() {
 
   // Calculate atmospheric scattering depth
   if (!mask.is_sky) {
+    #ifdef CrespecularRays
     vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 
     float vl_raw;
     float lit_distance = VL(uv, frag.wpos, vl_raw);
 
     color.r = lit_distance;
+    #else
+    color.r = length(frag.wpos) / far;
+    #endif
   }
 
 /* DRAWBUFFERS:0 */

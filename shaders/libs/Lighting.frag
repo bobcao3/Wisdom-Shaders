@@ -89,8 +89,9 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 const vec2 shadowPixSize = vec2(1.0 / shadowMapResolution);
 
 float shadowTexSmooth(in sampler2D s, in vec3 spos, out float depth) {
-	const float bias_pix = 0.035 * shadowDistance / shadowMapResolution;
-	float bias = distance(spos.xy, vec2(0.5)) * bias_pix + shadowPixSize.x * 0.25;
+	const float bias_pix = 3.0 / shadowMapResolution;
+	f16vec2 bias_offcenter = spos.xy * 2.0 - 1.0;
+	float bias = dot(bias_offcenter, bias_offcenter) * bias_pix + shadowPixSize.x * 0.25;
 
 	f16vec2 uv = spos.xy * vec2(shadowMapResolution) - 1.0;
 	f16vec2 iuv = floor(uv);
@@ -135,7 +136,7 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness) {
 
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return shade;
 	
-	const float bias_pix = 0.01 * shadowDistance / shadowMapResolution;
+	const float bias_pix = 1.0 / shadowDistance / shadowMapResolution;
 	float bias = distance(spos.xy, vec2(0.5)) * bias_pix;
 
 	#ifdef SHADOW_FILTER
@@ -221,7 +222,7 @@ f16vec3 calcGI(sampler2D smap, sampler2D smapColor, in f16vec3 spos, in f16vec3 
 	spos.z = (spos.z - 0.25) * 2.0;
 	
 	f16vec3 color = vec3(0.0);
-	float16_t dither = bayer_32x32(uv, vec2(viewWidth, viewHeight));
+	float16_t dither = bayer_64x64(uv, vec2(viewWidth, viewHeight));
 	float16_t ang = dither * 3.1415926 * 2.0;
 
 	const float16_t scale = 9.0 / shadowDistance;
@@ -234,13 +235,13 @@ f16vec3 calcGI(sampler2D smap, sampler2D smapColor, in f16vec3 spos, in f16vec3 
 	if (fade_dist > 0.6) return vec3(0.0);
 	fade_dist = smoothstep(0.0, 0.6, 0.6 - fade_dist);
 
-	const float16_t inv12 = 1.0 / 12.0;
+	const float16_t inv8 = 1.0 / 8.0;
 	const float16_t bias = 1.0 / shadowDistance;
 	const float16_t attenuation = shadowDistance * shadowDistance * 0.09;
 
-	for (int i = 1; i < 12; i++) {
-		f16vec2 uv = circleDistribution * pow(i * inv12, 2.0) + spos.st;
-		float16_t shadowDepth = (texture2D(smap, uv).x - 0.25) * 2.0 - bias;
+	for (int i = 1; i < 8; i++) {
+		f16vec2 uv = circleDistribution * pow(i * inv8, 2.0) + spos.st;
+		float shadowDepth = (texture2D(smap, uv).x - 0.25) * 2.0 - bias;
 		f16vec3 soffset = vec3(uv, shadowDepth) - spos;
 		float16_t sdist = dot(soffset, soffset);
 		f16vec3 nsoffset = soffset / sqrt(sdist);
@@ -255,7 +256,7 @@ f16vec3 calcGI(sampler2D smap, sampler2D smapColor, in f16vec3 spos, in f16vec3 
 	
 	color *= fade_dist;
 
-	return color * inv12;
+	return color * inv8;
 }
 #endif
 
@@ -386,23 +387,23 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 	vec2 uv = vec2(0.0);
 	vec4 hitColor = vec4(0.0);
 
-	float h = 0.1;
+	float h = log(length(start)) * 0.45 + 0.1;
 	bool bi = false;
-	float bayer = bayer_64x64(uv, vec2(viewWidth, viewHeight)) * 0.5;
+	float bayer = bayer_64x64(uv, vec2(viewWidth, viewHeight)) * 0.6;
 
 	float sampleDepth = 0.1;
 	float testDepth = far;
 
 	for(int i = 0; i < SSR_STEPS; i++) {
-		testPoint += direction * h * (0.75 + bayer);
+		testPoint += direction * h * (0.7 + bayer);
 		bayer = fract(bayer + 0.618);
 		uv = screen_project(testPoint);
 		if(clamp(uv, vec2(0.0), vec2(1.0)) != uv) {
 			hit = true;
 			break;
 		}
-		sampleDepth = texture2D(depthtex1, uv).x;
-		sampleDepth = linearizeDepth(sampleDepth);
+
+		sampleDepth = linearizeDepth(texture2D(depthtex1, uv).x);
 		testDepth = getLinearDepthOfViewCoord(testPoint);
 
 		if (!bi) bi = sampleDepth < testDepth + 0.005;
@@ -410,7 +411,7 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 		if (bi) {
 			h = far * (sampleDepth - testDepth) * 0.618;
 		} else {
-			h *= 2.2;
+			h *= 1.7;
 		}
 
 		if(sampleDepth < testDepth + 0.00005 && testDepth - sampleDepth < 0.000976 * (1.0 + testDepth * 100.0)){

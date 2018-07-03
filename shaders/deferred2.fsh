@@ -60,7 +60,7 @@ void main() {
 			wet = clamp(wetness2 * 3.0, 0.0, 1.0) * clamp(wet * 2.0 + wetness2, 0.0, 1.0);
 			
 			if (wet > 0.0) {
-				frag.roughness = mix(frag.roughness, 0.05, wet);
+				frag.roughness = mix(frag.roughness, 0.02, wet);
 				frag.metalic = mix(frag.metalic, 0.03, wet);
 				frag.N = mix(frag.N, frag.Nflat, wet);
 			
@@ -113,17 +113,15 @@ void main() {
     vec3 reflectedV = reflect(frag.nvpos, frag.N);
 
     vec4 ray_traced = vec4(0.0);
-    if (frag.roughness > 0.1) {
-      ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux2, frag.N);
-      if (ray_traced.a < 0.9) {
-        ray_traced.rgb = mix(
-          scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * frag.skylight,
-          ray_traced.rgb,
-          ray_traced.a
-        );
-      }
+    ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux2, frag.N);
+    if (ray_traced.a < 0.9) {
+      ray_traced.rgb = mix(
+        scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * frag.skylight,
+        ray_traced.rgb,
+        ray_traced.a
+      );
     }
-
+    
     color = light_calc_PBR_IBL(color, reflectedV, frag, ray_traced.rgb);
   }
 

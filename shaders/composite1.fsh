@@ -55,7 +55,7 @@ void main() {
 
   if (!mask.is_sky) {
 
-    float fog_coord = min(length(frag.wpos) / (1024.0 - wetness * 512.0), 1.0);
+    float fog_coord = min(length(frag.wpos) / (1024.0 - rainStrength * 512.0), 1.0);
     color *= 1.0 - fog_coord * 0.8;
     vec3 direction = normalize(frag.wpos);
 

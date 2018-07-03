@@ -32,6 +32,7 @@ varying vec2 uv;
 varying vec3 vpos;
 
 varying vec3 sunLight;
+varying vec3 sunraw;
 varying vec3 ambientU;
 
 varying vec3 N;
@@ -161,8 +162,8 @@ void main() {
 			 * (abs(dot(lightPosition, N)) * 0.8 + 0.2);        // Scatter-in factor
 		float light_att = (isEyeInWater == 1) ? float(eyeBrightnessSmooth.y) / 240.0 : lmcoord.y;
 
-		const vec3 waterfogcolor = vec3(0.2,1.0,1.2) * 0.7;
-		vec3 waterfog = (max(luma(ambientU), 0.0) * light_att) * (waterfogcolor * glcolor);
+		const vec3 waterfogcolor = vec3(0.2,1.0,1.2) * 0.01;
+		vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * (waterfogcolor * glcolor);
 
 		if (total_refra) watercolor = waterfog * max(1.0, 2.0 - absorption * 2.0);
 
