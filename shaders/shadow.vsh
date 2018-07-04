@@ -75,10 +75,11 @@ void main() {
 	gl_Position = position;
 	texcoord = gl_MultiTexCoord0.st;
 
+	ndata.xyz = normalize(mat3(shadowProjection) * (gl_NormalMatrix * gl_Normal)) * 0.5 + 0.5;
+	ndata.a = 1.0;
+
 	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
 		color = vec3(1.0);
 		ndata.a = 0.0;
 	}
-	ndata.xyz = normalize(mat3(shadowProjection) * (gl_NormalMatrix * gl_Normal)) * 0.5 + 0.5;
-	ndata.a = 1.0;
 }
