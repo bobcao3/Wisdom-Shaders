@@ -85,7 +85,7 @@ uniform vec3 shadowLightPosition;
 void main() {
 	color = gl_Color;
 
-	normal = gl_NormalMatrix * gl_Normal;
+	normal = normalize(gl_NormalMatrix * gl_Normal);
 
 	tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
   binormal = cross(tangent, normal);
