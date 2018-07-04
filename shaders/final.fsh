@@ -130,7 +130,7 @@ void main() {
 
 	color = vignette(color, vec3(0.4, 0.00, 0.00), valHurt * fma(screwing, 0.25, 0.75));
 
-	ACEStonemap(color, (screenBrightness * 0.25 + 1.0) * exposure);
+	ACEStonemap(color, (screenBrightness * 0.5 + 1.0) * exposure);
 	
 	gl_FragColor = vec4(toGamma(color),1.0);
 }
