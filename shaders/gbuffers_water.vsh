@@ -56,6 +56,7 @@ attribute vec4 at_tangent;
 
 void main() {
 	data = (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) ? waterFlag : transparentFlag;
+	if  (mc_Entity.x == 79.0) data = iceFlag;
 
 	vec4 pos = gl_Vertex;
 	pos = gl_ModelViewMatrix * pos;
@@ -82,5 +83,5 @@ void main() {
 	vec4 p = gbufferModelViewInverse * vec4(vpos, 1.0);
 	wpos = p.xyz / p.w;
 
-  glcolor = gl_Color.rgb;
+	glcolor = gl_Color.rgb;
 }

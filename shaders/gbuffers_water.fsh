@@ -227,6 +227,10 @@ void main() {
 		color.a = 1.0;
 	}
 
+	if (maskFlag(data, iceFlag)) {
+		color.a = fma(color.a, 0.5, 0.5);
+	}
+
 	if (isEyeInWater == 1) color.rgb = mix(color.rgb, watermixcolor.rgb, watermixcolor.a);
 
 	// Output
