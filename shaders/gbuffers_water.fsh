@@ -185,7 +185,7 @@ void main() {
 		material_build(
 			frag,
 			vpos, wpos, N, N,
-			color.rgb, vec3(0.9,0.6,0.0), lmcoord);
+			color.rgb, vec3(0.9,0.3,0.0), lmcoord);
 	}
 
 	// Setup Sun object
