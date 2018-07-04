@@ -84,15 +84,11 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 	return shadowposition.xyz * 0.5f + 0.5f;
 }
 
-#define SHADOW_FILTER
+//#define SHADOW_FILTER
 
 const vec2 shadowPixSize = vec2(1.0 / shadowMapResolution);
 
-float shadowTexSmooth(in sampler2D s, in vec3 spos, out float depth) {
-	const float bias_pix = 3.0 / shadowMapResolution;
-	f16vec2 bias_offcenter = spos.xy * 2.0 - 1.0;
-	float bias = dot(bias_offcenter, bias_offcenter) * bias_pix + shadowPixSize.x * 0.25;
-
+float shadowTexSmooth(in sampler2D s, in vec3 spos, out float depth, in float bias) {
 	f16vec2 uv = spos.xy * vec2(shadowMapResolution) - 1.0;
 	f16vec2 iuv = floor(uv);
 	f16vec2 fuv = uv - iuv;
@@ -129,56 +125,60 @@ float shadowTexSmooth(in sampler2D s, in vec3 spos, out float depth) {
                         g1x * res3);
 }
 
-#define VARIANCE_SHADOW_MAPS
+#define SHADOW_COLOR
 
-float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness) {
+#ifdef SHADOW_COLOR
+uniform sampler2D shadowcolor0;
+
+vec3 shadowColorSmooth(in sampler2D s, in vec2 spos) {
+	f16vec2 uv = spos * vec2(shadowMapResolution) - 1.0;
+	f16vec2 iuv = floor(uv);
+	f16vec2 fuv = uv - iuv;
+
+    float g0x = g0(fuv.x);
+    float g1x = g1(fuv.x);
+    float h0x = h0(fuv.x);
+    float h1x = h1(fuv.x);
+    float h0y = h0(fuv.y);
+    float h1y = h1(fuv.y);
+
+	vec2 p0 = (vec2(iuv.x + h0x, iuv.y + h0y) + 0.5) * shadowPixSize;
+	vec2 p1 = (vec2(iuv.x + h1x, iuv.y + h0y) + 0.5) * shadowPixSize;
+	vec2 p2 = (vec2(iuv.x + h0x, iuv.y + h1y) + 0.5) * shadowPixSize;
+	vec2 p3 = (vec2(iuv.x + h1x, iuv.y + h1y) + 0.5) * shadowPixSize;
+
+	vec3 res0 = texture2D(s, p0).rgb;
+	vec3 res1 = texture2D(s, p0).rgb;
+	vec3 res2 = texture2D(s, p0).rgb;
+	vec3 res3 = texture2D(s, p0).rgb;
+
+    return g0(fuv.y) * (g0x * res0  +
+                        g1x * res1) +
+           g1(fuv.y) * (g0x * res2  +
+                        g1x * res3);
+}
+#endif
+
+float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness, out vec3 color) {
 	float shade = 0.0; thickness = 0.0;
+	color = vec3(1.0);
 
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return shade;
 	
-	const float bias_pix = 1.0 / shadowDistance / shadowMapResolution;
-	float bias = distance(spos.xy, vec2(0.5)) * bias_pix;
+	const float bias_pix = 3.0 / shadowMapResolution;
+	f16vec2 bias_offcenter = spos.xy * 2.0 - 1.0;
+	float bias = dot(bias_offcenter, bias_offcenter) * bias_pix + shadowPixSize.x * 0.25;
 
 	#ifdef SHADOW_FILTER
-		#ifdef VARIANCE_SHADOW_MAPS
-		float M1 = 0.0, M2 = 0.0;
-
-		float a = 0.0;
-		float xs = 0.0;
-
-		for (int i = 0; i < 12; i++) {
-			a = texture2D(smap, poisson_12[i] * shadowPixSize + spos.st).x + bias;
-			M2 += a * a;
-			M1 += a;
-
-			xs += float(a < spos.z);
-		}
-		const float r_12 = 1.0 / 12.0f;
-		M1 *= r_12; M2 *= r_12; xs *= r_12;
-
-		if (M1 < spos.z) {
-			float t_M1 = spos.z - M1;
-
-			float v = M2 - M1 * M1;
-			shade = max(xs, 1.0 - v / (v + t_M1 * t_M1));
-		}
-
-		thickness = distance(spos.z, M1) * 256.0;
-		#else
-		float avd = 0.0;
-		for (int i = 0; i < 4; i++) {
-			float shadowDepth;
-			shade += shadowTexSmooth(smap, vec3(poisson_4[i] * shadowPixSize.x + spos.st, spos.z), shadowDepth);
-			avd += shadowDepth;
-		}
-		const float r_4 = 1.0 / 4.0f;
-		shade *= r_4; avd *= r_4;
-		thickness = distance(spos.z, avd) * 256.0;
-		#endif
 	#else
 		float M1;
-		shade = shadowTexSmooth(smap, spos, M1);
+		shade = shadowTexSmooth(smap, spos, M1, bias);
 		thickness = distance(spos.z, M1) * 256.0;
+
+		#ifdef SHADOW_COLOR
+		float M2 = texture2D(shadowtex0, spos.xy).x;
+		if (M2 + bias < M1) color = mix(color, shadowColorSmooth(shadowcolor0, spos.xy), 0.8);
+		#endif
 	#endif
 
 	/*float edgeX = abs(spos.x) - 0.9f;
@@ -384,34 +384,36 @@ vec4 light_calc_PBR_IBL(in vec4 color, in vec3 L, Material mat, in vec3 env) {
 vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf, vec3 N) {
 	vec3 testPoint = start;
 	bool hit = false;
+	float bayer = noise(uv * 10000.0);
 	vec2 uv = vec2(0.0);
 	vec4 hitColor = vec4(0.0);
 
 	float h = log(length(start)) * 0.45 + 0.1;
 	bool bi = false;
-	float bayer = bayer_64x64(uv, vec2(viewWidth, viewHeight)) * 0.6;
 
 	float sampleDepth = 0.1;
 	float testDepth = far;
 
 	for(int i = 0; i < SSR_STEPS; i++) {
-		testPoint += direction * h * (0.7 + bayer);
+		testPoint += direction * h;
+		vec3 testPointJittered = testPoint + float(!bi) * direction * h * (bayer * 0.1 - 0.05);
 		bayer = fract(bayer + 0.618);
-		uv = screen_project(testPoint);
+
+		uv = screen_project(testPointJittered);
 		if(clamp(uv, vec2(0.0), vec2(1.0)) != uv) {
 			hit = true;
 			break;
 		}
 
 		sampleDepth = linearizeDepth(texture2D(depthtex1, uv).x);
-		testDepth = getLinearDepthOfViewCoord(testPoint);
+		testDepth = getLinearDepthOfViewCoord(testPointJittered);
 
 		if (!bi) bi = sampleDepth < testDepth + 0.005;
 
 		if (bi) {
 			h = far * (sampleDepth - testDepth) * 0.618;
 		} else {
-			h *= 1.7;
+			h *= 2.2;
 		}
 
 		if(sampleDepth < testDepth + 0.00005 && testDepth - sampleDepth < 0.000976 * (1.0 + testDepth * 100.0)){
@@ -430,6 +432,51 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 
 	return hitColor;
 }
+
+#ifdef SSS
+float screen_space_shadow (vec3 direction, vec3 start, vec3 N) {
+	if (dot(N, direction) < 0.2 || length(start) > 16.0) return 0.0; 
+
+	vec3 testPoint = start;
+	float hit_am = 0.0;
+	bool hit = false;
+
+	float h = 0.01;
+	bool bi = false;
+
+	float sampleDepth = 0.05;
+	float testDepth = far;
+
+	vec2 uv;
+
+	for(int i = 0; i < 12; i++) {
+		testPoint += direction * h;
+		uv = screen_project(testPoint);
+		if(clamp(uv, vec2(0.0), vec2(1.0)) != uv) {
+			break;
+		}
+
+		sampleDepth = linearizeDepth(texture2D(depthtex1, uv).x);
+		testDepth = getLinearDepthOfViewCoord(testPoint);
+
+		//if (!hit) hit = sampleDepth < testDepth;
+		//
+		//if (hit)
+		//	h *= sampleDepth > testDepth ? 0.5 : -0.5;
+		//} else {
+		//	h *= 1.1;
+		//}
+
+		//if(hit && abs(testDepth - sampleDepth) < 0.001){
+		if (sampleDepth < testDepth - 0.0001 && abs(testDepth - sampleDepth) < 0.00016) {
+			hit_am = 1.0;
+			break;
+		}
+	}
+
+	return hit_am;
+}
+#endif
 
 //==============================================================================
 // Light Effects

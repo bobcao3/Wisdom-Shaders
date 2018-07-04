@@ -31,6 +31,9 @@ varying vec2 uv;
 #include "libs/vectors.glsl"
 #include "libs/Material.frag"
 #include "libs/noise.glsl"
+
+#define SSS
+
 #include "libs/Lighting.frag"
 
 #define GI
@@ -76,8 +79,14 @@ void main() {
     vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
 
     float thickness = 1.0, shade = 0.0;
-    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos), thickness);
-    shade = shade * smoothstep(0.0, 1.0, thickness * 5.0);
+    vec3 scolor;
+    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos), thickness, scolor);
+    sun.light.color *= scolor;
+
+    #ifdef SSS
+    shade = max(shade, screen_space_shadow(lightPosition, frag.vpos, frag.N));
+    #endif
+    //shade = shade * smoothstep(0.0, 1.0, thickness * 5.0);
     sun.light.attenuation = 1.0 - shade;
 
     ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight);
@@ -169,6 +178,11 @@ void main() {
 	  #endif
 	
     color = mix(color, frag.albedo, frag.emmisive);
+
+    //#define SSS_DEBUG
+    #ifdef SSS_DEBUG
+    color = vec3(sun.light.attenuation);
+    #endif
   } else {
     vec3 nwpos = normalize(frag.wpos);
     color = texture2D(colortex0, uv).rgb;
