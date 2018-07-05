@@ -28,8 +28,15 @@
 #endif
 
 // Half float support
-#ifdef MC_GL_AMD_shader_half_float
-#extension GL_AMD_shader_half_float : require
+//#ifdef MC_GL_AMD_gpu_shader_half_float+DISABLE
+//#extension GL_AMD_gpu_shader_half_float : require
+#ifdef MC_GL_NV_gpu_shader5
+
+#extension MC_GL_NV_gpu_shader5 : require
+#define f16mat2 mat2
+#define f16mat3 mat3
+#define f16mat4 mat4
+
 #else
 
 	#define float16_t float
@@ -66,7 +73,7 @@ vec2 pixel = 1.0 / vec2(viewWidth, viewHeight);
 
 vec4 textureGather(sampler2D sampler, vec2 coord) {
   vec2 c = coord * vec2(viewWidth, viewHeight);
-  c = round(c) * pix;
+  c = round(c) * pixel;
   return vec4(
     texture2D(sampler, c + vec2(.0,pixel.y)     ).r,
     texture2D(sampler, c + vec2(pixel.x,pixel.y)).r,

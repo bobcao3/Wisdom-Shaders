@@ -25,8 +25,6 @@ float16_t hash(f16vec2 p) {
 	return fract((p3.x + p3.y) * p3.z);
 }
 
-//#define TAA
-
 float16_t noise(f16vec2 p) {
 	f16vec2 i = floor(p);
 	f16vec2 f = fract(p);
@@ -43,9 +41,6 @@ float16_t noise_tex(in f16vec2 p) {
 
 float16_t bayer2(f16vec2 a){
     a = floor(a);
-		#ifdef TAA
-		a += mod(frameTimeCounter, 4) * 0.25;
-		#endif
     return fract( dot(a, vec2(.5f, a.y * .75f)) );
 }
 
@@ -102,37 +97,37 @@ const f16vec2 poisson_4[4] = f16vec2 [] (
 // http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter20.html
 
 // w0, w1, w2, and w3 are the four cubic B-spline basis functions
-float w0(float a) {
+float16_t w0(float16_t a) {
     return (1.0/6.0)*(a*(a*(-a + 3.0) - 3.0) + 1.0);
 }
 
-float w1(float a) {
+float16_t w1(float16_t a) {
     return (1.0/6.0)*(a*a*(3.0*a - 6.0) + 4.0);
 }
 
-float w2(float a) {
+float16_t w2(float16_t a) {
     return (1.0/6.0)*(a*(a*(-3.0*a + 3.0) + 3.0) + 1.0);
 }
 
-float w3(float a) {
+float16_t w3(float16_t a) {
     return (1.0/6.0)*(a*a*a);
 }
 
 // g0 and g1 are the two amplitude functions
-float g0(float a) {
+float16_t g0(float16_t a) {
     return w0(a) + w1(a);
 }
 
-float g1(float a) {
+float16_t g1(float16_t a) {
     return w2(a) + w3(a);
 }
 
 // h0 and h1 are the two offset functions
-float h0(float a) {
+float16_t h0(float16_t a) {
     return -1.0 + w1(a) / (w0(a) + w1(a));
 }
 
-float h1(float a) {
+float16_t h1(float16_t a) {
     return 1.0 + w3(a) / (w2(a) + w3(a));
 }
 

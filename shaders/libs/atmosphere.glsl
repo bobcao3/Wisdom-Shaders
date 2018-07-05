@@ -158,7 +158,11 @@ float VL(vec2 uv, vec3 owpos, out float vl) {
 		swpos -= dir;
 		dither = fract(dither + 0.618);
 		vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
+		#ifdef HIGH_LEVEL_SHADER
+		float sdepth = texelFetch2D(shadowtex0, ivec2(shadowpos.xy * vec2(shadowMapResolution)), 0).x;
+		#else
 		float sdepth = texture2D(shadowtex0, shadowpos.xy).x;
+		#endif
 
 		float hit = float(shadowpos.z + 0.0006 < sdepth);
 		total += (prev + hit) * step_length * 0.5;

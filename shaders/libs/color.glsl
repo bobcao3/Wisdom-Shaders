@@ -38,10 +38,10 @@ vec3 saturation(vec3 rgbColor, float s) {
 }
 
 vec3 vignette(vec3 color, vec3 vignette, float strength) {
-    float dist = distance(uv, vec2(0.5f));
-    dist = dist * 1.7 - 0.65;
-    dist = pow(clamp(0.0, 1.3, dist), 3.0);
-    return mix(color.rgb, vignette, dist * strength);
+  float dist = distance(uv, vec2(0.5f));
+  dist = dist * 1.7 - 0.65;
+  dist = pow(clamp(0.0, 1.3, dist), 3.0);
+  return mix(color.rgb, vignette, dist * strength);
 }
 
 void ACEStonemap(inout vec3 color, float adapted_lum) {
