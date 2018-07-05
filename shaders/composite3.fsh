@@ -46,7 +46,7 @@ bool checkBlur(vec2 offset, float scale) {
 
 const float weight[4] = float[] (0.3829, 0.2417, 0.0606, 0.02);
 
-vec3 LODblur(in int LOD, in vec2 offset) {
+vec3 LODblur(const float LOD, const vec2 offset) {
 	float scale = exp2(LOD);
 	vec3 bloom = vec3(0.0);
 
@@ -59,7 +59,7 @@ vec3 LODblur(in int LOD, in vec2 offset) {
 
 			vec2 finalCoord = (uv.st + coord.st - offset.st) * scale;
 
-			vec3 c = clamp(texture2DLod(gaux2, finalCoord, 0.0).rgb, vec3(0.0f), vec3(1.0f)) * weight[abs(i)] * weight[abs(j)];
+			vec3 c = clamp(texture2D(gaux2, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight[abs(i)] * weight[abs(j)];
 
 			bloom += c;
 		}
@@ -75,12 +75,8 @@ void main() {
 	#ifdef BLOOM
 	vec3 blur = vec3(0.0);
 	/* LOD 2 */
-	float lod = 2.0; vec2 offset = vec2(0.0f);
-	if (uv.y < 0.25 + padding * 2.0 + 0.6251 && uv.x < 0.0078125 + 0.25f + 0.100f) {
-		if (uv.y > 0.25 + padding) {
-			lod = 0.0f;
-		} else if (uv.x > 0.25 + padding) lod = 0.0f;
-		if (lod == 2.0f) blur = LODblur(int(lod), offset);
+	if (uv.y < 0.25 + padding && uv.x < 0.25 + padding) {
+		blur = LODblur(2.0, vec2(0.0f));
 	}
 	gl_FragData[0] = vec4(blur, 1.0);
 	#endif

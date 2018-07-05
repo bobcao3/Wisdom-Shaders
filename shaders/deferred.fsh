@@ -63,11 +63,11 @@ void main() {
     color.r = calcAO(frag.N, frag.cdepth, frag.vpos, uv);
     #endif
 	
-	#ifdef GI
-	vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
-	vec3 spos = wpos2shadowpos(frag.wpos - wN * 0.07 * frag.cdepth);
-	gi = calcGI(shadowtex1, shadowcolor0, spos, wN);
-	#endif
+  	#ifdef GI
+  	vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
+  	vec3 spos = wpos2shadowpos(frag.wpos - wN * 0.07 * frag.cdepth);
+  	gi = calcGI(shadowtex1, shadowcolor0, spos, wN);
+  	#endif
   }
 
 /* DRAWBUFFERS:53 */

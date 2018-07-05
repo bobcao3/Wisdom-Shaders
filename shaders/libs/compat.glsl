@@ -98,4 +98,16 @@ vec4 textureGatherOffset(sampler2D sampler, vec2 coord, ivec2 offset) {
 #define sum3(x) (dot(vec3(1.0), x))
 #define sum2(x) (x.x + x.y)
 
+float pow2(float a) { return a*a; }
+float pow3(float a) { return (a*a)*a; }
+
+vec2 pow2(vec2 a) { return a*a; }
+vec2 pow3(vec2 a) { return (a*a)*a; }
+
+vec3 pow2(vec3 a) { return a*a; }
+vec3 pow3(vec3 a) { return (a*a)*a; }
+
+vec4 pow2(vec4 a) { return a*a; }
+vec4 pow3(vec4 a) { return (a*a)*a; }
+
 #endif

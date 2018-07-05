@@ -173,7 +173,9 @@ void main() {
 
 			f16vec3 c = texture2D(colortex3, coord).rgb;
   		float16_t bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
+      #ifdef MC_GL_VENDOR_INTEL
       if (bilateral < 0.1) break;
+      #endif
 
 	  	weight += 1.0;
       gi += c;
@@ -184,7 +186,9 @@ void main() {
 
 			f16vec3 c = texture2D(colortex3, coord).rgb;
   		float16_t bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
+      #ifdef MC_GL_VENDOR_INTEL
       if (bilateral < 0.1) break;
+      #endif
 
 	  	weight += 1.0;
       gi += c;

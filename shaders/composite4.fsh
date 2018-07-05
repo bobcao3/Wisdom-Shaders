@@ -38,7 +38,7 @@ bool checkBlur(vec2 offset, float scale) {
 
 const float weight[3] = float[] (0.3829, 0.2417, 0.0606);
 
-vec4 LODblur(in int LOD, in vec2 offset) {
+vec4 LODblur(in float LOD, in vec2 offset) {
 	float scale = exp2(LOD);
 	vec3 bloom = vec3(0.0);
 	float lu = 0.0;
@@ -77,8 +77,8 @@ void main() {
 			else if (checkBlur(offset = vec2(0.1875f, 0.3f)  + vec2(0.060f, 0.035f), exp2(lod = 5.0))) { /* LOD 5 */ }
 			else if (checkBlur(offset = vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f), exp2(lod = 6.0))) { /* LOD 6 */ }
 			else lod = 0.0f;
-		} else if (uv.x > 0.25 + padding) lod = 0.0f;
-		if (lod > 2.5f) blur = LODblur(int(lod), offset);
+		}
+		if (lod > 2.5f) blur = LODblur(lod, offset);
 	}
 	gl_FragData[0] = blur;
 	#endif

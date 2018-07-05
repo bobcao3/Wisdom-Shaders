@@ -97,7 +97,7 @@ void WaterParallax(inout vec3 wpos, in float lod, in f16vec3 N) {
 
 	for (int i = 0; i < maxLayers; i++) {
 		float h = getwave(wpos + stepin + cameraPosition, lod);
-		if (isEyeInWater == 1) h += SEA_HEIGHT;
+		h += float(isEyeInWater) * SEA_HEIGHT;
 
 		float diff = dot(stepin,abs(N)) - h;
 		stepin += nwpos * diff * 0.5;
@@ -112,6 +112,6 @@ float get_caustic (in vec3 wpos) {
 	wpos += (64.0 - wpos.y) * (worldLightPosition / worldLightPosition.y);
 	float w1 = getwave2(wpos, 1.0);
 	vec3 n = get_water_normal(wpos, w1, 1.0, vec3(0.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
-	return pow(1.0 - abs(dot(n, worldLightPosition)), 2.0);
+	return pow2(1.0 - abs(dot(n, worldLightPosition)));
 }
 #endif

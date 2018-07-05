@@ -28,16 +28,14 @@
 
 varying vec4 color;
 
+float luma(vec3 c) {
+  return dot(c,vec3(0.2126, 0.7152, 0.0722));
+}
+
 /* DRAWBUFFERS:04 */
 void main() {
-	vec4 skyColor = color;
-
 	float saturation = abs(color.r - color.g) + abs(color.r - color.b) + abs(color.g - color.b);
 
-	if (saturation > 0.01 || length(color.rgb) < 0.5) {
-		skyColor.rgb *= 0.0;
-	}
-
-	gl_FragData[0] = skyColor;
+	gl_FragData[0] = (saturation > 0.01 || dot(color.rgb,vec3(0.2126, 0.7152, 0.0722)) < 0.5) ? vec4(0.0) : color;
 	gl_FragData[1] = vec4(0.0, 0.0, 0.0, 1.0);
 }

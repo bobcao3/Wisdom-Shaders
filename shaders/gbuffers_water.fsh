@@ -156,7 +156,7 @@ void main() {
 		if (isEyeInWater != 1 && land_depth > 0.9999)
 		dist_diff_N = 1.0;                                       // Clamp out the sky behind
 
-		float absorption = pow(2.0 / (dist_diff_N + 1.0) - 1.0, 2.0);     // Water absorption factor
+		float absorption = pow2(2.0 / (dist_diff_N + 1.0) - 1.0);     // Water absorption factor
 		vec3 watercolor = color.rgb * glcolor
 		   * pow(vec3(absorption), vec3(3.0, 0.8, 1.0))         // Water absorption color
 			 * (abs(dot(lightPosition, N)) * 0.8 + 0.2);        // Scatter-in factor
@@ -212,7 +212,7 @@ void main() {
 	}
 	if (ray_traced.a < 0.95) {
 		ray_traced.rgb = mix(
-			scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * pow(lmcoord.y, 3.0),
+			scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * pow3(lmcoord.y),
 			ray_traced.rgb,
 			ray_traced.a
 		);

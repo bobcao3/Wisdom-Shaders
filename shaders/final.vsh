@@ -46,7 +46,6 @@ void main() {
 
 	#ifdef DISTORTION_FIX
 	float fov = atan(1./gbufferProjection[1][1]);
-	if (isEyeInWater == 1) fov *= 0.85;
 	float height = tan(fov / aspectRatio * 0.5);
 
 	float scaledHeight = strength * height;

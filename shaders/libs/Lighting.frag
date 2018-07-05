@@ -63,7 +63,7 @@ float light_mclightmap_attenuation(in float l) {
 }
 
 float light_mclightmap_simulated_GI(in float Ld) {
- 	return 0.5 * (-1.333 / (3.0 * pow(Ld, 2.0) + 1.0) + 1.333);
+ 	return 0.5 * (-1.333 / (3.0 * pow2(Ld) + 1.0) + 1.333);
 }
 
 //==============================================================================
@@ -240,7 +240,7 @@ f16vec3 calcGI(sampler2D smap, sampler2D smapColor, in f16vec3 spos, in f16vec3 
 	const float16_t attenuation = shadowDistance * shadowDistance * 0.09;
 
 	for (int i = 1; i < 8; i++) {
-		f16vec2 uv = circleDistribution * pow(i * inv8, 2.0) + spos.st;
+		f16vec2 uv = circleDistribution * pow2(i * inv8) + spos.st;
 		float shadowDepth = (texture2D(smap, uv).x - 0.25) * 2.0 - bias;
 		f16vec3 soffset = vec3(uv, shadowDepth) - spos;
 		float16_t sdist = dot(soffset, soffset);
@@ -310,7 +310,7 @@ vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceTh
 	float oren = light_PBR_oren_diffuse(-mat.nvpos, Li.L, mat.N, mat.roughness, NdotL, NdotV);
 	float att = max(0.0, Li.light.attenuation * (thin_sublayer_mask ? 1.0 : oren));
 	if (!thin_sublayer_mask) {
-		att += 0.9 * (1.0 - att) * max(0.0, pow(1.0 - subSurfaceThick, 3.0) * (0.5 + 0.5 * dot(Li.L, mat.nvpos)));
+		att += 0.9 * (1.0 - att) * max(0.0, pow3(1.0 - subSurfaceThick) * (0.5 + 0.5 * dot(Li.L, mat.nvpos)));
 	}
 	vec3 radiance = att * Li.light.color;
 
@@ -504,7 +504,7 @@ float calcAO (vec3 cNormal, float cdepth, vec3 vpos, f16vec2 uv) {
 	float16_t rand = bayer_64x64(uv, f16vec2(viewWidth, viewHeight));
 	for (int i = 0; i < Sample_Directions; i++) {
 		rand = fract(rand + 0.618);
-		float16_t dx = radius * pow(rand, 2.0);
+		float16_t dx = radius * pow2(rand);
 		f16vec2 dir = ao_offset_table[i] * (dx + pixel * 2.0);
 
 		f16vec2 h = uv + dir;

@@ -71,7 +71,7 @@ void main() {
   if (isEyeInWater == 1 && !mask.is_water) {
     float dist_diff_N = min(1.0, frag.cdepth * 0.0625);             // Distance clamped (0.0 ~ 1.0)
   
-    float absorption = pow(2.0 / (dist_diff_N + 1.0) - 1.0, 2.0);     // Water absorption factor
+    float absorption = pow2(2.0 / (dist_diff_N + 1.0) - 1.0);     // Water absorption factor
 		vec3 watercolor = color
 		   * pow(vec3(absorption), vec3(3.0, 0.8, 1.0))         // Water absorption color
 			 * (abs(dot(lightPosition, frag.N)) * 0.8 + 0.2);        // Scatter-in factor
