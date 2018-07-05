@@ -22,6 +22,9 @@
 // =============================================================================
 
 #version 120
+
+//#include "libs/compat.glsl"
+
 #pragma optimize(on)
 
 uniform sampler2D texture;

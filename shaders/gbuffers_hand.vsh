@@ -54,7 +54,7 @@ varying vec3 binormal;
 void main() {
 	color = gl_Color;
 
-	normal = gl_NormalMatrix * gl_Normal;
+	normal = normalize(gl_NormalMatrix * gl_Normal);
 
 	#ifdef NORMALS
 	tangent = normalize(gl_NormalMatrix * at_tangent.xyz);

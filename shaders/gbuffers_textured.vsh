@@ -33,6 +33,6 @@ varying vec2 texcoord;
 void main() {
 	color = gl_Color;
 	gl_Position = ftransform();
-	normal = normalEncode(gl_NormalMatrix * gl_Normal);
+	normal = normalEncode(normalize(gl_NormalMatrix * gl_Normal));
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 }

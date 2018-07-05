@@ -72,6 +72,7 @@ const bool depthtex1MipmapEnabled = true;
 
 #define REFRACTION
 #define ADVANCED_REFRACTION
+#define VARIAED_WATER_HEIGHT
 
 /* DRAWBUFFERS:45 */
 void main() {
@@ -92,7 +93,6 @@ void main() {
 
 		float dist_diff = (isEyeInWater == 1) ? length(vpos) : distance(land_vpos, vpos); // Distance difference - raw (Water absorption)
 
-		#define VARIAED_WATER_HEIGHT
 		#ifdef VARIAED_WATER_HEIGHT
 		float16_t land_depth_B;
 		land_depth_B  = sum4(textureGather      (gaux2, uv              ));
