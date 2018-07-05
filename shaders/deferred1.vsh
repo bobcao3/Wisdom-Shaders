@@ -28,11 +28,6 @@ varying vec3 ambient2;
 varying vec3 ambient3;
 varying vec3 ambientD;
 
-//#define TAA
-#ifdef TAA
-//#include "libs/TAAjitter.glsl"
-#endif
-
 #define AT_LSTEP
 #include "libs/atmosphere.glsl"
 
@@ -50,12 +45,6 @@ void functions() {
 	ambient2 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1,  1.0)), worldLightPosition, Ra) * 0.3;
 	ambient3 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1, -1.0)), worldLightPosition, Ra) * 0.3;
 	ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 0.2;
-
-	#ifdef TAA
-//	gl_Position.xyz /= gl_Position.w;
-//	TemporalAntiJitterProjPos(gl_Position);
-//	gl_Position.xyz *= gl_Position.w;
-	#endif
 }
 
 #define Functions
