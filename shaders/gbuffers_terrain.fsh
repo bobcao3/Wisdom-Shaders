@@ -164,13 +164,15 @@ void main() {
 	if (dis < 64.0) texcoord_adj = ParallaxMapping(texcoord);
 	#endif
 
-	f16vec4 t = texture2D(texture, texcoord_adj);
+	f16vec4 t = texture2D(texture, texcoord_adj) * color;
+
+	if (t.a < 0.05) discard;
 
 	#ifdef PARALLAX_SELF_SHADOW
 	t.rgb *= parallax_lit;
 	#endif
 
-	gl_FragData[0] = t * color;
+	gl_FragData[0] = t;
 
 	#ifdef SPECULAR_TO_PBR_CONVERSION
 	vec3 spec = texture2D(specular, texcoord_adj).rgb;
@@ -200,7 +202,7 @@ void main() {
 		vec2 lmFinal = lmcoord;
 		lmFinal.x *= getDirectional(lmFinal.x, normal2);
 		lmFinal.y *= getDirectional(lmFinal.y, normal2);
-		gl_FragData[2] = vec4(nflat, lmFinal);
+		gl_FragData[2] = vec4(nflat, mix(lmFinal, lmcoord, clamp(0.0, 1.0, (dis - 64.0) * 0.03125)));
 		#else
 		gl_FragData[2] = vec4(nflat, lmcoord);
 		#endif
