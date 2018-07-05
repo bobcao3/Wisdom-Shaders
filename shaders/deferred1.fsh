@@ -38,11 +38,10 @@ varying vec2 uv;
 
 #define GI
 
-Mask mask;
-Material frag;
-LightSourcePBR sun;
-LightSourceHarmonics ambient;
-LightSource torch;
+#define HAND_LIGHT
+#ifdef HAND_LIGHT
+LightSourcePBR hand;
+#endif
 
 #include "libs/atmosphere.glsl"
 
@@ -59,10 +58,14 @@ varying vec3 ambientD;
 varying vec3 worldLightPosition;
 
 #define WAO_ADVANCED
+#define FAR_SHADOW_APPROXIMATION
 
 void main() {
   vec3 color = vec3(0.0);
 
+  Mask mask;
+  Material frag;
+  
   float flag;
   material_sample(frag, uv, flag);
 
@@ -73,6 +76,10 @@ void main() {
   #endif
 
   if (!mask.is_sky) {
+    LightSourcePBR sun;
+    LightSourceHarmonics ambient;
+    LightSource torch;
+
     sun.light.color = sunLight;
     sun.L = lightPosition;
 
@@ -80,19 +87,8 @@ void main() {
 
     float thickness = 1.0, shade = 0.0;
     vec3 scolor;
-    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos), thickness, scolor);
+    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos), thickness, scolor, 1.0 - max(0.0, dot(frag.N, lightPosition)));
     sun.light.color *= scolor;
-
-    #ifdef SSS
-    shade = max(shade, screen_space_shadow(lightPosition, frag.vpos, frag.N));
-    #endif
-    //shade = shade * smoothstep(0.0, 1.0, thickness * 5.0);
-    sun.light.attenuation = 1.0 - shade;
-
-    ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight);
-    #ifdef DIRECTIONAL_LIGHTMAP
-    ambient.attenuation *= lightmap_normals(frag.N, frag.skylight, vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0));
-    #endif
 
     float ao = 1.0;
     #ifdef WAO
@@ -105,6 +101,23 @@ void main() {
     #else
     ao *= 0.25;
     #endif
+    #endif
+
+    float far_shadow_weight = smoothstep(shadowDistance - 16.0, shadowDistance, frag.cdepth);
+    thickness = mix(thickness, 1.0, far_shadow_weight);
+    #ifdef FAR_SHADOW_APPROXIMATION
+    shade = mix(shade, max(1.0 - smoothstep(0.9, 0.95, frag.skylight), 1.0 - ao), far_shadow_weight);
+    #endif
+
+    #ifdef SSS
+    shade = max(shade, screen_space_shadow(lightPosition, frag.vpos, frag.N));
+    #endif
+    //shade = shade * smoothstep(0.0, 1.0, thickness * 5.0);
+    sun.light.attenuation = 1.0 - shade;
+
+    ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight);
+    #ifdef DIRECTIONAL_LIGHTMAP
+    ambient.attenuation *= lightmap_normals(frag.N, frag.skylight, vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0));
     #endif
 
     ambient.color0 = ambientU * ao;
@@ -124,6 +137,12 @@ void main() {
 	  #endif
     torch.attenuation = light_mclightmap_attenuation(frag.torchlight) * ao;
 
+    #ifdef HAND_LIGHT
+    hand.light.color = torch.color * float(heldBlockLightValue) * 10.0;
+    hand.L = -frag.vpos;
+    hand.light.attenuation = 1.0 / (distanceSquared(hand.L, frag.vpos) + 1.0);
+    #endif
+
     float wetness2 = wetness * smoothstep(0.92, 1.0, frag.skylight) * float(!mask.is_plant);
 		if (wetness2 > 0.0) {
 			float wet = noise((frag.wpos + cameraPosition).xz * 0.5 - frameTimeCounter * 0.02);
@@ -142,6 +161,9 @@ void main() {
     }
 		
     color = light_calc_PBR(sun, frag, mask.is_plant ? thickness : 1.0, mask.is_grass) + light_calc_diffuse_harmonics(ambient, frag, wN) + light_calc_diffuse(torch, frag);
+    #ifdef HAND_LIGHT
+    color += light_calc_PBR(hand, frag, 1.0, false);
+    #endif
 
   	#ifdef GI
     float weight = 0.0;
@@ -200,7 +222,7 @@ void main() {
     #endif
 
     color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
-  	color += sunraw * smoothstep(0.9997, 0.99975, mu_s);
+    color += sunraw * smoothstep(0.9997, 0.99975, mu_s);
   }
 
 /* DRAWBUFFERS:53 */
