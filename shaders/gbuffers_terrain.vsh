@@ -77,18 +77,13 @@ uniform vec3 shadowLightPosition;
 
 #include "libs/encoding.glsl"
 
-//#define TAA
-#ifdef TAA
-#include "libs/TAAjitter.glsl"
-#endif
-
 void main() {
 	color = gl_Color;
 
 	normal = normalize(gl_NormalMatrix * gl_Normal);
 
 	tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
-  binormal = cross(tangent, normal);
+	binormal = cross(tangent, normal);
 
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
@@ -123,11 +118,6 @@ void main() {
 	position = gl_ModelViewMatrix * position;
 	vec3 wpos = position.xyz;
 	position = gl_ProjectionMatrix * position;
-	#ifdef TAA
-	position.xyz /= position.w;
-	TemporalJitterProjPos(position);
-	position.xyz *= position.w;
-	#endif
 	gl_Position = position;
 
 	texcoord = gl_MultiTexCoord0.st;

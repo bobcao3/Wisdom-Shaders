@@ -38,11 +38,11 @@ Material frag;
 #include "libs/atmosphere.glsl"
 
 varying vec3 sunLight;
+varying vec3 sunraw;
 varying vec3 ambientU;
 
 varying vec3 worldLightPosition;
 
-const bool gaux4Clear = false;
 const bool colortex0MipmapEnabled = true;
 
 void main() {
@@ -53,11 +53,9 @@ void main() {
 
   init_mask(mask, flag, uv);
 
-  if (!mask.is_sky) {
-
-    float fog_coord = min(length(frag.wpos) / (1024.0 - rainStrength * 512.0), 1.0);
+  if (!mask.is_sky || frag.cdepthN < 0.999) {
+    float fog_coord = min(frag.cdepth / (1024.0 - rainStrength * 512.0), 1.0);
     color *= 1.0 - fog_coord * 0.8;
-    vec3 direction = normalize(frag.wpos);
 
     // Blur and collect scattering
     float scatteram  = sum4(textureGather      (colortex0, uv              ));
@@ -65,7 +63,9 @@ void main() {
           scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2(-1,-1)));
           scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2( 0,-1)));
           scatteram *= 0.0625;
-    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), direction, worldLightPosition, fog_coord * 600e3) * scatteram;
+
+    vec3 nwpos = normalize(frag.wpos);
+    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra * fog_coord) * scatteram;
   }
 
   if (isEyeInWater == 1 && !mask.is_water) {
@@ -83,8 +83,6 @@ void main() {
     color = mix(waterfog, watercolor, absorption);
   }
 
-/* DRAWBUFFERS:357 */
-  gl_FragData[0] = texture2D(gaux4, uv); // TXAA
-  gl_FragData[1] = vec4(color, 1.0);
-  gl_FragData[2] = vec4(color, 1.0);
+/* DRAWBUFFERS:5 */
+  gl_FragData[0] = vec4(color, 1.0);
 }

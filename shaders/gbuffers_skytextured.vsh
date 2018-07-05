@@ -28,18 +28,7 @@ varying vec2 texcoord;
 
 #include "libs/encoding.glsl"
 
-//#define TAA
-#ifdef TAA
-#include "libs/TAAjitter.glsl"
-#endif
-
 void main() {
 	gl_Position = ftransform();
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
-
-#ifdef TAA
-	gl_Position.xyz /= gl_Position.w;
-	TemporalJitterProjPos(gl_Position);
-	gl_Position.xyz *= gl_Position.w;
-#endif
 }

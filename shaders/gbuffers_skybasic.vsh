@@ -24,19 +24,9 @@
 #version 120
 #pragma optimize(on)
 
-//#define TAA
-#ifdef TAA
-#include "libs/TAAjitter.glsl"
-#endif
-
 varying vec4 color;
 
 void main() {
 	gl_Position = ftransform();
 	color = gl_Color;
-#ifdef TAA
-	gl_Position.xyz /= gl_Position.w;
-	TemporalJitterProjPos(gl_Position);
-	gl_Position.xyz *= gl_Position.w;
-#endif
 }

@@ -40,8 +40,6 @@ Material frag;
 varying vec3 sunLight;
 varying vec3 ambientU;
 
-const bool gaux4Clear = false;
-
 void main() {
   vec3 color = vec3(0.0);
 
