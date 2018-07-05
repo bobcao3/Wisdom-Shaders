@@ -159,7 +159,7 @@ vec3 shadowColorSmooth(in sampler2D s, in vec2 spos) {
 }
 #endif
 
-float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness, out vec3 color) {
+float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness, out vec3 color, float pix_bias) {
 	float shade = 0.0; thickness = 0.0;
 	color = vec3(1.0);
 
@@ -167,7 +167,7 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness, o
 	
 	const float bias_pix = 3.0 / shadowMapResolution;
 	f16vec2 bias_offcenter = spos.xy * 2.0 - 1.0;
-	float bias = dot(bias_offcenter, bias_offcenter) * bias_pix + shadowPixSize.x * 0.25;
+	float bias = dot(bias_offcenter, bias_offcenter) * bias_pix + shadowPixSize.x * pix_bias;
 
 	#ifdef SHADOW_FILTER
 	#else
@@ -384,7 +384,7 @@ vec4 light_calc_PBR_IBL(in vec4 color, in vec3 L, Material mat, in vec3 env) {
 vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf, vec3 N) {
 	vec3 testPoint = start;
 	bool hit = false;
-	float bayer = noise(uv * 10000.0);
+	float bayer = bayer_64x64(uv, vec2(viewWidth, viewHeight));
 	vec2 uv = vec2(0.0);
 	vec4 hitColor = vec4(0.0);
 
@@ -396,7 +396,7 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 
 	for(int i = 0; i < SSR_STEPS; i++) {
 		testPoint += direction * h;
-		vec3 testPointJittered = testPoint + float(!bi) * direction * h * (bayer * 0.1 - 0.05);
+		vec3 testPointJittered = testPoint + float(!bi) * direction * h * (bayer * 0.2 - 0.1);
 		bayer = fract(bayer + 0.618);
 
 		uv = screen_project(testPointJittered);
@@ -405,13 +405,20 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 			break;
 		}
 
+		#ifdef HIGH_LEVEL_SHADER
+		sampleDepth = linearizeDepth(texelFetch2D(depthtex1, ivec2(uv * vec2(viewWidth, viewHeight)), 0).x);
+		#else
 		sampleDepth = linearizeDepth(texture2D(depthtex1, uv).x);
+		#endif
 		testDepth = getLinearDepthOfViewCoord(testPointJittered);
 
-		if (!bi) bi = sampleDepth < testDepth + 0.005;
+		if (!bi) {
+			bi = sampleDepth < testDepth + 0.005;
+			testPoint = testPointJittered;
+		}
 
 		if (bi) {
-			h = far * (sampleDepth - testDepth) * 0.618;
+			h = far * (sampleDepth - testDepth) * 0.5;
 		} else {
 			h *= 2.2;
 		}
