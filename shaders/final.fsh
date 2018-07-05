@@ -20,23 +20,22 @@
 
 varying vec2 uv;
 
-const int RGBA8 = 0, R11_G11_B10 = 1, RGB16 = 2, RGBA16F = 3, RGBA16 = 4, RGBA32F = 5;
+const int RGBA8 = 0, R11_G11_B10 = 1, RGB16 = 2, RGBA16F = 3, RGBA16 = 4, RGB8 = 5;
 
 const int colortex0Format = RGBA16;
 const int colortex1Format = RGBA8;
 const int colortex2Format = RGBA16;
-const int colortex3Format = RGBA16;
+const int colortex3Format = RGB8;
 const int gaux1Format = RGB16;
-const int gaux2Format = RGBA16;
-const int gaux3Format = RGBA16F;
-const int gaux4Format = RGBA16;
+const int gaux2Format = RGB16;
+const int gaux3Format = RGB16;
 
 const int noiseTextureResolution = 256;
 
-const float eyeBrightnessHalflife = 18.5f;
+const float eyeBrightnessHalflife = 19.0f;
 const float wetnessHalflife = 400.0f;
 const float drynessHalflife = 20.0f;
-const float centerDepthHalflife = 2.5f;
+const float centerDepthHalflife = 3.0f;
 
 #include "GlslConfig"
 
@@ -96,7 +95,7 @@ void main() {
 	vec3 b = bloom(color, uv_adj, rawB);
 
 	#ifdef RAIN_SCATTER
-	float fog_coord = min(length(frag.wpos) / 64.0 * rainStrength, 1.0);
+	float fog_coord = min(length(frag.wpos) / 64.0 * rainStrength, 1.0) * smoothstep(10.0, 40.0, eyeBrightnessSmooth.y);
 	color = mix(color, rawB, fog_coord);
 	#endif
 
@@ -128,7 +127,7 @@ void main() {
 	
 	//color = saturation(color, 1.2);
 
-	color = vignette(color, vec3(0.4, 0.00, 0.00), valHurt * fma(screwing, 0.25, 0.75));
+	color = vignette(color, vec3(0.4, 0.00, 0.00), min(1.0, valHurt * fma(max(0.0, screwing), 0.25, 0.75)));
 
 	ACEStonemap(color, (screenBrightness * 0.5 + 1.0) * exposure);
 	
