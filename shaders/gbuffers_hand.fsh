@@ -54,6 +54,8 @@ varying vec3 binormal;
 //#define SPECULAR_TO_PBR_CONVERSION
 //#define CONTINUUM2_TEXTURE_FORMAT
 
+uniform int heldBlockLightValue;
+
 /* DRAWBUFFERS:0124 */
 void main() {
 	vec4 t = texture2D(texture, texcoord);
@@ -71,6 +73,8 @@ void main() {
 	gl_FragData[1] = vec4(texture2D(specular, texcoord).rgb, 1.0);
 	#endif
 	#endif
+
+	gl_FragData[1].b = mix(gl_FragData[1].b, 1.0, float(heldBlockLightValue) / 240.0);
 
 	vec2 n2 = normalEncode(normal);
 	gl_FragData[2] = vec4(n2, lmcoord);
