@@ -18,6 +18,11 @@ float getLinearDepthOfViewCoord(vec3 viewCoord) {
 	return linearizeDepth(fma(p.z, 0.5f, 0.5f));
 }
 
+float distanceSquared(vec3 a, vec3 b) {
+	a -= b;
+	return dot(a, a);
+}
+
 f16vec2 screen_project (vec3 vpos) {
 	f16vec4 p = f16mat4(gbufferProjection) * f16vec4(vpos, 1.0f);
 	p /= p.w;
