@@ -26,8 +26,9 @@ varying vec2 uv;
 #define WAO
 #define WAO_HIGH
 
+#define SHADOW_COLOR
 #define GI
-#ifdef GI
+#if defined(GI) && !defined(SHADOW_COLOR)
 uniform sampler2D shadowcolor0;
 #endif
 
