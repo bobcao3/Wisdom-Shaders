@@ -30,7 +30,7 @@
 // Half float support
 //#ifdef MC_GL_AMD_gpu_shader_half_float+DISABLE
 //#extension GL_AMD_gpu_shader_half_float : require
-#ifdef MC_GL_NV_gpu_shader5
+#ifdef MC_GL_NV_gpu_shader5_DISABLE
 
 #extension MC_GL_NV_gpu_shader5 : require
 #define f16mat2 mat2
