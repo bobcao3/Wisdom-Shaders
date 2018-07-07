@@ -172,6 +172,6 @@ float VL(vec2 uv, vec3 owpos, out float vl) {
 	total = min(total, 512.0);
 	vl = total / 512.0f;
 
-	return (max(0.0, adj_depth - shadowDistance) + total) / 512.0f;
+	return (max(0.0, adj_depth - shadowDistance) + total) / 768.0f;
 }
 #endif

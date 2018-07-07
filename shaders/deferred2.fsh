@@ -23,7 +23,7 @@ varying vec2 uv;
 
 #include "GlslConfig"
 
-//#define DIRECTIONAL_LIGHTMAP
+#define SSR
 
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
@@ -33,7 +33,7 @@ varying vec2 uv;
 #include "libs/noise.glsl"
 #include "libs/Lighting.frag"
 
-#define GI
+//#define GI
 
 Mask mask;
 Material frag;
@@ -117,6 +117,7 @@ void main() {
     vec3 reflectedV = reflect(frag.nvpos, frag.N);
 
     vec4 ray_traced = vec4(0.0);
+    #ifdef SSR
     ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux2, frag.N);
     if (ray_traced.a < 0.9) {
       ray_traced.rgb = mix(
@@ -125,6 +126,9 @@ void main() {
         ray_traced.a
       );
     }
+    #else
+    ray_traced.rgb = scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * frag.skylight;
+    #endif
     
     color = light_calc_PBR_IBL(color, reflectedV, frag, ray_traced.rgb);
   }

@@ -239,7 +239,7 @@ vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
 	const float bias = 1.0 / shadowDistance;
 	const float attenuation = shadowDistance * shadowDistance * 0.09;
 
-	for (int i = 1; i < 8; i++) {
+	for (int i = 1; i < 12; i++) {
 		vec2 uv = circleDistribution * pow2(i * inv8) + spos.st;
 		float shadowDepth = (texture2D(smap, uv).x - 0.25) * 2.0 - bias;
 		vec3 soffset = vec3(uv, shadowDepth) - spos;
@@ -379,6 +379,7 @@ vec4 light_calc_PBR_IBL(in vec4 color, in vec3 L, Material mat, in vec3 env) {
 // Ray Trace (Screen Space Reflection)
 //==============================================================================
 
+#ifdef SSR
 #define SSR_STEPS 20 // [16 20 32]
 
 vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf, vec3 N) {
@@ -439,24 +440,24 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 
 	return hitColor;
 }
+#endif
 
 #ifdef SSS
-float screen_space_shadow (vec3 direction, vec3 start, vec3 N) {
+float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth) {
 	if (dot(N, direction) < 0.2 || length(start) > 16.0) return 0.0; 
 
 	vec3 testPoint = start;
 	float hit_am = 0.0;
 	bool hit = false;
 
-	float h = 0.01;
+	float h = 0.009 + max(cdepth - 4.0, 0.0) / far;
 	bool bi = false;
 
-	float sampleDepth = 0.05;
-	float testDepth = far;
+	float sampleDepth, testDepth;
 
 	vec2 uv;
 
-	for(int i = 0; i < 12; i++) {
+	for(int i = 0; i < 16; i++) {
 		testPoint += direction * h;
 		uv = screen_project(testPoint);
 		if(clamp(uv, vec2(0.0), vec2(1.0)) != uv) {
@@ -475,7 +476,7 @@ float screen_space_shadow (vec3 direction, vec3 start, vec3 N) {
 		//}
 
 		//if(hit && abs(testDepth - sampleDepth) < 0.001){
-		if (sampleDepth < testDepth - 0.0001 && abs(testDepth - sampleDepth) < 0.00016) {
+		if (sampleDepth < testDepth && abs(testDepth - sampleDepth) < 0.00016) {
 			hit_am = 1.0;
 			break;
 		}

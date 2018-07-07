@@ -50,6 +50,8 @@ varying vec3 glcolor;
 
 #include "GlslConfig"
 
+#define SSR
+
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
 #include "libs/encoding.glsl"
@@ -215,6 +217,7 @@ void main() {
 	vec3 reflectedV = reflect(frag.nvpos, frag.N);
 
 	vec4 ray_traced = vec4(0.0);
+	#ifdef SSR
 	if (dot(reflectedV, N) > 0.0) {
 		ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux3, N);
 	}
@@ -225,6 +228,9 @@ void main() {
 			ray_traced.a
 		);
 	}
+	#else
+	ray_traced.rgb = scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * pow3(lmcoord.y);
+	#endif
 
 	color = light_calc_PBR_IBL(color, reflectedV, frag, ray_traced.rgb);
 	#endif

@@ -58,7 +58,7 @@ void main() {
 
     color.r = lit_distance;
     #else
-    color.r = length(frag.wpos) / far;
+    color.r = 0.7;
     #endif
   }
 

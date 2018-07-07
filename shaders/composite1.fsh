@@ -34,8 +34,8 @@ varying vec2 uv;
 Mask mask;
 Material frag;
 
-#define CrespecularRays
 #include "libs/atmosphere.glsl"
+#define CrespecularRays
 
 varying vec3 sunLight;
 varying vec3 sunraw;
@@ -57,15 +57,20 @@ void main() {
     float fog_coord = min(frag.cdepth / (1024.0 - rainStrength * 512.0), 1.0);
     color *= 1.0 - fog_coord * 0.8;
 
+    vec3 nwpos = normalize(frag.wpos);
+
+    #ifdef CrespecularRays
     // Blur and collect scattering
     float scatteram  = sum4(textureGather      (colortex0, uv              ));
           scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2(-1, 0)));
           scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2(-1,-1)));
           scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2( 0,-1)));
           scatteram *= 0.0625;
-
-    vec3 nwpos = normalize(frag.wpos);
+    
     color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra * fog_coord) * scatteram;
+    #else
+    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra) * fog_coord;
+    #endif
   }
 
   if (isEyeInWater == 1 && !mask.is_water) {

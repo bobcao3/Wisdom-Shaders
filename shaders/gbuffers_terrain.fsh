@@ -95,7 +95,7 @@ float parallax_lit = 1.0;
 vec2 ParallaxMapping(in vec2 coord) {
 	vec2 adjusted = coord.st;
 	#define maxSteps 8 // [4 8 16]
-	#define scale 0.01 // [0.005 0.01 0.02]
+	#define scale 0.01 // [0.005 0.01 0.02 0.04]
 
 	float heightmap = texture2D(normals, coord.st).a - 1.0f;
 
@@ -157,6 +157,8 @@ float getDirectional(float lm, vec3 normal2) {
 //#define SPECULAR_TO_PBR_CONVERSION
 //#define CONTINUUM2_TEXTURE_FORMAT
 
+#define WAO
+
 /* DRAWBUFFERS:0124 */
 void main() {
 	vec2 texcoord_adj = texcoord;
@@ -168,9 +170,13 @@ void main() {
 	vec2 texcoord_dx = dFdx(texcoord_adj);
 	vec2 texcoord_dy = dFdy(texcoord_adj);
 
-	vec4 t = texture2DGrad(texture, texcoord_adj, texcoord_dx, texcoord_dy) * color;
+	vec4 t = texture2DGrad(texture, texcoord_adj, texcoord_dx, texcoord_dy) * vec4(color.rgb, 1.0);
 	#else
-	vec4 t = texture2D(texture, texcoord_adj) * color;
+	vec4 t = texture2D(texture, texcoord_adj) * vec4(color.rgb, 1.0);
+	#endif
+
+	#ifndef WAO
+	t.rgb *= fma(color.a, 0.5, 0.5);
 	#endif
 
 	if (t.a < 0.05) discard;
@@ -207,8 +213,8 @@ void main() {
 		
 		#if defined(DIRECTIONAL_LIGHTMAP) && defined(NORMALS)
 		vec2 lmFinal = lmcoord;
-		lmFinal.x *= getDirectional(lmFinal.x, normal2);
-		lmFinal.y *= getDirectional(lmFinal.y, normal2);
+		lmFinal.x *= getDirectional(lmFinal.x * color.a, normal2);
+		lmFinal.y *= getDirectional(lmFinal.y * color.a, normal2);
 		gl_FragData[2] = vec4(nflat, mix(lmFinal, lmcoord, clamp(0.0, 1.0, (dis - 64.0) * 0.03125)));
 		#else
 		gl_FragData[2] = vec4(nflat, lmcoord);

@@ -81,7 +81,7 @@ void main() {
 	#if defined(MOTION_BLUR) || defined(RAIN_SCATTER)
 	Material frag;
 	float flag;
-	material_sample(frag, uv, flag);
+	material_sample(frag, uv_adj, flag);
 	#endif
 
 	vec3 color = texture2D(gaux2, uv_adj).rgb;
@@ -129,7 +129,9 @@ void main() {
 	
 	//color = saturation(color, 1.2);
 
+	#ifdef HURT_INDICATOR
 	color = vignette(color, vec3(0.4, 0.00, 0.00), min(1.0, valHurt * fma(max(0.0, screwing), 0.25, 0.75)));
+	#endif
 
 	ACEStonemap(color, (screenBrightness * 0.5 + 1.0) * exposure);
 

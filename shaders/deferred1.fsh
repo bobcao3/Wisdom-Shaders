@@ -36,7 +36,7 @@ varying vec2 uv;
 
 #include "libs/Lighting.frag"
 
-#define GI
+//#define GI
 
 #define HAND_LIGHT
 #ifdef HAND_LIGHT
@@ -75,6 +75,8 @@ void main() {
   vec3 gi = vec3(0.0);
   #endif
 
+  #define RAIN_DROPS_ANIMATION
+
   if (!mask.is_sky) {
     LightSourcePBR sun;
     LightSourceHarmonics ambient;
@@ -110,7 +112,7 @@ void main() {
     #endif
 
     #ifdef SSS
-    shade = max(shade, screen_space_shadow(lightPosition, frag.vpos, frag.N));
+    shade = max(shade, screen_space_shadow(lightPosition, frag.vpos, frag.N, frag.cdepth));
     #endif
     //shade = shade * smoothstep(0.0, 1.0, thickness * 5.0);
     sun.light.attenuation = 1.0 - shade;
@@ -162,9 +164,11 @@ void main() {
 				frag.metalic = mix(frag.metalic, 0.03, wet);
 				frag.N = mix(frag.N, frag.Nflat, wet);
 			
+        #ifdef RAIN_DROPS_ANIMATION
 				frag.N.x += noise((frag.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
 				frag.N.y -= noise((frag.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
 				frag.N = normalize(frag.N);
+        #endif
 			}
     }
 		
@@ -177,7 +181,7 @@ void main() {
     float weight = 0.0;
 
   	for (int i = 0; i < 4; i++) {
-		  vec2 coord = uv + vec2(i / viewWidth, 0.0 * 1.5);
+		  vec2 coord = uv + vec2(i / viewWidth * 1.5, 0.0);
 
 			vec3 c = texture2D(colortex3, coord).rgb;
   		float bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
@@ -190,7 +194,7 @@ void main() {
 	  }
 
     for (int i = -1; i > -4; i--) {
-		  vec2 coord = uv + vec2(i / viewWidth, 0.0 * 1.5);
+		  vec2 coord = uv + vec2(i / viewWidth * 1.5, 0.0);
 
 			vec3 c = texture2D(colortex3, coord).rgb;
   		float bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
