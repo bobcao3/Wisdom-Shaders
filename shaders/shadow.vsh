@@ -25,8 +25,7 @@
 
 #pragma optimize(on)
 
-#define SHADOW_MAP_BIAS 0.9
-const float negBias = 1.0f - SHADOW_MAP_BIAS;
+#include "GlslConfig"
 
 attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
@@ -68,7 +67,7 @@ void main() {
 
 	float l = sqrt(dot(position.xy, position.xy));
 
-	position.xy /= l * SHADOW_MAP_BIAS + negBias;
+	position.xy /= l * SHADOW_MAP_BIAS + negShadowBias;
 
 	position.z = position.z * 0.5 + 0.25;
 

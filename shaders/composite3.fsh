@@ -44,7 +44,11 @@ bool checkBlur(vec2 offset, float scale) {
 	&& (uv.t - offset.t + padding < 1.0f / scale + (padding * 2.0f)) );
 }
 
+#ifdef HIGH_LEVE_SHADER
 const float weight[4] = float[] (0.3829, 0.2417, 0.0606, 0.02);
+#else
+const float weight[7] = float[] (0.02, 0.0606, 0.2417, 0.3829, 0.2417, 0.0606, 0.02);
+#endif
 
 vec3 LODblur(const float LOD, const vec2 offset) {
 	float scale = exp2(LOD);
@@ -59,7 +63,11 @@ vec3 LODblur(const float LOD, const vec2 offset) {
 
 			vec2 finalCoord = (uv.st + coord.st - offset.st) * scale;
 
+			#ifdef HIGH_LEVE_SHADER
 			vec3 c = clamp(texture2D(gaux2, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight[abs(i)] * weight[abs(j)];
+			#else
+			vec3 c = clamp(texture2D(gaux2, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight[i + 3] * weight[j + 3];
+			#endif
 
 			bloom += c;
 		}

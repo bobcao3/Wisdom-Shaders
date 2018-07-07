@@ -76,7 +76,7 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 	shadowposition /= shadowposition.w;
 
 	float distb = length(shadowposition.xy);
-	float distortFactor = negShadowBias + distb * 0.9;
+	float distortFactor = negShadowBias + distb * SHADOW_MAP_BIAS;
 	shadowposition.xy /= distortFactor;
 
 	shadowposition.z = shadowposition.z * 0.5 + 0.25;
@@ -165,7 +165,7 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness, o
 
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return shade;
 	
-	const float bias_pix = 3.0 / shadowMapResolution;
+	const float bias_pix = 0.2 / 256.0;
 	vec2 bias_offcenter = spos.xy * 2.0 - 1.0;
 	float bias = dot(bias_offcenter, bias_offcenter) * bias_pix + shadowPixSize.x * pix_bias;
 

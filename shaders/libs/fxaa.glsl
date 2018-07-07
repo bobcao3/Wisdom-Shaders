@@ -14,11 +14,20 @@
 vec3 fxaa(sampler2D tex, vec2 fragCoord, vec2 uv, vec2 resolution) {
     vec3 color;
     vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);
-    vec3 rgbNW = texture2DOffset(tex, fragCoord, ivec2(-1, 0)).rgb;
-    vec3 rgbNE = texture2DOffset(tex, fragCoord, ivec2( 0, 0)).rgb;
-    vec3 rgbSW = texture2DOffset(tex, fragCoord, ivec2(-1,-1)).rgb;
-    vec3 rgbSE = texture2DOffset(tex, fragCoord, ivec2( 0,-1)).rgb;
+    #ifdef HIGH_LEVEL_SHADER
+    ivec2 iuv = ivec2(uv * resolution);
+    vec3 rgbNW = texelFetch2DOffset(tex, iuv, 0, ivec2(-1, 0)).rgb;
+    vec3 rgbNE = texelFetch2DOffset(tex, iuv, 0, ivec2( 0, 0)).rgb;
+    vec3 rgbSW = texelFetch2DOffset(tex, iuv, 0, ivec2(-1,-1)).rgb;
+    vec3 rgbSE = texelFetch2DOffset(tex, iuv, 0, ivec2( 0,-1)).rgb;
+    vec3 rgbM = texelFetch2D(tex, iuv, 0).rgb;
+    #else
+    vec3 rgbNW = texture2D(tex, fragCoord + vec2(-1., 0.) * inverseVP).rgb;
+    vec3 rgbNE = texture2D(tex, fragCoord + vec2( 0., 0.) * inverseVP).rgb;
+    vec3 rgbSW = texture2D(tex, fragCoord + vec2(-1.,-1.) * inverseVP).rgb;
+    vec3 rgbSE = texture2D(tex, fragCoord + vec2( 0.,-1.) * inverseVP).rgb;
     vec3 rgbM = texture2D(tex, fragCoord).rgb;
+    #endif
 
     float lumaNW = luma(rgbNW);
     float lumaNE = luma(rgbNE);

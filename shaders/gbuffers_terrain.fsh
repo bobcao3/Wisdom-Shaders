@@ -164,10 +164,14 @@ void main() {
 	if (dis < 64.0) texcoord_adj = ParallaxMapping(texcoord);
 	#endif
 
+	#ifdef HIGH_LEVEL_SHADER
 	vec2 texcoord_dx = dFdx(texcoord_adj);
 	vec2 texcoord_dy = dFdy(texcoord_adj);
 
 	vec4 t = texture2DGrad(texture, texcoord_adj, texcoord_dx, texcoord_dy) * color;
+	#else
+	vec4 t = texture2D(texture, texcoord_adj) * color;
+	#endif
 
 	if (t.a < 0.05) discard;
 

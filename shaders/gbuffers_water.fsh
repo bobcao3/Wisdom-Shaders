@@ -177,11 +177,15 @@ void main() {
 		// Glass / Other transperancy render
 		worldN = wN;
 
+		#ifdef HIGH_LEVEL_SHADER
 		vec2 texcoord_dx = dFdx(uv);
 		vec2 texcoord_dy = dFdy(uv);
 
 		// Get material texture
 		color = texture2DGrad(tex, uv, texcoord_dx, texcoord_dy);
+		#else
+		color = texture2D(tex, uv);
+		#endif
 		color = vec4(fromGamma(color.rgb), color.a);
 
 		// Build material
