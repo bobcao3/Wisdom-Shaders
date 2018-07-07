@@ -77,7 +77,7 @@ void main() {
 
 	ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) * 0.8;
 
-	N = gl_NormalMatrix * gl_Normal;
+	N = normalize(gl_NormalMatrix * gl_Normal);
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
 	vec4 p = gbufferModelViewInverse * vec4(vpos, 1.0);

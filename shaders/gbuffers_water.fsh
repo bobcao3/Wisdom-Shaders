@@ -80,7 +80,7 @@ void main() {
 
 	vec3 worldN;
 
-  vec4 watermixcolor = vec4(0.0);
+	vec4 watermixcolor = vec4(0.0);
 
 	if (maskFlag(data, waterFlag)) {
 		// Water Rendering starts here
@@ -177,8 +177,11 @@ void main() {
 		// Glass / Other transperancy render
 		worldN = wN;
 
+		vec2 texcoord_dx = dFdx(uv);
+		vec2 texcoord_dy = dFdy(uv);
+
 		// Get material texture
-		color = texture2D(tex, uv);
+		color = texture2DGrad(tex, uv, texcoord_dx, texcoord_dy);
 		color = vec4(fromGamma(color.rgb), color.a);
 
 		// Build material
