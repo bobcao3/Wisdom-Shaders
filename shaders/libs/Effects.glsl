@@ -31,7 +31,6 @@ void bit8(sampler2D tex, out vec3 color) {
 }
 #endif
 
-//#define FILMIC_CINEMATIC
 #define FILMIC_CINEMATIC_ANAMORPHIC
 #ifdef FILMIC_CINEMATIC
 void filmic_cinematic(inout vec3 color) {
@@ -41,7 +40,7 @@ void filmic_cinematic(inout vec3 color) {
 	color = mix(vec3(w), max(color - vec3(w * 0.1), vec3(0.0)), 0.4 + w * 0.8);
 
 	#ifdef BLOOM
-	const vec2 center_avr = vec2(0.5) * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.025f);
+	const vec2 center_avr = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
 	#define AVR_SOURCE colortex0
 	#else
 	const vec2 center_avr = vec2(0.5);
@@ -51,6 +50,7 @@ void filmic_cinematic(inout vec3 color) {
 	color = pow(color, 0.3 * center + 1.0);
 	color /= luma(center) * 0.5 + 0.5;
 	color *= (normalize(max(vec3(0.1), center)) * 0.3 + 0.7);
+	color += center * 0.1;
 
 	#ifdef FILMIC_CINEMATIC_ANAMORPHIC
 	// 21:9

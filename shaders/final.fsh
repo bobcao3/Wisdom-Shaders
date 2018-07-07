@@ -43,6 +43,8 @@ const float centerDepthHalflife = 3.0f;
 #define BLOOM
 #define MOTION_BLUR
 
+//#define FILMIC_CINEMATIC
+
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
 #include "libs/encoding.glsl"
@@ -130,6 +132,10 @@ void main() {
 	color = vignette(color, vec3(0.4, 0.00, 0.00), min(1.0, valHurt * fma(max(0.0, screwing), 0.25, 0.75)));
 
 	ACEStonemap(color, (screenBrightness * 0.5 + 1.0) * exposure);
+
+	#ifdef FILMIC_CINEMATIC
+	filmic_cinematic(color);
+	#endif
 	
 	gl_FragColor = vec4(toGamma(color),1.0);
 }
