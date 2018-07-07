@@ -9,7 +9,7 @@ vec4 fetch_vpos (vec2 uv, sampler2D sam) {
 	return fetch_vpos(uv, texture2D(sam, uv).x);
 }
 
-float16_t linearizeDepth(float16_t depth) { return (2.0 * near) / (far + near - depth * (far - near));}
+float linearizeDepth(float depth) { return (2.0 * near) / (far + near - depth * (far - near));}
 
 float getLinearDepthOfViewCoord(vec3 viewCoord) {
 	vec4 p = vec4(viewCoord, 1.0);
@@ -23,11 +23,11 @@ float distanceSquared(vec3 a, vec3 b) {
 	return dot(a, a);
 }
 
-f16vec2 screen_project (vec3 vpos) {
-	f16vec4 p = f16mat4(gbufferProjection) * f16vec4(vpos, 1.0f);
+vec2 screen_project (vec3 vpos) {
+	vec4 p = mat4(gbufferProjection) * vec4(vpos, 1.0f);
 	p /= p.w;
 	if(abs(p.z) > 1.0)
-		return f16vec2(-1.0);
+		return vec2(-1.0);
 	return fma(p.st, vec2(0.5f), vec2(0.5f));
 }
 

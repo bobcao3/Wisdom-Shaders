@@ -44,7 +44,7 @@ uniform sampler2D normals;
 
 varying vec2 nflat;
 
-varying f16vec4 color;
+varying vec4 color;
 varying vec4 coords;
 varying vec4 wdata;
 
@@ -57,15 +57,15 @@ varying float dis;
 #define lmcoord coords.ba
 
 #ifdef NORMALS
-varying f16vec3 tangent;
-varying f16vec3 binormal;
+varying vec3 tangent;
+varying vec3 binormal;
 #endif
 
 uniform ivec2 atlasSize;
 
 #define ParallaxOcclusion
 #ifdef ParallaxOcclusion
-varying f16vec3 tangentpos;
+varying vec3 tangentpos;
 
 #define tileResolution 128 // [32 64 128 256 512 1024]
 
@@ -143,12 +143,12 @@ vec2 ParallaxMapping(in vec2 coord) {
 #endif
 
 #if defined(DIRECTIONAL_LIGHTMAP) && defined(NORMALS)
-float16_t getDirectional(float lm, vec3 normal2) {
+float getDirectional(float lm, vec3 normal2) {
 	float Lx = dFdx(lm) * 60.0;
 	float Ly = dFdy(lm) * 60.0;
 
 	vec3 TL = normalize(vec3(Lx * tangent + 0.005 * normal + Ly * binormal));
-	float16_t dir_lighting = fma(max(dot(normal2, TL), 0.0), 0.33, 0.67);
+	float dir_lighting = fma(max(dot(normal2, TL), 0.0), 0.33, 0.67);
 	
 	return clamp(0.0, 1.0, dir_lighting * 1.4);
 }
@@ -164,7 +164,7 @@ void main() {
 	if (dis < 64.0) texcoord_adj = ParallaxMapping(texcoord);
 	#endif
 
-	f16vec4 t = texture2D(texture, texcoord_adj) * color;
+	vec4 t = texture2D(texture, texcoord_adj) * color;
 
 	if (t.a < 0.05) discard;
 
@@ -187,12 +187,12 @@ void main() {
 	#endif
 
 	#ifdef NORMALS
-		f16vec3 normal2 = normal;
+		vec3 normal2 = normal;
 		if (dis < 64.0) {
 			normal2 = texture2D(normals, texcoord_adj).xyz * 2.0 - 1.0;
-			const float16_t bumpmult = 0.5;
+			const float bumpmult = 0.5;
 			normal2 = normal2 * bumpmult + vec3(0.0f, 0.0f, 1.0f - bumpmult);
-			f16mat3 tbnMatrix = mat3(tangent, binormal, normal);
+			mat3 tbnMatrix = mat3(tangent, binormal, normal);
 			normal2 = tbnMatrix * normal2;
 		}
 		vec2 d = normalEncode(normal2);

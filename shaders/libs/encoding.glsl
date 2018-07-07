@@ -34,8 +34,8 @@ bool maskFlag(float f0, float f1) {
 }
 
 vec3 normalDecode(vec2 enc) {
-	vec4 nn = f16vec4(2.0 * enc - 1.0, 1.0, -1.0);
-	float16_t l = dot(nn.xyz,-nn.xyw);
+	vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
+	float l = dot(nn.xyz,-nn.xyw);
 	nn.z = l;
 	nn.xy *= sqrt(l);
 	return normalize(nn.xyz * 2.0 + vec3(0.0, 0.0, -1.0));

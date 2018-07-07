@@ -94,7 +94,7 @@ void main() {
 		float dist_diff = (isEyeInWater == 1) ? length(vpos) : distance(land_vpos, vpos); // Distance difference - raw (Water absorption)
 
 		#ifdef VARIAED_WATER_HEIGHT
-		float16_t land_depth_B;
+		float land_depth_B;
 		land_depth_B  = sum4(textureGather      (gaux2, uv              ));
 		land_depth_B += sum4(textureGatherOffset(gaux2, uv, ivec2(-3, 0)));
 		land_depth_B += sum4(textureGatherOffset(gaux2, uv, ivec2(-3,-3)));
@@ -121,7 +121,7 @@ void main() {
 		frag.nvpos = normalize(frag.nvpos);
 		#endif
 
-		float16_t wave = getwave2(frag.wpos + cameraPosition, lod);
+		float wave = getwave2(frag.wpos + cameraPosition, lod);
 		worldN = get_water_normal(frag.wpos + cameraPosition, wave, lod, wN, wT, wB);
 		frag.N = mat3(gbufferModelView) * worldN;
 

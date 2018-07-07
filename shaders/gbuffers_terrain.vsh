@@ -37,7 +37,7 @@ uniform mat4 gbufferModelViewInverse;
 uniform float rainStrength;
 uniform float frameTimeCounter;
 
-varying f16vec4 color;
+varying vec4 color;
 varying vec4 coords;
 varying vec4 wdata;
 
@@ -50,18 +50,18 @@ varying float dis;
 #define lmcoord coords.ba
 
 #ifdef NORMALS
-varying f16vec3 tangent;
-varying f16vec3 binormal;
+varying vec3 tangent;
+varying vec3 binormal;
 #else
-f16vec3 tangent;
-f16vec3 binormal;
+vec3 tangent;
+vec3 binormal;
 #endif
 
 varying vec2 nflat;
 
 #define ParallaxOcclusion
 #ifdef ParallaxOcclusion
-varying f16vec3 tangentpos;
+varying vec3 tangentpos;
 #endif
 
 //#define PARALLAX_SELF_SHADOW
@@ -124,7 +124,7 @@ void main() {
 	lmcoord = (gl_TextureMatrix[1] *  gl_MultiTexCoord1).xy;
 
 	#ifdef ParallaxOcclusion
-	f16mat3 TBN = f16mat3(tangent, binormal, normal);
+	mat3 TBN = mat3(tangent, binormal, normal);
 	tangentpos = normalize(wpos * TBN);
 	#ifdef PARALLAX_SELF_SHADOW
 	sun = TBN * normalize(shadowLightPosition);

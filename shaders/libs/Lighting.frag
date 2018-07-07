@@ -89,9 +89,9 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 const vec2 shadowPixSize = vec2(1.0 / shadowMapResolution);
 
 float shadowTexSmooth(in sampler2D s, in vec3 spos, out float depth, in float bias) {
-	f16vec2 uv = spos.xy * vec2(shadowMapResolution) - 1.0;
-	f16vec2 iuv = floor(uv);
-	f16vec2 fuv = uv - iuv;
+	vec2 uv = spos.xy * vec2(shadowMapResolution) - 1.0;
+	vec2 iuv = floor(uv);
+	vec2 fuv = uv - iuv;
 
     float g0x = g0(fuv.x);
     float g1x = g1(fuv.x);
@@ -131,9 +131,9 @@ float shadowTexSmooth(in sampler2D s, in vec3 spos, out float depth, in float bi
 uniform sampler2D shadowcolor0;
 
 vec3 shadowColorSmooth(in sampler2D s, in vec2 spos) {
-	f16vec2 uv = spos * vec2(shadowMapResolution) - 1.0;
-	f16vec2 iuv = floor(uv);
-	f16vec2 fuv = uv - iuv;
+	vec2 uv = spos * vec2(shadowMapResolution) - 1.0;
+	vec2 iuv = floor(uv);
+	vec2 fuv = uv - iuv;
 
     float g0x = g0(fuv.x);
     float g1x = g1(fuv.x);
@@ -166,7 +166,7 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness, o
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return shade;
 	
 	const float bias_pix = 3.0 / shadowMapResolution;
-	f16vec2 bias_offcenter = spos.xy * 2.0 - 1.0;
+	vec2 bias_offcenter = spos.xy * 2.0 - 1.0;
 	float bias = dot(bias_offcenter, bias_offcenter) * bias_pix + shadowPixSize.x * pix_bias;
 
 	#ifdef SHADOW_FILTER
@@ -210,45 +210,45 @@ float light_fetch_shadow_fast(sampler2D smap, in vec3 spos) {
 #ifdef GI
 uniform sampler2D shadowcolor1;
 
-f16mat2 rotate(float16_t rad) {
+mat2 rotate(float rad) {
     float c = cos(rad);
     float s = sin(rad);
-    return f16mat2(c, -s, s, c);
+    return mat2(c, -s, s, c);
 }
 
-f16vec3 calcGI(sampler2D smap, sampler2D smapColor, in f16vec3 spos, in f16vec3 wNorm) {
+vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return vec3(0.0);
 
 	spos.z = (spos.z - 0.25) * 2.0;
 	
-	f16vec3 color = vec3(0.0);
-	float16_t dither = bayer_64x64(uv, vec2(viewWidth, viewHeight));
-	float16_t ang = dither * 3.1415926 * 2.0;
+	vec3 color = vec3(0.0);
+	float dither = bayer_64x64(uv, vec2(viewWidth, viewHeight));
+	float ang = dither * 3.1415926 * 2.0;
 
-	const float16_t scale = 9.0 / shadowDistance;
-	f16vec2 circleDistribution = rotate(ang) * vec2(scale);
+	const float scale = 9.0 / shadowDistance;
+	vec2 circleDistribution = rotate(ang) * vec2(scale);
 	//if (circleDistribution.y < 0.0) circleDistribution.y *= 3.0;
 
-	f16vec3 snorm = normalize(mat3(shadowProjection) * (mat3(shadowModelView) * wNorm));
+	vec3 snorm = normalize(mat3(shadowProjection) * (mat3(shadowModelView) * wNorm));
 
-	float16_t fade_dist = distance(spos.xy, vec2(0.5));
+	float fade_dist = distance(spos.xy, vec2(0.5));
 	if (fade_dist > 0.6) return vec3(0.0);
 	fade_dist = smoothstep(0.0, 0.6, 0.6 - fade_dist);
 
-	const float16_t inv8 = 1.0 / 8.0;
-	const float16_t bias = 1.0 / shadowDistance;
-	const float16_t attenuation = shadowDistance * shadowDistance * 0.09;
+	const float inv8 = 1.0 / 8.0;
+	const float bias = 1.0 / shadowDistance;
+	const float attenuation = shadowDistance * shadowDistance * 0.09;
 
 	for (int i = 1; i < 8; i++) {
-		f16vec2 uv = circleDistribution * pow2(i * inv8) + spos.st;
+		vec2 uv = circleDistribution * pow2(i * inv8) + spos.st;
 		float shadowDepth = (texture2D(smap, uv).x - 0.25) * 2.0 - bias;
-		f16vec3 soffset = vec3(uv, shadowDepth) - spos;
-		float16_t sdist = dot(soffset, soffset);
-		f16vec3 nsoffset = soffset / sqrt(sdist);
+		vec3 soffset = vec3(uv, shadowDepth) - spos;
+		float sdist = dot(soffset, soffset);
+		vec3 nsoffset = soffset / sqrt(sdist);
 
-		f16vec3 nsample = texture2D(shadowcolor1, uv).xyz * 2.0 - 1.0;
+		vec3 nsample = texture2D(shadowcolor1, uv).xyz * 2.0 - 1.0;
 
-		float16_t factor = max(dot(nsoffset, snorm) - 0.1, 0.0) * max(dot(-nsoffset, nsample) - 0.1, 0.0);
+		float factor = max(dot(nsoffset, snorm) - 0.1, 0.0) * max(dot(-nsoffset, nsample) - 0.1, 0.0);
 
 		if (factor > 0.0)
 			color += fromGamma(texture2D(smapColor, uv).rgb) * factor / (1.0 + sdist * attenuation);
@@ -495,21 +495,21 @@ const int Sample_Directions = 12;
 const int Sample_Directions = 4;
 #define ao_offset_table poisson_4
 #endif
-const float rsam = 2.0 / float16_t(Sample_Directions);
+const float rsam = 2.0 / float(Sample_Directions);
 
-float calcAO (vec3 cNormal, float cdepth, vec3 vpos, f16vec2 uv) {
-	float16_t radius = 1.0 / cdepth;
-	float16_t ao = 0.0;
+float calcAO (vec3 cNormal, float cdepth, vec3 vpos, vec2 uv) {
+	float radius = 1.0 / cdepth;
+	float ao = 0.0;
 
-	float16_t rand = bayer_64x64(uv, f16vec2(viewWidth, viewHeight));
+	float rand = bayer_64x64(uv, vec2(viewWidth, viewHeight));
 	for (int i = 0; i < Sample_Directions; i++) {
 		rand = fract(rand + 0.618);
-		float16_t dx = radius * pow2(rand);
-		f16vec2 dir = ao_offset_table[i] * (dx + pixel * 2.0);
+		float dx = radius * pow2(rand);
+		vec2 dir = ao_offset_table[i] * (dx + pixel * 2.0);
 
-		f16vec2 h = uv + dir;
-		f16vec3 nvpos = fetch_vpos(h, depthtex1).xyz;
-		f16vec3 diff_pos = nvpos - vpos;
+		vec2 h = uv + dir;
+		vec3 nvpos = fetch_vpos(h, depthtex1).xyz;
+		vec3 diff_pos = nvpos - vpos;
 
 		float d = length(diff_pos) + 0.00001;
 

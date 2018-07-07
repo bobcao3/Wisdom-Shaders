@@ -78,8 +78,8 @@ void main() {
   	for (int i = 0; i < 4; i++) {
 		  vec2 coord = uv + vec2(0.0, i / viewWidth * 1.5);
 
-			f16vec3 c = texture2D(colortex3, coord).rgb;
-  		float16_t bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
+			vec3 c = texture2D(colortex3, coord).rgb;
+  		float bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
       #ifdef MC_GL_VENDOR_INTEL
       if (bilateral < 0.1) break;
       #endif
@@ -91,8 +91,8 @@ void main() {
     for (int i = -1; i > -4; i--) {
 		  vec2 coord = uv + vec2(0.0, i / viewWidth * 1.5);
 
-			f16vec3 c = texture2D(colortex3, coord).rgb;
-  		float16_t bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
+			vec3 c = texture2D(colortex3, coord).rgb;
+  		float bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
       #ifdef MC_GL_VENDOR_INTEL
       if (bilateral < 0.1) break;
       #endif
