@@ -35,7 +35,8 @@ float luma(vec3 c) {
 /* DRAWBUFFERS:04 */
 void main() {
 	float saturation = abs(color.r - color.g) + abs(color.r - color.b) + abs(color.g - color.b);
+	float luma = dot(color.rgb,vec3(0.2126, 0.7152, 0.0722));
 
-	gl_FragData[0] = (saturation > 0.01 || dot(color.rgb,vec3(0.2126, 0.7152, 0.0722)) < 0.5) ? vec4(0.0) : color;
+	gl_FragData[0] = (saturation > 0.01 || luma < 0.1) ? vec4(0.0) : color * min(1.0, luma * 2.0);
 	gl_FragData[1] = vec4(0.0, 0.0, 0.0, 1.0);
 }
