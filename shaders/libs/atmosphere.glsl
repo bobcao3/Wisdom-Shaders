@@ -5,11 +5,11 @@
 const float R0 = 6360e3;
 const float Ra = 6400e3;
 #ifdef AT_LSTEP
-const int steps = 8;
+const int steps = 4;
 const int stepss = 2;
 const vec3 I0 = vec3(1.2311, 1.0, 0.8286) * 13.0;
 
-vec3 I = I0;
+const vec3 I = I0;
 #else
 const int steps = 8;
 const int stepss = 4;
@@ -56,13 +56,15 @@ float16_t calc_clouds(in f16vec3 sphere, in f16vec3 cam) {
 }
 #endif
 
-void densities(in vec3 pos, out float rayleigh, out float mie) {
+void densities(in vec3 pos, out vec2 des) {
+	// des.x = Rayleigh
+	// des.y = Mie
 	float h = length(pos - C) - R0;
-	rayleigh = exp(-h/Hr);
+	des.x = exp(-h/Hr);
 	#ifdef AT_LSTEP
-	mie = exp(-h/Hm);
+	des.y = exp(-h/Hm);
 	#else
-	mie = exp(-h/Hm) + wetness * smoothstep(0.8, 1.0, 1.0 - h * 5e-6);
+	des.y = exp(-h/Hm) + wetness * smoothstep(0.8, 1.0, 1.0 - h * 5e-6);
 	#endif
 }
 
@@ -89,41 +91,38 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 	float phaseM_moon = phaseM / ((2. + g2) * pow(1. + g2 + 2.*g*mu, 1.5));
 	phaseM /= ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
 
-	float depthR = 0., depthM = 0.;
+	vec2 depth = vec2(0.0);
 	vec3 R = vec3(0.), M = vec3(0.);
 
-	//float dl = L / float(steps);
 	float u0 = - (L - 100.0) / (1.0 - exp2(steps));
 
 	for (int i = 0; i < steps; ++i) {
 		float dl = u0 * exp2(i);
-		float l = - u0 * (1 - exp2(i + 1));//float(i) * dl;
+		float l = - u0 * (1 - exp2(i + 1));
 		vec3 p = o + d * l;
 
-		float dR, dM;
-		densities(p, dR, dM);
-		dR *= dl; dM *= dl;
-		depthR += dR;
-		depthM += dM;
+		vec2 des;
+		densities(p, des);
+		des *= vec2(dl);
+		depth += des;
 
 		float Ls = escape(p, Ds, Ra);
 		if (Ls > 0.) {
 			float dls = Ls / float(stepss);
-			float depthRs = 0., depthMs = 0.;
+			vec2 depth_in = vec2(0.0);
 			for (int j = 0; j < stepss; ++j) {
 				float ls = float(j) * dls;
 				vec3 ps = p + Ds * ls;
-				float dRs, dMs;
-				densities(ps, dRs, dMs);
-				depthRs += dRs;
-				depthMs += dMs;
+				vec2 des_in;
+				densities(ps, des_in);
+				depth_in += des_in;
 			}
-      depthRs *= dls;
-      depthMs *= dls;
+			depth_in *= vec2(dls);
+			depth_in += depth;
 
-			vec3 A = exp(-(bR * (depthRs + depthR) + bM * (depthMs + depthM)));
-			R += A * dR;
-			M += A * dM;
+			vec3 A = exp(-(bR * depth_in.x + bM * depth_in.y));
+			R += A * des.x;
+			M += A * des.y;
 		} else {
 			return vec3(0.);
 		}
