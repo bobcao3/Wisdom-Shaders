@@ -129,10 +129,18 @@ void main() {
 
     const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.01;
   	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.008;
+    const vec3 torch_warm = vec3(1.2311, 0.7, 0.4286) * 0.01;
   	//#define WHITE_LIGHT
-  	#ifndef WHITE_LIGHT
+    //#define WARM_LIGHT
+    #define TORCH_LIGHT
+
+  	#ifdef TORCH_LIGHT
     torch.color = torch1900K;
-	  #else
+	  #endif
+    #ifdef WARM_LIGHT
+    torch.color = torch_warm;
+    #endif
+    #ifdef WHITE_LIGHT
 	  torch.color = torch5500K;
 	  #endif
     torch.attenuation = light_mclightmap_attenuation(frag.torchlight) * ao;
