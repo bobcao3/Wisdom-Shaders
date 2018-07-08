@@ -21,7 +21,7 @@ void noise_and_grain(inout vec3 color) {
 
 //#define EIGHT_BIT
 #ifdef EIGHT_BIT
-void bit8(sampler2D tex, out vec3 color) {
+void bit8(sampler2D tex, vec2 uv, out vec3 color) {
 	vec2 grid = vec2(viewWidth / viewHeight, 1.0) * 120.0;
 	vec2 texc = floor(uv * grid) / grid;
 
@@ -40,7 +40,7 @@ void filmic_cinematic(inout vec3 color) {
 	color = mix(vec3(w), max(color - vec3(w * 0.1), vec3(0.0)), 0.4 + w * 0.8);
 
 	#ifdef BLOOM
-	const vec2 center_avr = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
+	const vec2 center_avr = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.090f, 0.03f);
 	#define AVR_SOURCE colortex0
 	#else
 	const vec2 center_avr = vec2(0.5);
@@ -123,13 +123,13 @@ vec3 bloom(inout vec3 c, in vec2 uv, out vec3 rawblur) {
 	vec2 tex = uv * 0.25;
 	vec2 pix_offset = vec2(-.5, -.5) / vec2(viewWidth, viewHeight);
 	vec4 color = texture_Bicubic(colortex0, tex - pix_offset);
-	tex = uv * 0.125 + vec2(0.0f, 0.3f) + vec2(0.000f, 0.035f);
+	tex = uv * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.03f);
 	color += texture_Bicubic(colortex0, tex - pix_offset);
-	tex = uv * 0.0625 + vec2(0.125f, 0.3f) + vec2(0.030f, 0.035f);
+	tex = uv * 0.0625 + vec2(0.125f, 0.25f) + vec2(0.030f, 0.03f);
 	color += texture_Bicubic(colortex0, tex - pix_offset);
-	tex = uv * 0.03125 + vec2(0.1875f, 0.3f) + vec2(0.060f, 0.035f);
+	tex = uv * 0.03125 + vec2(0.1875f, 0.25f) + vec2(0.060f, 0.03f);
 	color += texture_Bicubic(colortex0, tex - pix_offset);
-	tex = uv * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
+	tex = uv * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.090f, 0.03f);
 	color += texture_Bicubic(colortex0, tex - pix_offset);
 
 	color *= 0.1;
@@ -142,9 +142,9 @@ vec3 bloom(inout vec3 c, in vec2 uv, out vec3 rawblur) {
 	// Dirty lens
 	#ifdef DIRTY_LENS
 	vec2 ext_tex = (uv - 0.5) * 0.5 + 0.5;
-	tex = ext_tex * 0.03125 + vec2(0.1875f, 0.3f) + vec2(0.060f, 0.035f);
+	tex = ext_tex * 0.03125 + vec2(0.1875f, 0.25f) + vec2(0.060f, 0.03f);
 	vec3 color_huge = texture_Bicubic(colortex0, tex - pix_offset).rgb;
-	tex = ext_tex * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
+	tex = ext_tex * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.090f, 0.03f);
 	color_huge += texture_Bicubic(colortex0, tex - pix_offset).rgb;
 
 	float lh = luma(color_huge);
@@ -153,7 +153,7 @@ vec3 bloom(inout vec3 c, in vec2 uv, out vec3 rawblur) {
 		uv.y = uv.y / viewWidth * viewHeight;
 		float col = smoothstep(0.2, 0.6, lh);
 
-		vec3 lens = texture2D(gaux3, uv).rgb;
+		vec3 lens = texture_Bicubic(gaux3, uv).rgb;
 		c = mix(c, mix(color.rgb, color_huge * lens, 0.7), lens * col);
 	}
 	#endif

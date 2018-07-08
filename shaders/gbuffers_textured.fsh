@@ -31,9 +31,9 @@ varying vec4 color;
 varying vec2 normal;
 varying vec2 texcoord;
 
-/* DRAWBUFFERS:012 */
+/* DRAWBUFFERS:0 */
 void main() {
-	gl_FragData[0] = texture2D(texture, texcoord) * color;
-	gl_FragData[1] = vec4(0.0, 0.0, 0.0, 1.0);
-	gl_FragData[2] = vec4(normal, 0.99, 1.0);
+	vec4 c = texture2D(texture, texcoord) * color;
+	if (c.a < 0.2) discard;
+	gl_FragData[0] = c;
 }

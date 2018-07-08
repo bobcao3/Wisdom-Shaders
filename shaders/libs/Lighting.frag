@@ -389,7 +389,7 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 	vec2 uv = vec2(0.0);
 	vec4 hitColor = vec4(0.0);
 
-	float h = log(length(start)) * 0.45 + 0.1;
+	float h = log(length(start) + 1.0) * 0.45 + 0.1;
 	bool bi = false;
 
 	float sampleDepth = 0.1;

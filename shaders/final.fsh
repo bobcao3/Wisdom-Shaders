@@ -70,6 +70,8 @@ varying vec2 vUVDot;
 varying vec3 sunLight;
 varying vec3 worldLightPosition;
 
+#define HURT_INDICATOR
+
 void main() {
 	#ifdef DISTORTION_FIX
 	vec3 distort = dot(vUVDot, vUVDot) * vec3(-0.5, -0.5, -1.0) + vUV;
@@ -84,7 +86,12 @@ void main() {
 	material_sample(frag, uv_adj, flag);
 	#endif
 
+	#ifndef EIGHT_BIT
 	vec3 color = texture2D(gaux2, uv_adj).rgb;
+	#else
+	vec3 color;
+	bit8(gaux2, uv_adj, color);
+	#endif
 	
 	#ifdef MOTION_BLUR
 	motion_blur(gaux2, color, uv_adj, frag.vpos.xyz);
@@ -101,7 +108,7 @@ void main() {
 	color = mix(color, rawB, fog_coord);
 	#endif
 
-	const vec2 tex = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f);
+	const vec2 tex = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.090f, 0.03f);
 
 	//#define BLOOM_DEBUG
 	#ifdef BLOOM_DEBUG

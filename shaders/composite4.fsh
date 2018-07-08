@@ -80,10 +80,10 @@ void main() {
 	float lod = 2.0; vec2 offset = vec2(0.0f);
 	if (uv.y < 0.25 + padding * 2.0 + 0.6251 && uv.x < 0.0078125 + 0.25f + 0.100f) {
 		if (uv.y > 0.25 + padding) {
-			if (checkBlur(offset = vec2(0.0f, 0.3f)     + vec2(0.000f, 0.035f), exp2(lod = 3.0))) { /* LOD 3 */ }
-			else if (checkBlur(offset = vec2(0.125f, 0.3f)   + vec2(0.030f, 0.035f), exp2(lod = 4.0))) { /* LOD 4 */ }
-			else if (checkBlur(offset = vec2(0.1875f, 0.3f)  + vec2(0.060f, 0.035f), exp2(lod = 5.0))) { /* LOD 5 */ }
-			else if (checkBlur(offset = vec2(0.21875f, 0.3f) + vec2(0.090f, 0.035f), exp2(lod = 6.0))) { /* LOD 6 */ }
+			if (checkBlur(offset = vec2(0.0f, 0.25f)     + vec2(0.000f, 0.03f), exp2(lod = 3.0))) { /* LOD 3 */ }
+			else if (checkBlur(offset = vec2(0.125f, 0.25f)   + vec2(0.030f, 0.03f), exp2(lod = 4.0))) { /* LOD 4 */ }
+			else if (checkBlur(offset = vec2(0.1875f, 0.25f)  + vec2(0.060f, 0.03f), exp2(lod = 5.0))) { /* LOD 5 */ }
+			else if (checkBlur(offset = vec2(0.21875f, 0.25f) + vec2(0.090f, 0.03f), exp2(lod = 6.0))) { /* LOD 6 */ }
 			else lod = 0.0f;
 		}
 		if (lod > 2.5f) blur = LODblur(lod, offset);

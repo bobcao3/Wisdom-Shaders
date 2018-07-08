@@ -149,7 +149,7 @@ void main() {
 
     #ifdef HAND_LIGHT
     hand.light.color = torch.color * float(heldBlockLightValue) * 10.0;
-    hand.L = -frag.vpos;
+    hand.L = vec3(0.8, -0.7, 0.0) - frag.vpos;
     hand.light.attenuation = 1.0 / (distanceSquared(hand.L, frag.vpos) + 1.0);
     #endif
 
