@@ -83,3 +83,9 @@ screen.SHADOWS=Shadow
 screen.AO=Ambient Occlusion
 screen.REFLECTIONS=Reflections
 screen.LIGHT_COLOR=Light Color
+
+profile.LITE=Lite
+profile.LOW=Low
+profile.MED=Medium
+profile.HIGH=High
+profile.ULTRA=Ultra
