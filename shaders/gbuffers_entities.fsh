@@ -23,7 +23,7 @@
 
 #version 120
 
-//#include "libs/compat.glsl"
+#include "libs/compat.glsl"
 
 #pragma optimize(on)
 

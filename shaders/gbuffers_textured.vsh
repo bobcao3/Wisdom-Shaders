@@ -22,6 +22,7 @@
 // =============================================================================
 
 #version 120
+#include "libs/compat.glsl"
 #pragma optimize(on)
 
 varying vec4 color;

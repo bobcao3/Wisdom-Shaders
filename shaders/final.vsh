@@ -1,6 +1,6 @@
 #version 120
-#pragma optimize(on)
 #include "libs/compat.glsl"
+#pragma optimize(on)
 
 /*
  * Copyright 2017 Cheng Cao

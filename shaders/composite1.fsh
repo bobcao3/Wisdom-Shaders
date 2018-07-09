@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#pragma optimize(on)
 #include "libs/compat.glsl"
+#pragma optimize(on)
 
 varying vec2 uv;
 
