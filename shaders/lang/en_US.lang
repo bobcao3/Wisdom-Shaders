@@ -1,0 +1,85 @@
+option.ADVANCED_REFRACTION=Advanced Refraction
+option.BLOOM=Bloom
+option.CLOUDS_2D=2D Clouds
+option.CONTINUUM2_TEXTURE_FORMAT=Continuum 2.0 PBR
+option.CrespecularRays=Crespecular Rays
+option.DIRTY_LENS=Dirty Lens
+option.DISTORTION_FIX=Distortion Fix
+option.EIGHT_BIT=EIGHT-BIT Filter
+option.FAR_SHADOW_APPROXIMATION=Far Shadow Approximation
+option.FILMIC_CINEMATIC=Filmic Cinematic
+option.FILMIC_CINEMATIC_ANAMORPHIC=Filmic Cinematic Anamorphic
+option.FXAA=FXAA
+option.GI=GI
+option.HAND_LIGHT=Hand Light
+option.HURT_INDICATOR=Hurt Indicator
+option.maxSteps=Parallax Quality
+option.MOTION_BLUR=Motion Blur
+option.NATURAL_WAVE_GENERATOR=Natural Wave Generator
+option.NOISE_AND_GRAIN=Noises and Grain
+option.NORMALS=Normals
+option.ParallaxOcclusion=Parallax Occlusion
+option.RAIN_DROPS_ANIMATION=Wetland Animation
+option.RAIN_SCATTER=Rain Scatter
+option.REFRACTION=Refraction
+option.scale=Parallax Scale
+option.SEA_HEIGHT=Water Wave Height
+option.SHADOW_COLOR=Colored Shadow
+option.SHADOW_FILTER=Shadow Filter
+option.shadowDistance=Shadow Distance
+option.shadowMapResolution=Shadow Resolution
+option.SPECULAR_TO_PBR_CONVERSION=Specular Format
+option.SSR_STEPS=Reflection Quality
+option.SSS=Screen Space Shadow
+option.SSR=Screen Space Reflection
+option.sunPathRotation=Sun Path Angle
+option.tileResolution=Texture Resolution
+option.TORCH_LIGHT=Red-hot Light
+option.VARIAED_WATER_HEIGHT=Variaed Water Height
+option.WAO=Wisdom Ambient Occlusion
+option.WAO_ADVANCED=WAO Smoothing
+option.WAO_HIGH=High Quality AO
+option.WARM_LIGHT=Warm-white Light
+option.WATER_CAUSTICS=Water Caustics
+option.WATER_IBL=Water Reflection
+option.WATER_PARALLAX=Water Parallax
+option.WAVING_FOILAGE=Waving Foilage
+option.WAVING_SHADOW=Waving Foilage Shadow
+option.WHITE_LIGHT=Modern White Light
+
+value.SSR_STEPS.16=Low
+value.SSR_STEPS.20=Med
+value.SSR_STEPS.32=High
+
+value.maxSteps.4=Low
+value.maxSteps.8=Med
+value.maxSteps.16=High
+
+value.shadowMapResolution.512=Lite (512)
+value.shadowMapResolution.1024=Low (1024)
+value.shadowMapResolution.1512=Med (1512)
+value.shadowMapResolution.2048=High (2048)
+value.shadowMapResolution.4096=Ultra (4096)
+value.shadowMapResolution.8192=Insane (8192)
+
+value.scale.0.005=Shallow
+value.scale.0.01=Default
+value.scale.0.02=Deep
+value.scale.0.04=Very Deep
+
+screen.ADVANCED=Advanced Options
+screen.ALL_OPTIONS=All Options
+screen.DEBUG_VIEW=Debug Options
+
+screen.TEXTURE=Texture
+screen.WATER=Water Rendering
+screen.ATMOSPHERE_AND_MEDIUM=Atmosphere And Light Medium
+screen.CAMERA_EFFECTS=Camera Effects
+screen.LIGHTING=Lighting and Reflections
+screen.POST_PROCESSING=Post Processing
+screen.ANIMATIONS=Animations and Models
+
+screen.SHADOWS=Shadow
+screen.AO=Ambient Occlusion
+screen.REFLECTIONS=Reflections
+screen.LIGHT_COLOR=Light Color
