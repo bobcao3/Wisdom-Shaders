@@ -22,6 +22,7 @@
 // =============================================================================
 
 #version 120
+#include "compat.glsl"
 #pragma optimize(on)
 
 uniform mat4 gbufferModelViewInverse;
