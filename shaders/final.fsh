@@ -94,7 +94,9 @@ void main() {
 	#endif
 	
 	#ifdef MOTION_BLUR
-	motion_blur(gaux2, color, uv_adj, frag.vpos.xyz);
+	if (!maskFlag(flag, handFlag)) {
+		motion_blur(gaux2, color, uv_adj, frag.vpos.xyz);
+	}
 	#endif
 
 	float exposure = 2.0 / (eyeBrightnessSmooth.y / 240.0 * luma(sunLight) * 0.4 + 0.7);

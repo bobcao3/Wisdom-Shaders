@@ -70,6 +70,8 @@ float bayer_64x64(in vec2 pos, in vec2 view) {
 	return bayer64(pos * view);
 }
 
+float bayer_64;
+
 const vec2 poisson_12[12] = vec2 [] (
 	vec2(-0.326212, -0.40581),
 	vec2(-0.840144, -0.07358),

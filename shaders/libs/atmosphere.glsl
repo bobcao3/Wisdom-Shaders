@@ -15,7 +15,7 @@ const int steps = 8;
 const int stepss = 4;
 const vec3 I0 = vec3(10.0);//vec3(1.2311, 1.0, 0.8286) * 15.0;
 
-vec3 I = I0 * (1.0 - wetness * 0.7);
+vec3 I = I0 * (1.0 - wetness * 0.8);
 #endif
 const float g = .76;
 const float g2 = g * g;
@@ -64,7 +64,7 @@ void densities(in vec3 pos, out vec2 des) {
 	#ifdef AT_LSTEP
 	des.y = exp(-h/Hm);
 	#else
-	des.y = exp(-h/Hm) + wetness * smoothstep(0.8, 1.0, 1.0 - h * 5e-6);
+	des.y = exp(-h/Hm) + wetness * smoothstep(0.8, 1.0, 1.0 - h * 3e-5);
 	#endif
 }
 
@@ -151,7 +151,13 @@ float VL(vec2 uv, vec3 owpos, out float vl) {
 	vec3 dir = normalize(adj_owpos) * step_length;
 	float prev = 0.0, total = 0.0;
 
-	float dither = bayer_16x16(uv, vec2(viewWidth, viewHeight));
+	#ifndef BAYER_64
+	#define BAYER_64
+	float dither = bayer_64x64(uv, vec2(viewWidth, viewHeight));
+	bayer_64 = dither;
+	#else
+	float dither = bayer_64;
+	#endif
 
 	for (int i = 0; i < vl_loop; i++) {
 		swpos -= dir;

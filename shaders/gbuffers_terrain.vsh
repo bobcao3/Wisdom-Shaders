@@ -73,7 +73,11 @@ uniform vec3 shadowLightPosition;
 
 #define WAVING_FOILAGE
 
-#define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
+float hash(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.2031);
+	p3 += dot(p3, p3.yzx + 19.19);
+	return fract((p3.x + p3.y) * p3.z);
+}
 
 #include "libs/encoding.glsl"
 
@@ -99,7 +103,7 @@ void main() {
 		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
 			float rand_ang = hash(position.xz);
 			float reset = cos(rand_ang * 10.0 + time * 0.1);
-			reset = max( reset * reset, max(rainStrength, 0.1));
+			reset = max( reset * reset, max(rainStrength * 0.5, 0.1));
 			position.x += (sin(rand_ang * 10.0 + time + position.y) * 0.2) * (reset * maxStrength);
 		}
 		#endif
@@ -109,7 +113,7 @@ void main() {
 		#ifdef WAVING_FOILAGE
 		float rand_ang = hash(position.xz);
 		float reset = cos(rand_ang * 10.0 + time * 0.1);
-		reset = max( reset * reset, max(rainStrength, 0.1));
+		reset = max( reset * reset, max(rainStrength * 0.5, 0.1));
 		position.xyz += (sin(rand_ang * 5.0 + time + position.y) * 0.035 + 0.035) * (reset * maxStrength) * tangent;
 		#endif
 		flag = foilage1Flag;

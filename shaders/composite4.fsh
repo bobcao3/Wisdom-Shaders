@@ -37,35 +37,31 @@ bool checkBlur(vec2 offset, float scale) {
 }
 
 #ifdef HIGH_LEVE_SHADER
-const float weight[4] = float[] (0.3829, 0.2417, 0.0606, 0.02);
+const float weight[3] = float[] (0.3829, 0.2417, 0.0606);
 #else
 const float weight[7] = float[] (0.02, 0.0606, 0.2417, 0.3829, 0.2417, 0.0606, 0.02);
 #endif
+
+#define BLUR_X(i, abs_i) \
+		c = max(texture2DOffset(colortex0, finalCoord, ivec2(i, -2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; bloom += c; lu += smoothstep(0.01, 0.1, luma(c)); \
+		c = max(texture2DOffset(colortex0, finalCoord, ivec2(i, -1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; bloom += c; lu += smoothstep(0.01, 0.1, luma(c)); \
+		c = max(texture2DOffset(colortex0, finalCoord, ivec2(i,  0)).rgb, vec3(0.0f)) * weight[abs_i] * weight[0]; bloom += c; lu += smoothstep(0.01, 0.1, luma(c)); \
+		c = max(texture2DOffset(colortex0, finalCoord, ivec2(i,  1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; bloom += c; lu += smoothstep(0.01, 0.1, luma(c)); \
+		c = max(texture2DOffset(colortex0, finalCoord, ivec2(i,  2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; bloom += c; lu += smoothstep(0.01, 0.1, luma(c));
 
 vec4 LODblur(in float LOD, in vec2 offset) {
 	float scale = exp2(LOD);
 	vec3 bloom = vec3(0.0);
 	float lu = 0.0;
 
-	float allWeights = 0.0f;
+	vec2 finalCoord = ((uv.st - offset.st) * scale) * 0.25;
+	vec3 c;
 
-	for (int i = -2; i < 3; i++) {
-		for (int j = -2; j < 3; j++) {
-			vec2 coord = vec2(i, j) / vec2(viewWidth, viewHeight) * 0.5;
-			//d1 = fract(d1 + 0.3117);
-
-			vec2 finalCoord = ((uv.st + coord.st - offset.st) * scale) * 0.25;
-
-			#ifdef HIGH_LEVE_SHADER
-			vec3 c = clamp(texture2D(colortex0, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight[abs(i)] * weight[abs(j)];
-			#else
-			vec3 c = clamp(texture2D(colortex0, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight[i + 3] * weight[j + 3];
-			#endif
-
-			bloom += c;
-			lu += smoothstep(0.01, 0.1, luma(c));
-		}
-	}
+	BLUR_X(-2, 2);
+	BLUR_X(-1, 1);
+	BLUR_X( 0, 0);
+	BLUR_X( 1, 1);
+	BLUR_X( 2, 2);
 
 	return vec4(bloom, lu);
 }

@@ -222,7 +222,13 @@ vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
 	spos.z = (spos.z - 0.25) * 2.0;
 	
 	vec3 color = vec3(0.0);
+	#ifndef BAYER_64
+	#define BAYER_64
 	float dither = bayer_64x64(uv, vec2(viewWidth, viewHeight));
+	bayer_64 = dither;
+	#else
+	float dither = bayer_64;
+	#endif
 	float ang = dither * 3.1415926 * 2.0;
 
 	const float scale = 9.0 / shadowDistance;
@@ -385,7 +391,13 @@ vec4 light_calc_PBR_IBL(in vec4 color, in vec3 L, Material mat, in vec3 env) {
 vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf, vec3 N) {
 	vec3 testPoint = start;
 	bool hit = false;
+	#ifndef BAYER_64
+	#define BAYER_64
 	float bayer = bayer_64x64(uv, vec2(viewWidth, viewHeight));
+	bayer_64 = bayer;
+	#else
+	float bayer = bayer_64;
+	#endif
 	vec2 uv = vec2(0.0);
 	vec4 hitColor = vec4(0.0);
 
@@ -456,7 +468,15 @@ float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth, vec
 	float h = 1.0 / step_pix;
 	bool bi = false;
 
-	testPoint += fma(bayer_64x64(uv, vec2(viewWidth, viewHeight)), 0.5, 1.0) * direction * h;
+	#ifndef BAYER_64
+	#define BAYER_64
+	float bayer = bayer_64x64(uv, vec2(viewWidth, viewHeight));
+	bayer_64 = bayer;
+	#else
+	float bayer = bayer_64;
+	#endif
+
+	testPoint += fma(bayer, 0.5, 1.0) * direction * h;
 
 	float sampleDepth, testDepth;
 
@@ -491,6 +511,8 @@ float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth, vec
 //==============================================================================
 // Light Effects
 //==============================================================================
+#ifdef WAO
+
 #ifdef WAO_HIGH
 const int Sample_Directions = 12;
 #define ao_offset_table poisson_12
@@ -504,7 +526,14 @@ float calcAO (vec3 cNormal, float cdepth, vec3 vpos, vec2 uv) {
 	float radius = 1.0 / cdepth;
 	float ao = 0.0;
 
+	#ifndef BAYER_64
+	#define BAYER_64
 	float rand = bayer_64x64(uv, vec2(viewWidth, viewHeight));
+	bayer_64 = rand;
+	#else
+	float rand = bayer_64;
+	#endif
+
 	for (int i = 0; i < Sample_Directions; i++) {
 		rand = fract(rand + 0.618);
 		float dx = radius * pow2(rand);
@@ -522,4 +551,6 @@ float calcAO (vec3 cNormal, float cdepth, vec3 vpos, vec2 uv) {
 
 	return 1.0 - sqrt(clamp(ao * rsam, 0.0, 1.0));
 }
+#endif
+
 #endif

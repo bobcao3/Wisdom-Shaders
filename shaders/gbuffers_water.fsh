@@ -70,8 +70,6 @@ Material frag;
 
 uniform ivec2 eyeBrightness;
 
-const bool depthtex1MipmapEnabled = true;
-
 #define REFRACTION
 #define ADVANCED_REFRACTION
 #define VARIAED_WATER_HEIGHT

@@ -70,8 +70,6 @@ Material frag;
 
 uniform ivec2 eyeBrightness;
 
-const bool depthtex1MipmapEnabled = true;
-
 #define REFRACTION
 #define ADVANCED_REFRACTION
 #define VARIAED_WATER_HEIGHT
@@ -248,6 +246,6 @@ void main() {
 	if (isEyeInWater == 1) color.rgb = mix(color.rgb, watermixcolor.rgb, watermixcolor.a);
 
 	// Output
-	gl_FragData[0] = vec4(normalEncode(frag.N), waterFlag, 1.0);
+	gl_FragData[0] = vec4(normalEncode(frag.N), handFlag, 1.0);
 	gl_FragData[1] = color;
 }

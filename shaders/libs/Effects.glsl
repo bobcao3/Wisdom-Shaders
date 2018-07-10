@@ -25,7 +25,13 @@ void bit8(sampler2D tex, vec2 uv, out vec3 color) {
 	vec2 grid = vec2(viewWidth / viewHeight, 1.0) * 120.0;
 	vec2 texc = floor(uv * grid) / grid;
 
-	float dither = bayer_16x16(texc, grid);
+	#ifndef BAYER_64
+	#define BAYER_64
+	float dither = bayer_64x64(uv, vec2(viewWidth, viewHeight));
+	bayer_64 = dither;
+	#else
+	float dither = bayer_64;
+	#endif
 	vec3 c = texture2D(tex, texc).rgb * 16.0;
 	color = floor(c + dither) / 16.0;
 }

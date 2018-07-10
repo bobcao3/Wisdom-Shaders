@@ -50,29 +50,31 @@ const float weight[4] = float[] (0.3829, 0.2417, 0.0606, 0.02);
 const float weight[7] = float[] (0.02, 0.0606, 0.2417, 0.3829, 0.2417, 0.0606, 0.02);
 #endif
 
+#define BLUR_X(i, abs_i) \
+		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i, -3)).rgb, vec3(0.0f)) * weight[abs_i] * weight[3]; \
+		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i, -2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; \
+		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i, -1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; \
+		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i,  0)).rgb, vec3(0.0f)) * weight[abs_i] * weight[0]; \
+		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i,  1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; \
+		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i,  2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; \
+		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i,  3)).rgb, vec3(0.0f)) * weight[abs_i] * weight[3];
+
 vec3 LODblur(const float LOD, const vec2 offset) {
 	float scale = exp2(LOD);
 	vec3 bloom = vec3(0.0);
 
 	float allWeights = 0.0f;
 
-	for (int i = -3; i < 4; i++) {
-		for (int j = -3; j < 4; j++) {
-			vec2 coord = vec2(i, j) / vec2(viewWidth, viewHeight) * 1.0;
-			//d1 = fract(d1 + 0.3117);
+	vec2 finalCoord = (uv.st - offset.st) * scale;
 
-			vec2 finalCoord = (uv.st + coord.st - offset.st) * scale;
-
-			#ifdef HIGH_LEVE_SHADER
-			vec3 c = clamp(texture2D(gaux2, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight[abs(i)] * weight[abs(j)];
-			#else
-			vec3 c = clamp(texture2D(gaux2, finalCoord).rgb, vec3(0.0f), vec3(1.0f)) * weight[i + 3] * weight[j + 3];
-			#endif
-
-			bloom += c;
-		}
-	}
-
+	BLUR_X(-3, 3);
+	BLUR_X(-2, 2);
+	BLUR_X(-1, 1);
+	BLUR_X( 0, 0);
+	BLUR_X( 1, 1);
+	BLUR_X( 2, 2);
+	BLUR_X( 3, 3);
+	
 	return bloom;
 }
 #endif

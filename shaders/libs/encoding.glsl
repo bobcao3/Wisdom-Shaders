@@ -29,6 +29,8 @@ const float entityFlag = 0.2f;
 const float airFlag = 0.0f;
 const float skyObjectFlag = 0.02f;
 
+const float handFlag = 0.22f;
+
 bool maskFlag(float f0, float f1) {
 	return abs(f0 - f1) < 0.005;
 }
