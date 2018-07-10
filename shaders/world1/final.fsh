@@ -80,44 +80,13 @@ void main() {
 	vec2 uv_adj = uv;
 	#endif
 
-	#if defined(MOTION_BLUR) || defined(RAIN_SCATTER)
-	Material frag;
-	float flag;
-	material_sample(frag, uv_adj, flag);
-	#endif
-
 	#ifndef EIGHT_BIT
-	vec3 color = texture2D(gaux2, uv_adj).rgb;
+	vec3 color = texture2D(colortex0, uv_adj).rgb;
 	#else
 	vec3 color;
-	bit8(gaux2, uv_adj, color);
+	bit8(colortex0, uv_adj, color);
 	#endif
 	
-	#ifdef MOTION_BLUR
-	motion_blur(gaux2, color, uv_adj, frag.vpos.xyz);
-	#endif
-
-	float exposure = 2.0 / (eyeBrightnessSmooth.y / 240.0 * luma(sunLight) * 0.4 + 0.7);
-
-	#ifdef BLOOM
-	vec3 rawB;
-	vec3 b = bloom(color, uv_adj, rawB);
-
-	#ifdef RAIN_SCATTER
-	float fog_coord = min(length(frag.wpos) / 64.0 * rainStrength, 1.0) * smoothstep(10.0, 40.0, eyeBrightnessSmooth.y);
-	color = mix(color, rawB, fog_coord);
-	#endif
-
-	const vec2 tex = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.090f, 0.03f);
-
-	//#define BLOOM_DEBUG
-	#ifdef BLOOM_DEBUG
-	color = max(vec3(0.0), b) * exposure;
-	#else
-	color += max(vec3(0.0), b) * exposure;
-	#endif
-	
-	#endif
 
 	#ifdef NOISE_AND_GRAIN
 	noise_and_grain(color);
@@ -145,27 +114,6 @@ void main() {
 	#ifdef FILMIC_CINEMATIC
 	filmic_cinematic(color);
 	#endif
-
-	//#define GBUFFERS_DEBUG
-    #ifdef GBUFFERS_DEBUG
-    if (uv.x < 0.5) {
-      if (uv.y < 0.5) {
-        material_sample(frag, uv * 2.0, flag);
-        color = normalize(mat3(gbufferModelViewInverse) * frag.N);
-      } else {
-        material_sample(frag, (uv - vec2(0.0, 0.5)) * 2.0, flag);
-        color = vec3(flag);
-      }
-    } else {
-      if (uv.y < 0.5) {
-        material_sample(frag, (uv - vec2(0.5, 0.0)) * 2.0, flag);
-        color = vec3(frag.roughness, frag.metalic, frag.emmisive);
-      } else {
-        material_sample(frag, (uv - vec2(0.5, 0.5)) * 2.0, flag);
-        color = vec3(frag.cdepthN);
-      }
-    }
-    #endif
 	
 	gl_FragColor = vec4(toGamma(color),1.0);
 }

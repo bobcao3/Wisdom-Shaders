@@ -97,10 +97,10 @@ void main() {
 
 		#ifdef VARIAED_WATER_HEIGHT
 		float land_depth_B;
-		land_depth_B  = sum4(textureGather      (gaux2, uv              ));
-		land_depth_B += sum4(textureGatherOffset(gaux2, uv, ivec2(-3, 0)));
-		land_depth_B += sum4(textureGatherOffset(gaux2, uv, ivec2(-3,-3)));
-		land_depth_B += sum4(textureGatherOffset(gaux2, uv, ivec2( 0,-3)));
+		land_depth_B  = sum4(textureGather      (gaux2, uv1              ));
+		land_depth_B += sum4(textureGatherOffset(gaux2, uv1, ivec2(-3, 0)));
+		land_depth_B += sum4(textureGatherOffset(gaux2, uv1, ivec2(-3,-3)));
+		land_depth_B += sum4(textureGatherOffset(gaux2, uv1, ivec2( 0,-3)));
 		land_depth_B *= 0.0625;
 		vec3 land_vpos_B = fetch_vpos(uv1.st, land_depth_B).xyz;    // Read deferred state vpos
 		vec3 diff_pos = (isEyeInWater == 1) ? vpos : land_vpos_B - vpos;
@@ -113,7 +113,7 @@ void main() {
 		material_build(
 			frag,
 			vpos, wpos, N, N,
-			vec3(1.0), vec3(0.95,0.002,0.0), lmcoord);
+			vec3(1.0), vec3(0.9,0.002,0.0), lmcoord);
 
 		// Waving water & parallax
 		#ifdef WATER_PARALLAX
@@ -130,10 +130,12 @@ void main() {
 		// Refraction
 		bool total_refra = false;
 		#ifdef REFRACTION
-		vec3 refracted = refract(frag.vpos, frag.N, (isEyeInWater == 1) ? 1.33 / 1.00029 : 1.00029 / 1.33);
+		vec3 refracted = refract(frag.nvpos, frag.N, (isEyeInWater == 1) ? 1.33 / 1.00029 : 1.00029 / 1.33);
          total_refra = (refracted == vec3(0.0));
+		 float refraction_index = max(0.0, dot(refracted, -frag.N));
          refracted = frag.vpos + refracted;
 		vec2 uv_refra = screen_project(refracted);
+		if (uv_refra.y < 0.0) uv_refra = uv1;
 		color = texture2D(gaux3, uv_refra);                     // Read deferred state composite, refracted
 
 		#ifdef ADVANCED_REFRACTION
@@ -167,7 +169,8 @@ void main() {
 		const vec3 waterfogcolor = vec3(0.2,1.0,1.2) * 0.01;
 		vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * (waterfogcolor * glcolor);
 
-		if (total_refra) watercolor = waterfog * max(1.0, 2.0 - absorption * 2.0);
+		if (total_refra) watercolor = waterfog * light_att;
+		if (isEyeInWater == 1) watercolor = mix(watercolor, waterfog * light_att, 1.0 - refraction_index);
 
 		// Refraction color composite
 		color = (isEyeInWater == 1) ? vec4(watercolor, 1.0) : vec4(mix(waterfog, watercolor, absorption), 1.0);
@@ -234,6 +237,8 @@ void main() {
 	color = light_calc_PBR_IBL(color, reflectedV, frag, ray_traced.rgb);
 	#endif
 
+	if (isEyeInWater == 1) color.rgb = mix(color.rgb, watermixcolor.rgb, watermixcolor.a);
+
 	// PBR lighting (Diffuse + brdf)
 	if (maskFlag(data, waterFlag)) {
 		color.rgb += light_calc_PBR_brdf(sun, frag);
@@ -243,8 +248,6 @@ void main() {
 	if (maskFlag(data, iceFlag)) {
 		color.a = fma(color.a, 0.5, 0.5);
 	}
-
-	if (isEyeInWater == 1) color.rgb = mix(color.rgb, watermixcolor.rgb, watermixcolor.a);
 
 	// Output
 	gl_FragData[0] = vec4(normalEncode(frag.N), waterFlag, 1.0);

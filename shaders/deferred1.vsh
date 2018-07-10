@@ -35,7 +35,7 @@ varying vec3 worldLightPosition;
 
 void functions() {
 	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
-	float f = pow(abs(worldLightPosition.y), 0.9) * 10.0;
+	float f = pow(max(abs(worldLightPosition.y) - 0.05, 0.0), 0.9) * 10.0;
 	sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) * (1.0 - wetness * 0.999) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0) * 0.1 * (1.0 - rainStrength * 0.8);
 	sunLight = (sunraw) * f;
 

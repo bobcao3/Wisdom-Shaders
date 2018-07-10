@@ -443,19 +443,22 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 #endif
 
 #ifdef SSS
-float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth) {
-	if (dot(N, direction) < 0.2 || length(start) > 16.0) return 0.0; 
+float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth, vec2 uv) {
+	if (dot(N, direction) < 0.3 || length(start) > 32.0) return 0.0; 
 
 	vec3 testPoint = start;
 	float hit_am = 0.0;
 	bool hit = false;
 
-	float h = 0.009 + max(cdepth - 4.0, 0.0) / far;
+	vec2 step_pos = screen_project(start + direction * 2.0);
+	float step_pix = length((step_pos - uv) * vec2(viewWidth, viewHeight)) * 0.25;
+
+	float h = 1.0 / step_pix;
 	bool bi = false;
 
-	float sampleDepth, testDepth;
+	testPoint += fma(bayer_64x64(uv, vec2(viewWidth, viewHeight)), 0.5, 1.0) * direction * h;
 
-	vec2 uv;
+	float sampleDepth, testDepth;
 
 	for(int i = 0; i < 16; i++) {
 		testPoint += direction * h;
@@ -475,8 +478,7 @@ float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth) {
 		//	h *= 1.1;
 		//}
 
-		//if(hit && abs(testDepth - sampleDepth) < 0.001){
-		if (sampleDepth < testDepth && abs(testDepth - sampleDepth) < 0.00016) {
+		if(sampleDepth < testDepth && testDepth - sampleDepth < 0.0004){
 			hit_am = 1.0;
 			break;
 		}

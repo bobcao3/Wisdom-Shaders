@@ -105,7 +105,7 @@ void main() {
 		#endif
 		color.a *= 0.4;
 		flag = foilage2Flag;
-	} else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0) {
+	} else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0 || mc_Entity.x == 207.0) {
 		#ifdef WAVING_FOILAGE
 		float rand_ang = hash(position.xz);
 		float reset = cos(rand_ang * 10.0 + time * 0.1);

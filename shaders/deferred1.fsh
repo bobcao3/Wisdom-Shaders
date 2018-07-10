@@ -112,7 +112,7 @@ void main() {
     #endif
 
     #ifdef SSS
-    shade = max(shade, screen_space_shadow(lightPosition, frag.vpos, frag.N, frag.cdepth));
+    shade = max(shade, screen_space_shadow(lightPosition, frag.vpos, frag.N, frag.cdepth, uv));
     #endif
     //shade = shade * smoothstep(0.0, 1.0, thickness * 5.0);
     sun.light.attenuation = 1.0 - shade;
@@ -149,7 +149,7 @@ void main() {
 
     #ifdef HAND_LIGHT
     hand.light.color = torch.color * float(heldBlockLightValue) * 10.0;
-    hand.L = vec3(0.8, -0.7, 0.0) - frag.vpos;
+    hand.L = -frag.vpos;
     hand.light.attenuation = 1.0 / (distanceSquared(hand.L, frag.vpos) + 1.0);
     #endif
 
@@ -238,7 +238,7 @@ void main() {
     #endif
 
     color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
-    color += sunraw * smoothstep(0.9997, 0.99975, mu_s);
+    color += sunraw * 30.0 * step(0.9997, mu_s) * smoothstep(0.2, 0.3, luma(color));
   }
 
 /* DRAWBUFFERS:53 */

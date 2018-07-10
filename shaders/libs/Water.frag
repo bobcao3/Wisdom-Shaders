@@ -42,7 +42,7 @@ float getwave(vec3 p, in float lod) {
 	float freq = SEA_FREQ;
 	float amp = SEA_HEIGHT;
 	float choppy = SEA_CHOPPY;
-	vec2 fuv = p.xz * 2.0 - frameTimeCounter * vec2(0.1, 0.5); fuv.x *= 0.75;
+	vec2 fuv = p.xz * 2.0 - p.y * 2.0 - frameTimeCounter * vec2(0.1, 0.5); fuv.x *= 0.75;
 
 	float wave_speed = frameTimeCounter * SEA_SPEED;
 
@@ -61,7 +61,7 @@ float getwave2(vec3 p, in float lod) {
 	float freq = SEA_FREQ;
 	float amp = SEA_HEIGHT;
 	float choppy = SEA_CHOPPY;
-	vec2 fuv = p.xz * 2.0 - frameTimeCounter * vec2(0.1, 0.5); fuv.x *= 0.75;
+	vec2 fuv = p.xz * 2.0 - p.y * 2.0 - frameTimeCounter * vec2(0.1, 0.5); fuv.x *= 0.75;
 
 	float wave_speed = frameTimeCounter * SEA_SPEED;
 
@@ -99,7 +99,7 @@ void WaterParallax(inout vec3 wpos, in float lod, in vec3 N) {
 		float h = getwave(wpos + stepin + cameraPosition, lod);
 		h += float(isEyeInWater) * SEA_HEIGHT;
 
-		float diff = dot(stepin,abs(N)) - h;
+		float diff = dot(stepin,N) - h;
 		stepin += nwpos * diff * 0.5;
 	}
 	wpos += stepin;

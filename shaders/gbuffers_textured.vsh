@@ -28,6 +28,7 @@
 varying vec4 color;
 varying vec2 normal;
 varying vec2 texcoord;
+varying vec2 lmcoord;
 
 #include "libs/encoding.glsl"
 
@@ -36,4 +37,5 @@ void main() {
 	gl_Position = ftransform();
 	normal = normalEncode(normalize(gl_NormalMatrix * gl_Normal));
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
+	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 }

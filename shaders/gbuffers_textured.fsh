@@ -30,10 +30,14 @@ uniform sampler2D_color texture;
 varying vec4 color;
 varying vec2 normal;
 varying vec2 texcoord;
+varying vec2 lmcoord;
 
-/* DRAWBUFFERS:0 */
+/* DRAWBUFFERS:0124 */
 void main() {
 	vec4 c = texture2D(texture, texcoord) * color;
 	if (c.a < 0.2) discard;
 	gl_FragData[0] = c;
+	gl_FragData[1] = vec4(0.1, 0.02, step(0.8, lmcoord.x), 1.0);
+	gl_FragData[2] = vec4(normal, lmcoord);
+	gl_FragData[3] = vec4(normal, 0.2, 1.0);
 }
