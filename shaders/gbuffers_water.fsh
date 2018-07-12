@@ -168,7 +168,9 @@ void main() {
 		vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * (waterfogcolor * glcolor);
 
 		if (total_refra) watercolor = waterfog * light_att;
+    #ifdef REFRACTION
 		if (isEyeInWater == 1) watercolor = mix(watercolor, waterfog * light_att, 1.0 - refraction_index);
+    #endif
 
 		// Refraction color composite
 		color = (isEyeInWater == 1) ? vec4(watercolor, 1.0) : vec4(mix(waterfog, watercolor, absorption), 1.0);
