@@ -48,6 +48,11 @@ varying vec3 worldLightPosition;
 
 varying vec3 glcolor;
 
+#define WATER_PARALLAX
+#ifdef WATER_PARALLAX
+varying vec3 tangentpos;
+#endif
+
 #include "GlslConfig"
 
 #define SSR
@@ -61,7 +66,6 @@ varying vec3 glcolor;
 #include "libs/Lighting.frag"
 #include "libs/atmosphere.glsl"
 
-#define WATER_PARALLAX
 #define WATER_CAUSTICS
 #include "libs/Water.frag"
 
@@ -82,6 +86,8 @@ void main() {
 
 	vec4 watermixcolor = vec4(0.0);
 
+	vec3 waterfog = vec3(1.0);
+
 	if (maskFlag(data, waterFlag)) {
 		// Water Rendering starts here
 		vec4 p = gbufferProjection * vec4(vpos, 1.0);  // Reproject vpos to clip pos
@@ -95,10 +101,10 @@ void main() {
 
 		#ifdef VARIAED_WATER_HEIGHT
 		float land_depth_B;
-		land_depth_B  = sum4(textureGather      (gaux2, uv              ));
-		land_depth_B += sum4(textureGatherOffset(gaux2, uv, ivec2(-3, 0)));
-		land_depth_B += sum4(textureGatherOffset(gaux2, uv, ivec2(-3,-3)));
-		land_depth_B += sum4(textureGatherOffset(gaux2, uv, ivec2( 0,-3)));
+		land_depth_B  = sum4(textureGather      (depthtex1, uv1              ));
+		land_depth_B += sum4(textureGatherOffset(depthtex1, uv1, ivec2(-3, 0)));
+		land_depth_B += sum4(textureGatherOffset(depthtex1, uv1, ivec2(-3,-3)));
+		land_depth_B += sum4(textureGatherOffset(depthtex1, uv1, ivec2( 0,-3)));
 		land_depth_B *= 0.0625;
 		vec3 land_vpos_B = fetch_vpos(uv1.st, land_depth_B).xyz;    // Read deferred state vpos
 		vec3 diff_pos = (isEyeInWater == 1) ? vpos : land_vpos_B - vpos;
@@ -115,23 +121,24 @@ void main() {
 
 		// Waving water & parallax
 		#ifdef WATER_PARALLAX
-		WaterParallax(frag.wpos, lod, wN);
+		WaterParallax(frag.wpos, lod, tangentpos);
 		vec4 reconstruct = gbufferModelView * vec4(frag.wpos, 1.0);
 		frag.vpos = reconstruct.xyz;
 		frag.nvpos = normalize(frag.nvpos);
 		#endif
 
-		float wave = getwave2(frag.wpos + cameraPosition, lod);
-		worldN = get_water_normal(frag.wpos + cameraPosition, wave, lod, wN, wT, wB);
+		worldN = get_water_normal(frag.wpos + cameraPosition, lod, wN, wT, wB);
 		frag.N = mat3(gbufferModelView) * worldN;
 
 		// Refraction
 		bool total_refra = false;
 		#ifdef REFRACTION
-		vec3 refracted = refract(frag.vpos, frag.N, (isEyeInWater == 1) ? 1.33 / 1.00029 : 1.00029 / 1.33);
+		vec3 refracted = refract(frag.nvpos, frag.N, (isEyeInWater == 1) ? 1.33 / 1.00029 : 1.00029 / 1.33);
          total_refra = (refracted == vec3(0.0));
+		 float refraction_index = max(0.0, dot(refracted, -frag.N));
          refracted = frag.vpos + refracted;
 		vec2 uv_refra = screen_project(refracted);
+		if (uv_refra.y < 0.0) uv_refra = uv1;
 		color = texture2D(gaux3, uv_refra);                     // Read deferred state composite, refracted
 
 		#ifdef ADVANCED_REFRACTION
@@ -162,10 +169,13 @@ void main() {
 			 * (abs(dot(lightPosition, N)) * 0.8 + 0.2);        // Scatter-in factor
 		float light_att = (isEyeInWater == 1) ? float(eyeBrightnessSmooth.y) / 240.0 : lmcoord.y;
 
-		const vec3 waterfogcolor = vec3(0.2,1.0,1.2) * 0.01;
-		vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * (waterfogcolor * glcolor);
+		const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.03;
+		waterfog = (max(luma(sunLight), 0.0) * light_att) * (waterfogcolor * glcolor);
 
-		if (total_refra) watercolor = waterfog * max(1.0, 2.0 - absorption * 2.0);
+		if (total_refra) watercolor = waterfog * light_att;
+    #ifdef REFRACTION
+		if (isEyeInWater == 1) watercolor = mix(watercolor, waterfog * light_att, 1.0 - refraction_index);
+    #endif
 
 		// Refraction color composite
 		color = (isEyeInWater == 1) ? vec4(watercolor, 1.0) : vec4(mix(waterfog, watercolor, absorption), 1.0);
@@ -186,7 +196,6 @@ void main() {
 		#else
 		color = texture2D(tex, uv);
 		#endif
-
 		color = vec4(fromGamma(color.rgb), color.a);
 
 		// Build material
@@ -215,23 +224,26 @@ void main() {
 	vec3 reflectedV = reflect(frag.nvpos, frag.N);
 
 	vec4 ray_traced = vec4(0.0);
+	vec3 skybox = texture2D(gaux4, project_skybox2uv(reflected)).rgb * pow3(lmcoord.y);
 	#ifdef SSR
 	if (dot(reflectedV, N) > 0.0) {
 		ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux3, N);
 	}
 	if (ray_traced.a < 0.95) {
 		ray_traced.rgb = mix(
-			texture2D(gaux4, project_skybox2uv(reflected)).rgb * pow3(lmcoord.y),
+			skybox,
 			ray_traced.rgb,
 			ray_traced.a
 		);
 	}
 	#else
-	ray_traced.rgb = scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * pow3(lmcoord.y);
+	ray_traced.rgb = skybox;
 	#endif
 
 	color = light_calc_PBR_IBL(color, reflectedV, frag, ray_traced.rgb);
 	#endif
+
+	if (isEyeInWater == 1) color.rgb = mix(color.rgb, watermixcolor.rgb, watermixcolor.a);
 
 	// PBR lighting (Diffuse + brdf)
 	if (maskFlag(data, waterFlag)) {
@@ -243,9 +255,7 @@ void main() {
 		color.a = fma(color.a, 0.5, 0.5);
 	}
 
-	if (isEyeInWater == 1) color.rgb = mix(color.rgb, watermixcolor.rgb, watermixcolor.a);
-
 	// Output
-	gl_FragData[0] = vec4(normalEncode(frag.N), handFlag, 1.0);
+	gl_FragData[0] = vec4(normalEncode(frag.N), waterFlag, 1.0);
 	gl_FragData[1] = color;
 }

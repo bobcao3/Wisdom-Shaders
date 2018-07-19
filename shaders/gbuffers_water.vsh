@@ -40,6 +40,11 @@ varying vec3 wN;
 varying vec3 wT;
 varying vec3 wB;
 
+#define WATER_PARALLAX
+#ifdef WATER_PARALLAX
+varying vec3 tangentpos;
+#endif
+
 varying vec3 wpos;
 
 #include "libs/encoding.glsl"
@@ -66,8 +71,11 @@ void main() {
 	uv = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 	vpos = pos.xyz;
 
-	wN = normalize(mat3(gbufferModelViewInverse) * (gl_NormalMatrix * gl_Normal));
-	wT = normalize(mat3(gbufferModelViewInverse) * (gl_NormalMatrix * at_tangent.xyz));
+	N = normalize(gl_NormalMatrix * gl_Normal);
+	vec3 tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
+
+	wN = normalize(mat3(gbufferModelViewInverse) * N);
+	wT = normalize(mat3(gbufferModelViewInverse) * tangent);
 	wB = cross(wT, wN);
 
 	// ===============
@@ -78,11 +86,15 @@ void main() {
 
 	ambientU = texture2D(gaux4, vec2(0.0,  0.5)).rgb * 0.3;
 
-	N = normalize(gl_NormalMatrix * gl_Normal);
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
 	vec4 p = gbufferModelViewInverse * vec4(vpos, 1.0);
 	wpos = p.xyz / p.w;
+
+	#ifdef WATER_PARALLAX
+	mat3 TBN = mat3(tangent, cross(tangent, N), N);
+	tangentpos = normalize(vpos * TBN);
+	#endif
 
 	glcolor = gl_Color.rgb;
 }

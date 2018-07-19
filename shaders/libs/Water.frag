@@ -29,7 +29,7 @@ const float SEA_FREQ = 0.11;
 const mat2 octave_m = mat2(1.4,1.1,-1.2,1.4);
 
 const float height_mul[4] = float[4] (
-	0.32, 0.34, 0.30, 0.08
+	0.32, 0.24, 0.21, 0.13
 );
 const float total_height =
   height_mul[0] +
@@ -76,42 +76,42 @@ float getwave2(vec3 p, in float lod) {
 	return (h * rcp_total_height - SEA_HEIGHT) * lod;
 }
 
-vec3 get_water_normal(in vec3 wwpos, in float displacement, in float lod, in vec3 N, in vec3 T, in vec3 B) {
-	vec3 w1 = 0.01 * T + getwave2(wwpos + 0.01 * T, lod) * N;
-	vec3 w2 = 0.01 * B + getwave2(wwpos + 0.01 * B, lod) * N;
-	vec3 w0 = displacement * N;
+vec3 get_water_normal(in vec3 wwpos, in float lod, in vec3 N, in vec3 T, in vec3 B) {
+	vec3 w1 = 0.02 * T + getwave2(wwpos + 0.02 * T, lod) * N;
+	vec3 w2 = 0.02 * B + getwave2(wwpos + 0.02 * B, lod) * N;
+	vec3 w0 = getwave2(wwpos, lod) * N;
 	#define tangent w1 - w0
 	#define bitangent w2 - w0
 	return normalize(cross(bitangent, tangent));
 }
 
 #ifdef WATER_PARALLAX
-void WaterParallax(inout vec3 wpos, in float lod, in vec3 N) {
-	const int maxLayers = 4;
+void WaterParallax(inout vec3 wpos, in float lod, vec3 tangentpos) {
+	vec3 adjusted = wpos;
 
-	wpos.y -= 1.62;
+	float heightmap = getwave(wpos + cameraPosition, lod);
 
-	vec3 stepin = vec3(0.0);
-	vec3 nwpos = normalize(wpos);
-	nwpos /= max(0.01, abs(dot(nwpos, abs(N))));
+	vec3 offset = vec3(0.0f);
+	vec3 s = normalize(tangentpos);
+	s /= s.z;
 
-	for (int i = 0; i < maxLayers; i++) {
-		float h = getwave(wpos + stepin + cameraPosition, lod);
-		h += float(isEyeInWater) * SEA_HEIGHT;
+	for (int i = 0; i < 8; i++) {
+		float prev = offset.z;
 
-		float diff = dot(stepin,N) - h;
-		stepin += nwpos * diff * 0.5;
+		offset += (heightmap - prev) * 0.5 * s;
+
+		heightmap = getwave(wpos + vec3(offset.x, 0.0, offset.y) + cameraPosition, lod);
+		if (abs(offset.z - heightmap) < 0.05) break;
 	}
-	wpos += stepin;
-	wpos.y += 1.62;
+
+	wpos += vec3(offset.x, offset.z, offset.y);
 }
 #endif
 
 #ifdef WATER_CAUSTICS
 float get_caustic (in vec3 wpos) {
 	wpos += (64.0 - wpos.y) * (worldLightPosition / worldLightPosition.y);
-	float w1 = getwave2(wpos, 1.0);
-	vec3 n = get_water_normal(wpos, w1, 1.0, vec3(0.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
+	vec3 n = get_water_normal(wpos, 1.0, vec3(0.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
 	return pow2(1.0 - abs(dot(n, worldLightPosition)));
 }
 #endif
