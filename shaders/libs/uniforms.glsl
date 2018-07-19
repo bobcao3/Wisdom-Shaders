@@ -77,4 +77,6 @@ vec3 lightPosition = normalize(shadowLightPosition);
 
 uniform int isEyeInWater;
 uniform int heldBlockLightValue;
+uniform int moonPhase;
+uniform int worldTime;
 #endif

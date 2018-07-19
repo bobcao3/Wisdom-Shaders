@@ -29,9 +29,12 @@ const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
 
 #define CLOUDS_2D
 
+float day = float(worldTime) / 24000.0;
+float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
+float cloud_coverage = mix(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, 0.9, max(rainStrength, wetness));
+
 #ifdef CLOUDS_2D
 const mat2 octave_c = mat2(1.4,1.2,-1.2,1.4);
-float cloud_coverage = wetness;
 
 float calc_clouds(in vec3 sphere, in vec3 cam) {
 	if (sphere.y < 0.0) return 0.0;
@@ -65,7 +68,7 @@ void densities(in vec3 pos, out vec2 des) {
 	#ifdef AT_LSTEP
 	des.y = exp(-h/Hm);
 	#else
-	des.y = exp(-h/Hm) + wetness * smoothstep(0.8, 1.0, 1.0 - h * 3e-5);
+	des.y = exp(-h/Hm) + cloud_coverage * smoothstep(0.8, 1.0, 1.0 - h * 3e-5);
 	#endif
 }
 

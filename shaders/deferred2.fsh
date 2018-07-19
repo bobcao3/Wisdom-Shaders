@@ -55,6 +55,8 @@ varying vec3 ambient2;
 varying vec3 ambient3;
 varying vec3 ambientD;
 
+varying vec3 ambientU_noC;
+
 varying vec3 worldLightPosition;
 
 #define WAO_ADVANCED
@@ -234,7 +236,7 @@ void main() {
     float opmu2 = 1. + mu*mu;
     float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
     vec3 sunlight = sunraw * 1.3;
-    color += (luma(color + sunlight * 0.1) + sunlight * phaseM) * cmie;
+    color += (1.4 * luma(ambientU_noC) + sunlight * phaseM) * cmie;
     #endif
 
     color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);

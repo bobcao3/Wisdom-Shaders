@@ -23,10 +23,9 @@ varying vec2 uv;
 
 varying vec3 sunlight;
 varying vec3 sunraw;
+varying vec3 ambientU;
 
 #include "GlslConfig"
-
-#define AT_LSTEP
 
 varying vec3 worldLightPosition;
 
@@ -53,7 +52,7 @@ void main() {
     float opmu2 = 1. + mu*mu;
     float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
     vec3 sunlight = sunraw * 1.3;
-    color += (luma(color + sunlight * 0.1) + sunlight * phaseM) * cmie;
+    color += (1.4 * luma(ambientU) + sunlight * phaseM) * cmie;
     #endif
 
     color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
