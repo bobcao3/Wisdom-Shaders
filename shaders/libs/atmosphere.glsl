@@ -31,7 +31,7 @@ const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
 
 float day = float(worldTime) / 24000.0;
 float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
-float cloud_coverage = mix(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, 0.9, max(rainStrength, wetness));
+float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, max(rainStrength, wetness));
 
 #ifdef CLOUDS_2D
 const mat2 octave_c = mat2(1.4,1.2,-1.2,1.4);

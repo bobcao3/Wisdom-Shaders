@@ -58,7 +58,7 @@ void main() {
   init_mask(mask, flag, uv);
 
   if (!mask.is_sky || frag.cdepthN < 0.999) {
-    float fog_coord = min(frag.cdepth / (1024.0 - rainStrength * 512.0), 1.0);
+    float fog_coord = min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0);
     color *= 1.0 - fog_coord * 0.8;
 
     vec3 nwpos = normalize(frag.wpos);
@@ -71,9 +71,9 @@ void main() {
           scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2( 0,-1)));
           scatteram *= 0.0625;
     
-    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra * fog_coord) * scatteram;
+    color += texture2D(gaux4, project_skybox2uv(nwpos)).rgb * scatteram;
     #else
-    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra) * fog_coord;
+    color += texture2D(gaux4, project_skybox2uv(nwpos)).rgb * fog_coord;
     #endif
   }
 

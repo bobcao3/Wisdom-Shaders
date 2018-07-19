@@ -107,8 +107,8 @@ void main() {
 	vec3 b = bloom(color, uv_adj, rawB);
 
 	#ifdef RAIN_SCATTER
-	float fog_coord = min(length(frag.wpos) / 64.0, 1.0) * smoothstep(10.0, 40.0, eyeBrightnessSmooth.y);
-	color = mix(color, rawB, fog_coord * rainStrength);
+	float fog_coord = min(length(frag.wpos) / 90.0, 1.0) * smoothstep(10.0, 40.0, eyeBrightnessSmooth.y);
+	color = mix(color, rawB, pow2(fog_coord) * rainStrength);
 	#endif
 
 	const vec2 tex = vec2(0.5) * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.090f, 0.03f);
