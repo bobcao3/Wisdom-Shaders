@@ -18,4 +18,42 @@
  * limitations under the License.
  */
 
+varying vec3 sunLight;
+varying vec3 sunraw;
+
+varying vec3 ambientU;
+varying vec3 ambient0;
+varying vec3 ambient1;
+varying vec3 ambient2;
+varying vec3 ambient3;
+varying vec3 ambientD;
+
+#define AT_LSTEP
+#include "libs/atmosphere.glsl"
+
+varying vec3 worldLightPosition;
+
+/*
+0.0 1.0 0.0
+1.0 0.1 0.0
+-1.0 0.1 0.0
+0.0 0.1 1.0
+0.0 0.1 -1.0
+*/
+
+void functions() {
+	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
+	float f = pow(max(abs(worldLightPosition.y) - 0.05, 0.0), 0.9) * 10.0;
+	sunraw = texture2D(gaux4, project_skybox2uv(worldLightPosition)).rgb * (1.0 - wetness * 0.999) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0) * 0.1 * (1.0 - rainStrength * 0.8);
+	sunLight = (sunraw) * f;
+
+	ambientU = texture2D(gaux4, vec2(0.0,  0.5    )).rgb * 0.3;
+	ambient0 = texture2D(gaux4, vec2(0.0,  0.26586)).rgb * 0.3;
+	ambient1 = texture2D(gaux4, vec2(0.5,  0.26586)).rgb * 0.3;
+	ambient2 = texture2D(gaux4, vec2(0.25, 0.26586)).rgb * 0.3;
+	ambient3 = texture2D(gaux4, vec2(0.75, 0.26586)).rgb * 0.3;
+	ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 0.2;
+}
+
+#define Functions
 #include "libs/DeferredCommon.vert"

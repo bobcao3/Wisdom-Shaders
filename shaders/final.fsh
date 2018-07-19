@@ -29,6 +29,7 @@ const int colortex3Format = RGB8;
 const int gaux1Format = RGB16;
 const int gaux2Format = RGB16;
 const int gaux3Format = RGB16;
+const int gaux4Format = RGB16;
 
 const int noiseTextureResolution = 256;
 

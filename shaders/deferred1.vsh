@@ -18,34 +18,14 @@
  * limitations under the License.
  */
 
-varying vec3 sunLight;
-varying vec3 sunraw;
-
-varying vec3 ambientU;
-varying vec3 ambient0;
-varying vec3 ambient1;
-varying vec3 ambient2;
-varying vec3 ambient3;
-varying vec3 ambientD;
-
-#define AT_LSTEP
-#include "libs/atmosphere.glsl"
-
+uniform vec3 sunPosition;
+uniform mat4 gbufferModelViewInverse;
+ 
 varying vec3 worldLightPosition;
 
 void functions() {
 	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
-	float f = pow(max(abs(worldLightPosition.y) - 0.05, 0.0), 0.9) * 10.0;
-	sunraw = scatter(vec3(0., 25e2, 0.), worldLightPosition, worldLightPosition, Ra) * (1.0 - wetness * 0.999) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0) * 0.1 * (1.0 - rainStrength * 0.8);
-	sunLight = (sunraw) * f;
-
-	ambientU = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) * 0.3;
-	ambient0 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 1.0,  0.1,  0.0)), worldLightPosition, Ra) * 0.3;
-	ambient1 = scatter(vec3(0., 25e2, 0.), normalize(vec3(-1.0,  0.1,  0.0)), worldLightPosition, Ra) * 0.3;
-	ambient2 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1,  1.0)), worldLightPosition, Ra) * 0.3;
-	ambient3 = scatter(vec3(0., 25e2, 0.), normalize(vec3( 0.0,  0.1, -1.0)), worldLightPosition, Ra) * 0.3;
-	ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 0.2;
 }
-
+ 
 #define Functions
 #include "libs/DeferredCommon.vert"

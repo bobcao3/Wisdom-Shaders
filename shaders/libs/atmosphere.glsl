@@ -1,12 +1,13 @@
 #include "uniforms.glsl"
+#include "vectors.glsl"
 #include "noise.glsl"
 
 // ============
 const float R0 = 6360e3;
 const float Ra = 6400e3;
 #ifdef AT_LSTEP
-const int steps = 4;
-const int stepss = 2;
+const int steps = 8;
+const int stepss = 3;
 const vec3 I0 = vec3(1.2311, 1.0, 0.8286) * 13.0;
 
 const vec3 I = I0;

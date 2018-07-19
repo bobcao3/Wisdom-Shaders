@@ -223,7 +223,7 @@ void main() {
 	}
 	if (ray_traced.a < 0.95) {
 		ray_traced.rgb = mix(
-			scatter(vec3(0., 25e2, 0.), reflected, worldLightPosition, Ra) * pow3(lmcoord.y),
+			texture2D(gaux4, project_skybox2uv(reflected)).rgb * pow3(lmcoord.y),
 			ray_traced.rgb,
 			ray_traced.a
 		);

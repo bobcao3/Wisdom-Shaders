@@ -21,18 +21,14 @@
 
 varying vec2 uv;
 
+varying vec3 sunlight;
+varying vec3 sunraw;
+
 #include "GlslConfig"
 
-#define WAO
-#define WAO_HIGH
+#define AT_LSTEP
 
-#define SHADOW_COLOR
-//#define GI
-#if defined(GI) && !defined(SHADOW_COLOR)
-uniform sampler2D shadowcolor0;
-#endif
-
-//#define DIRECTIONAL_LIGHTMAP
+varying vec3 worldLightPosition;
 
 #include "libs/uniforms.glsl"
 #include "libs/color.glsl"
@@ -40,39 +36,29 @@ uniform sampler2D shadowcolor0;
 #include "libs/vectors.glsl"
 #include "libs/Material.frag"
 #include "libs/noise.glsl"
-#include "libs/Lighting.frag"
-
-Mask mask;
-Material frag;
-
-varying vec3 worldLightPosition;
+#include "libs/atmosphere.glsl"
 
 void main() {
   vec3 color = vec3(0.0);
-  #ifdef GI
-  vec3 gi = vec3(0.0);
-  #endif
 
-  float flag;
-  material_sample(frag, uv, flag);
+  if (uv.y < 0.5) {
+    vec3 nwpos = project_uv2skybox(uv);
 
-  init_mask(mask, flag, uv);
+    float mu_s = dot(nwpos, worldLightPosition);
+    float mu = abs(mu_s);
+    #ifdef CLOUDS_2D
+    float cmie = calc_clouds(nwpos * 512.0, cameraPosition);
+    color *= 1.0 - cmie;
 
-  if (!mask.is_sky) {
-    #ifdef WAO
-    color.r = calcAO(frag.N, frag.cdepth, frag.vpos, uv);
+    float opmu2 = 1. + mu*mu;
+    float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
+    vec3 sunlight = sunraw * 1.3;
+    color += (luma(color + sunlight * 0.1) + sunlight * phaseM) * cmie;
     #endif
-	
-  	#ifdef GI
-  	vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
-  	vec3 spos = wpos2shadowpos(frag.wpos - wN * 0.07 * frag.cdepth);
-  	gi = calcGI(shadowtex1, shadowcolor0, spos, wN);
-  	#endif
+
+    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
   }
 
-/* DRAWBUFFERS:53 */
+/* DRAWBUFFERS:7 */
   gl_FragData[0] = vec4(color, 0.0);
-  #ifdef GI
-  gl_FragData[1] = vec4(gi, 0.0);
-  #endif
 }

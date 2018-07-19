@@ -1,3 +1,6 @@
+#ifndef _INCLUDE_VECTORS
+#define _INCLUDE_VECTORS
+
 vec4 fetch_vpos (vec2 uv, float z) {
 	vec4 v = gbufferProjectionInverse * vec4(fma(vec3(uv, z), vec3(2.0f), vec3(-1.0)), 1.0);
 	v /= v.w;
@@ -34,3 +37,18 @@ vec2 screen_project (vec3 vpos) {
 #define Positive(a) clamp(a, 0.0, 1.0)
 
 const float PI = 3.14159f;
+
+vec3 project_uv2skybox(vec2 uv) {
+	vec2 rad = uv * 2.0 * PI;
+    rad.y -= PI * 0.5;
+    return normalize(vec3(cos(rad.x) * cos(rad.y), sin(rad.y), sin(rad.x) * cos(rad.y)));
+}
+
+vec2 project_skybox2uv(vec3 nwpos) {
+	vec2 rad = vec2(atan(nwpos.z, nwpos.x), asin(nwpos.y));
+	rad += vec2(step(0.0, -rad.x) * (PI * 2.0), PI * 0.5);
+	rad *= 0.5 / PI;
+	return rad;
+}
+
+#endif
