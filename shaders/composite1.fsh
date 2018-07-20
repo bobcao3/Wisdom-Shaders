@@ -90,7 +90,7 @@ void main() {
 			 * (abs(dot(lightPosition, frag.N)) * 0.8 + 0.2);        // Scatter-in factor
 		float light_att = float(eyeBrightnessSmooth.y) / 240.0;
 
-		const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.06;
+		const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.03;
 		vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * waterfogcolor;
 
     color = mix(waterfog, watercolor, absorption);

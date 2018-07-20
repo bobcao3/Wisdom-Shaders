@@ -120,9 +120,6 @@ void main() {
     sun.light.attenuation = 1.0 - shade;
 
     ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight);
-    #ifdef DIRECTIONAL_LIGHTMAP
-    ambient.attenuation *= lightmap_normals(frag.N, frag.skylight, vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0));
-    #endif
 
     ambient.color0 = ambientU * ao;
     ambient.color1 = ambient0 * ao;

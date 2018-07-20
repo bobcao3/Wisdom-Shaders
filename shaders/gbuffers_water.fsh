@@ -209,11 +209,15 @@ void main() {
 	sun.light.color = sunLight;
 	sun.L = lightPosition;
 
-	sun.light.attenuation = 1.0 - light_fetch_shadow_fast(shadowtex0, wpos2shadowpos(frag.wpos + worldN * 0.1));
+	sun.light.attenuation = 1.0 - light_fetch_shadow_fast(shadowtex1, wpos2shadowpos(frag.wpos + worldN * 0.1));
 
 	// PBR lighting (Diffuse + brdf)
 	if (!maskFlag(data, waterFlag)) {
-		color.rgb = light_calc_PBR(sun, frag, 1.0, false);
+		LightSource ambient;
+		ambient.attenuation = light_mclightmap_simulated_GI(lmcoord.y);
+	    ambient.color = ambientU;
+
+		color.rgb = light_calc_PBR(sun, frag, 1.0, false) + light_calc_diffuse(ambient, frag);
 	}
 
 	#define WATER_IBL
@@ -254,11 +258,7 @@ void main() {
 		color.a = 1.0;
 	}
 
-	if (maskFlag(data, iceFlag)) {
-		color.a = fma(color.a, 0.5, 0.5);
-	}
-
 	// Output
-	gl_FragData[0] = vec4(normalEncode(frag.N), waterFlag, 1.0);
+	gl_FragData[0] = vec4(normalEncode(frag.N), data, 1.0);
 	gl_FragData[1] = color;
 }

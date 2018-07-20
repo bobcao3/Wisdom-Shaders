@@ -84,7 +84,7 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 	return shadowposition.xyz * 0.5f + 0.5f;
 }
 
-//#define SHADOW_FILTER
+#define SHADOW_FILTER
 
 const vec2 shadowPixSize = vec2(1.0 / shadowMapResolution);
 
@@ -170,16 +170,67 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness, o
 	float bias = length(bias_offcenter) * bias_pix + shadowPixSize.x * pix_bias;
 
 	#ifdef SHADOW_FILTER
+		// PCSS - step 1 - find blockers
+		float dither = bayer_64x64(uv, vec2(viewWidth, viewHeight));
+		
+		float range = (2.0 / float(shadowDistance));
+		float average_blocker = 0.0, count = 0.0;
+		for (int i = 0; i < 4; i++) {
+			dither = fract(dither + 0.618);
+			vec4 depth = textureGather(shadowtex0, spos.xy + poisson_4[i] * dither * range);
+
+			vec4 w = step(0.0, spos.zzzz - depth - vec4(bias * 2.0));
+			average_blocker += dot(w, depth);
+			count += sum4(w);
+		}
+		average_blocker /= count;
+		
+		// PCSS - step 2 - filter
+		float M1 = 0.0;
+		#ifdef SHADOW_COLOR
+		float M2 = texture2D(shadowtex0, spos.xy).x;
+		vec3 average_color = vec3(0.0);
+		float color_shade = 0.0;
+		#else
+		float M2 = M1;
+		#endif
+		if (average_blocker + bias < spos.z || M2 + bias < spos.z) {
+			float range = (12.0 / float(shadowDistance)) * (spos.z - average_blocker) / average_blocker;
+
+			for (int i = 0; i < 12; i++) {
+				dither = fract(dither + 0.618);
+				vec2 uv = spos.xy + poisson_12[i] * range * dither;
+
+				vec4 depth = textureGather(shadowtex1, uv);
+				M1 += sum4(depth);
+				vec4 s1 = step(0.0, spos.zzzz - depth - vec4(bias));
+				shade += sum4(s1);
+
+				#ifdef SHADOW_COLOR
+				float s2 = step(0.0, sum4(depth) * 0.25 - texture2D(shadowtex0, uv).x - bias);
+				average_color += mix(vec3(1.0 - sum4(s1) * 0.25), texture2D(shadowcolor0, uv).rgb, s2);
+				color_shade += s2;
+				#endif
+			}
+			M1 /= 48.0; shade /= 48.0;
+			#ifdef SHADOW_COLOR
+			average_color /= 12.0; color_shade /= 12.0;
+			color = mix(color, average_color, color_shade);
+			#endif
+		} else {
+			M1 = average_blocker;
+			shade = 0.0;
+		}
 	#else
 		float M1;
 		shade = shadowTexSmooth(smap, spos, M1, bias);
-		thickness = distance(spos.z, M1) * 256.0;
-
 		#ifdef SHADOW_COLOR
 		float M2 = texture2D(shadowtex0, spos.xy).x;
 		if (M2 + bias < M1) color = mix(color, shadowColorSmooth(shadowcolor0, spos.xy), 0.8);
 		#endif
 	#endif
+	
+	thickness = distance(spos.z, M1) * 256.0;
 
 	/*float edgeX = abs(spos.x) - 0.9f;
 	float edgeY = abs(spos.y) - 0.9f;
@@ -456,14 +507,16 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 
 #ifdef SSS
 float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth, vec2 uv) {
-	if (dot(N, direction) < 0.3 || length(start) > 32.0) return 0.0; 
+	float NdotL = dot(N, direction);
+	if (NdotL < 0.3 || length(start) > 32.0) return 0.0; 
 
 	vec3 testPoint = start;
 	float hit_am = 0.0;
 	bool hit = false;
 
-	vec2 step_pos = screen_project(start + direction * 2.0);
-	float step_pix = length((step_pos - uv) * vec2(viewWidth, viewHeight)) * 0.25;
+	vec2 step_pos = screen_project(start + direction * 1.0);
+	if (clamp(step_pos, vec2(0.0), vec2(1.0)) != step_pos) return 0.0;
+	float step_pix = length((step_pos - uv) * vec2(viewWidth, viewHeight)) * 0.26;
 
 	float h = 1.0 / step_pix;
 	bool bi = false;
@@ -498,7 +551,7 @@ float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth, vec
 		//	h *= 1.1;
 		//}
 
-		if(sampleDepth < testDepth && testDepth - sampleDepth < 0.0004){
+		if(sampleDepth < testDepth && testDepth - sampleDepth < 0.0004 * (3.0 - NdotL * 2.0)){
 			hit_am = 1.0;
 			break;
 		}
