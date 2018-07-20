@@ -165,9 +165,9 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness, o
 
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return shade;
 	
-	const float bias_pix = 0.2 / 256.0;
+	const float bias_pix = 0.0005;
 	vec2 bias_offcenter = spos.xy * 2.0 - 1.0;
-	float bias = dot(bias_offcenter, bias_offcenter) * bias_pix + shadowPixSize.x * pix_bias;
+	float bias = length(bias_offcenter) * bias_pix + shadowPixSize.x * pix_bias;
 
 	#ifdef SHADOW_FILTER
 	#else

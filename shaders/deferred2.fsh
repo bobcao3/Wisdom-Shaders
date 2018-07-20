@@ -91,7 +91,7 @@ void main() {
 
     float thickness = 1.0, shade = 0.0;
     vec3 scolor;
-    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos), thickness, scolor, 1.0 - max(0.0, dot(frag.N, lightPosition)));
+    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos), thickness, scolor, (1.0 - max(0.0, dot(frag.N, lightPosition))) * 0.5);
     sun.light.color *= scolor;
 
     float ao = 1.0;
