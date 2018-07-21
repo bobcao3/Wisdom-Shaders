@@ -35,6 +35,8 @@ varying vec2 uv;
 
 //#define GI
 
+const bool gaux4MipmapEnabled = true;
+
 Mask mask;
 Material frag;
 //LightSourcePBR sun;
@@ -121,7 +123,7 @@ void main() {
     ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux2, frag.N);
     if (ray_traced.a < 0.9) {
       ray_traced.rgb = mix(
-        texture2D(gaux4, project_skybox2uv(reflected)).rgb * frag.skylight,
+        texture2DLod(gaux4, project_skybox2uv(reflected), floor(min(3.0, 3.0 * frag.roughness))).rgb * frag.skylight,
         ray_traced.rgb,
         ray_traced.a
       );
