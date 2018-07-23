@@ -20,12 +20,12 @@
 
 varying vec2 uv;
 
-const int RGBA8 = 0, R11_G11_B10 = 1, RGB16 = 2, RGBA16F = 3, RGBA16 = 4, RGB8 = 5;
+const int RGBA8 = 0, R11_G11_B10 = 1, RGB16 = 2, RGBA32F = 3, RGBA16 = 4, RGB8 = 5;
 
 const int colortex0Format = RGBA16;
 const int colortex1Format = RGBA8;
 const int colortex2Format = RGBA16;
-const int colortex3Format = RGB8;
+const int colortex3Format = RGBA32F;
 const int gaux1Format = RGB16;
 const int gaux2Format = RGB16;
 const int gaux3Format = RGB16;
@@ -142,6 +142,8 @@ void main() {
 	#ifdef HURT_INDICATOR
 	color = vignette(color, vec3(0.4, 0.00, 0.00), min(1.0, valHurt * fma(max(0.0, screwing), 0.25, 0.75)));
 	#endif
+
+	//color = texture2D(colortex3, uv).rgb;
 
 	ACEStonemap(color, (screenBrightness * 0.5 + 1.0) * exposure);
 

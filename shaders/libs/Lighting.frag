@@ -267,22 +267,20 @@ mat2 rotate(float rad) {
     return mat2(c, -s, s, c);
 }
 
+const bool shadowcolor0MipmapEnabled = true;
+
 vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return vec3(0.0);
 
 	spos.z = (spos.z - 0.25) * 2.0;
 	
 	vec3 color = vec3(0.0);
-	#ifndef BAYER_64
-	#define BAYER_64
-	float dither = bayer_64x64(uv, vec2(viewWidth, viewHeight));
-	bayer_64 = dither;
-	#else
-	float dither = bayer_64;
-	#endif
+	float dither = fract(bayer_64x64(uv, vec2(viewWidth, viewHeight)) + frameCounter * 0.618);
+	float subdither = hash(uv * vec2(viewWidth, viewHeight) + frameCounter);
+
 	float ang = dither * 3.1415926 * 2.0;
 
-	const float scale = 9.0 / shadowDistance;
+	const float scale = 5.0 / shadowDistance;
 	vec2 circleDistribution = rotate(ang) * vec2(scale);
 	//if (circleDistribution.y < 0.0) circleDistribution.y *= 3.0;
 
@@ -292,12 +290,14 @@ vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
 	if (fade_dist > 0.6) return vec3(0.0);
 	fade_dist = smoothstep(0.0, 0.6, 0.6 - fade_dist);
 
-	const float inv8 = 1.0 / 8.0;
+	const float inv12 = 1.0 / 12.0;
 	const float bias = 1.0 / shadowDistance;
-	const float attenuation = shadowDistance * shadowDistance * 0.09;
+	const float attenuation = 5.0 / shadowDistance;
 
-	for (int i = 1; i < 12; i++) {
-		vec2 uv = circleDistribution * pow2(i * inv8) + spos.st;
+	for (int i = 0; i < 12; i++) {
+		vec2 uv = circleDistribution * pow2((i + subdither) * inv12) + spos.st;
+		if (clamp(uv, vec2(0.0), vec2(1.0)) != uv) break;
+
 		float shadowDepth = (texture2D(smap, uv).x - 0.25) * 2.0 - bias;
 		vec3 soffset = vec3(uv, shadowDepth) - spos;
 		float sdist = dot(soffset, soffset);
@@ -305,15 +305,15 @@ vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
 
 		vec3 nsample = texture2D(shadowcolor1, uv).xyz * 2.0 - 1.0;
 
-		float factor = max(dot(nsoffset, snorm) - 0.1, 0.0) * max(dot(-nsoffset, nsample) - 0.1, 0.0);
+		float factor = max(dot(nsoffset, snorm), 0.0) * max(dot(-nsoffset, nsample), 0.0);
 
 		if (factor > 0.0)
-			color += fromGamma(texture2D(smapColor, uv).rgb) * factor / (1.0 + sdist * attenuation);
+			color += texture2DLod(smapColor, uv, 2).rgb * factor * max(0.0, 1.0 - sdist * attenuation);
 	}
 	
 	color *= fade_dist;
 
-	return color * inv8;
+	return color * inv12;
 }
 #endif
 

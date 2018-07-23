@@ -42,6 +42,8 @@ uniform sampler2D shadowcolor0;
 #include "libs/noise.glsl"
 #include "libs/Lighting.frag"
 
+const bool colortex3Clear = false;
+
 Mask mask;
 Material frag;
 
@@ -67,12 +69,25 @@ void main() {
   	vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
   	vec3 spos = wpos2shadowpos(frag.wpos - wN * 0.07 * frag.cdepth);
   	gi = calcGI(shadowtex1, shadowcolor0, spos, wN);
+
+    vec4 prev_pos = gbufferPreviousModelView * vec4(frag.wpos - previousCameraPosition + cameraPosition, 1.0);
+    prev_pos = gbufferPreviousProjection * prev_pos;
+    prev_pos /= prev_pos.w;
+    vec2 prev_uv = fma(prev_pos.st, vec2(0.5f), vec2(0.5f));
+    float weight = 0.8;
+    if (clamp(prev_uv, vec2(0.0), vec2(1.0)) != prev_uv) weight = 0.0;
+    vec4 prev_color = texture2D(colortex3, prev_uv);
+
+    weight *= max(0.0, 1.0 - distance(linearizeDepth(prev_color.a), linearizeDepth(fma(prev_pos.z, 0.5, 0.5))) * far);
+
+    gi = mix(gi, texture2D(colortex3, prev_uv).rgb, weight);
   	#endif
   }
 
-/* DRAWBUFFERS:53 */
+/* DRAWBUFFERS:536 */
   gl_FragData[0] = vec4(color, 0.0);
   #ifdef GI
-  gl_FragData[1] = vec4(gi, 0.0);
+  gl_FragData[1] = vec4(gi, texture2D(depthtex0, uv).r);
+  gl_FragData[2] = vec4(gi, 0.0);
   #endif
 }

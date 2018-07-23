@@ -75,40 +75,32 @@ void main() {
     //#define GI_DEBUG
   	#ifdef GI
   	vec3 gi = vec3(0.0);
-    float weight = 0.0;
+    float weight = 1.0;
 
-  	for (int i = 0; i < 4; i++) {
-		  vec2 coord = uv + vec2(0.0, i / viewWidth * 1.5);
+    vec3 c_center = texture2D(colortex3, uv).rgb;
+    gi += c_center;
 
-			vec3 c = texture2D(colortex3, coord).rgb;
-  		float bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
+  	for (int i = -3; i < 4; i++) {
+		  vec2 coord = uv + vec2(0.0, i / viewHeight);
+
+			vec3 c = texture2D(gaux3, coord).rgb;
+  		float bilateral = dot(normalDecode(texture2D(gaux1, coord).rg), frag.N);
       #ifdef MC_GL_VENDOR_INTEL
       if (bilateral < 0.1) break;
       #endif
 
-	  	weight += 1.0;
-      gi += c;
-	  }
-
-    for (int i = -1; i > -4; i--) {
-		  vec2 coord = uv + vec2(0.0, i / viewWidth * 1.5);
-
-			vec3 c = texture2D(colortex3, coord).rgb;
-  		float bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
-      #ifdef MC_GL_VENDOR_INTEL
-      if (bilateral < 0.1) break;
-      #endif
-
-	  	weight += 1.0;
-      gi += c;
+      if (bilateral > 0.0) {
+  	  	weight += 1.0;
+        gi += mix(c_center, c, bilateral);
+      }
 	  }
 
     gi /= weight;
 
-    const float gi_strength = 5.0; // [4.0 5.0 7.0]
+    const float gi_strength = 2.0; // [1.0 2.0 3.0]
 
     #ifdef GI_DEBUG
-	  color = gi;
+	  color = gi * gi_strength;
 	  #else
 	  color += gi * frag.albedo * gi_strength;
 	  #endif

@@ -177,32 +177,21 @@ void main() {
     #endif
 
   	#ifdef GI
-    float weight = 0.0;
+    float weight = 1.0;
 
-  	for (int i = 0; i < 4; i++) {
-		  vec2 coord = uv + vec2(i / viewWidth * 1.5, 0.0);
+    vec3 c_center = texture2D(colortex3, uv).rgb;
+    gi += c_center;
 
-			vec3 c = texture2D(colortex3, coord).rgb;
-  		float bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
-      #ifdef MC_GL_VENDOR_INTEL
-      if (bilateral < 0.1) break;
-      #endif
+  	for (int i = -3; i < 4; i++) {
+		  vec2 coord = uv + vec2(i / viewWidth, 0.0);
 
-	  	weight += 1.0;
-      gi += c;
-	  }
+			vec3 c = texture2D(gaux3, coord).rgb;
+  		float bilateral = dot(normalDecode(texture2D(gaux1, coord).rg), frag.N);
 
-    for (int i = -1; i > -4; i--) {
-		  vec2 coord = uv + vec2(i / viewWidth * 1.5, 0.0);
-
-			vec3 c = texture2D(colortex3, coord).rgb;
-  		float bilateral = max(dot(normalDecode(texture2D(gaux1, uv).rg), frag.N), 0.0);
-      #ifdef MC_GL_VENDOR_INTEL
-      if (bilateral < 0.1) break;
-      #endif
-
-	  	weight += 1.0;
-      gi += c;
+      if (bilateral > 0.0) {
+  	  	weight += 1.0;
+        gi += mix(c_center, c, bilateral);
+      }
 	  }
 
     gi /= weight;
@@ -240,7 +229,7 @@ void main() {
     color += sunraw * 30.0 * step(0.9997, mu_s) * smoothstep(0.2, 0.3, luma(color));
   }
 
-/* DRAWBUFFERS:53 */
+/* DRAWBUFFERS:56 */
   gl_FragData[0] = vec4(color, 0.0);
   #ifdef GI
   gl_FragData[1] = vec4(gi, 0.0);

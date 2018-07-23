@@ -22,7 +22,7 @@
 // =============================================================================
 
 #version 120
-
+#include "libs/compat.glsl"
 #pragma optimize(on)
 
 #include "GlslConfig"
@@ -42,9 +42,15 @@ varying vec4 ndata;
 
 //uniform mat4 shadowProjection;
 
-#define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
-
 #define WAVING_SHADOW
+
+#ifdef WAVING_SHADOW
+float hash(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.2031);
+	p3 += dot(p3, p3.yzx + 19.19);
+	return fract((p3.x + p3.y) * p3.z);
+}
+#endif
 
 void main() {
 	vec4 position = gl_Vertex;
@@ -65,9 +71,9 @@ void main() {
 	position = ftransform();
 	#endif
 
-	float l = sqrt(dot(position.xy, position.xy));
+	float l = length(position.xy);
 
-	position.xy /= l * SHADOW_MAP_BIAS + negShadowBias;
+	position.xy /= fma(l, SHADOW_MAP_BIAS, negShadowBias);
 
 	position.z = position.z * 0.5 + 0.25;
 
@@ -78,7 +84,7 @@ void main() {
 	ndata.a = 1.0;
 
 	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
-		color = vec3(1.0);
+		color = vec3(0.0);
 		ndata.a = 0.0;
 	}
 }

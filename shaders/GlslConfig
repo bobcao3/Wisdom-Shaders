@@ -5,7 +5,7 @@ const float shadowDistanceRenderMul = 1.0;
 const float shadowIntervalSize = 2.0;
 const float ambientOcclusionLevel = 0.5f;
 
-#define SHADOW_MAP_BIAS 0.9f
+#define SHADOW_MAP_BIAS 0.87f
 const float negShadowBias = 1.0f - SHADOW_MAP_BIAS;
 
 #define Version 4010

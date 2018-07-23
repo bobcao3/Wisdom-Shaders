@@ -25,6 +25,10 @@
 #include "libs/compat.glsl"
 #pragma optimize(on)
 
+vec4 fromGamma(vec4 c) {
+  return pow(c, vec4(2.2));
+}
+
 uniform sampler2D tex;
 
 varying vec2 texcoord;
@@ -35,6 +39,6 @@ varying vec4 ndata;
 /* DRAWBUFFERS:01 */
 
 void main() {
-	gl_FragData[0] = mix(vec4(1.0), texture2D(tex, texcoord) * vec4(color, 1.0), ndata.a);
+	gl_FragData[0] = mix(vec4(0.1), fromGamma(texture2D(tex, texcoord) * vec4(color, 1.0)), ndata.a);
 	gl_FragData[1] = vec4(ndata.rgb, 1.0);
 }

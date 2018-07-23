@@ -36,9 +36,11 @@ uniform sampler2D shadowtex1;
 uniform mat4 gbufferModelView;                  // modelview matrix after setting up the camera transformations
 uniform mat4 gbufferModelViewInverse;           // inverse gbufferModelView
 uniform mat4 gbufferPreviousModelView;          // last frame gbufferModelView
+uniform mat4 gbufferPreviousModelViewInverse;
 uniform mat4 gbufferProjection;                 // projection matrix when the gbuffers were generated
 uniform mat4 gbufferProjectionInverse;          // inverse gbufferProjection
 uniform mat4 gbufferPreviousProjection;         // last frame gbufferProjectio
+uniform mat4 gbufferPreviousProjectionInverse;
 
 uniform mat4 shadowProjection;                  // projection matrix when the shadow map was generated
 uniform mat4 shadowProjectionInverse;           // inverse shadowProjection
