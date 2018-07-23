@@ -74,7 +74,7 @@ void main() {
     prev_pos = gbufferPreviousProjection * prev_pos;
     prev_pos /= prev_pos.w;
     vec2 prev_uv = fma(prev_pos.st, vec2(0.5f), vec2(0.5f));
-    float weight = 0.8;
+    float weight = 0.82;
     if (clamp(prev_uv, vec2(0.0), vec2(1.0)) != prev_uv) weight = 0.0;
     vec4 prev_color = texture2D(colortex3, prev_uv);
 

@@ -75,21 +75,21 @@ void main() {
     //#define GI_DEBUG
   	#ifdef GI
   	vec3 gi = vec3(0.0);
-    float weight = 1.0;
+    float weight = 0.0;
 
     vec3 c_center = texture2D(colortex3, uv).rgb;
-    gi += c_center;
+    //gi += c_center;
 
-  	for (int i = -2; i < 3; i++) {
-		  vec2 coord = uv + vec2(0.0, i / viewHeight * 1.5);
+  	for (int i = -3; i < 4; i++) {
+		  vec2 coord = uv + vec2(0.0, i / viewHeight);
 
 			vec3 c = texture2D(gaux3, coord).rgb;
-  		float bilateral = dot(normalDecode(texture2D(gaux1, coord).rg), frag.N);
+  		float bilateral = max(dot(normalDecode(texture2D(gaux1, coord).rg), frag.N), 0.0);
       #ifdef MC_GL_VENDOR_INTEL
       if (bilateral < 0.1) break;
       #endif
 
-      if (bilateral > 0.0) {
+      if (bilateral > 0.1) {
   	  	weight += 1.0;
         gi += mix(c_center, c, bilateral);
       }
