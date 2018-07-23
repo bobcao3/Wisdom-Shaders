@@ -290,11 +290,11 @@ vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
 	if (fade_dist > 0.6) return vec3(0.0);
 	fade_dist = smoothstep(0.0, 0.6, 0.6 - fade_dist);
 
-	const float inv12 = 1.0 / 12.0;
+	const float inv12 = 1.0 / 8.0;
 	const float bias = 1.0 / shadowDistance;
 	const float attenuation = 5.0 / shadowDistance;
 
-	for (int i = 0; i < 12; i++) {
+	for (int i = 0; i < 8; i++) {
 		vec2 uv = circleDistribution * pow2((i + subdither) * inv12) + spos.st;
 		if (clamp(uv, vec2(0.0), vec2(1.0)) != uv) break;
 

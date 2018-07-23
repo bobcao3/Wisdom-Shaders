@@ -80,8 +80,8 @@ void main() {
     vec3 c_center = texture2D(colortex3, uv).rgb;
     gi += c_center;
 
-  	for (int i = -3; i < 4; i++) {
-		  vec2 coord = uv + vec2(0.0, i / viewHeight);
+  	for (int i = -2; i < 3; i++) {
+		  vec2 coord = uv + vec2(0.0, i / viewHeight * 1.5);
 
 			vec3 c = texture2D(gaux3, coord).rgb;
   		float bilateral = dot(normalDecode(texture2D(gaux1, coord).rg), frag.N);
@@ -97,7 +97,7 @@ void main() {
 
     gi /= weight;
 
-    const float gi_strength = 2.0; // [1.0 2.0 3.0]
+    const float gi_strength = 1.0; // [0.5 1.0 2.0]
 
     #ifdef GI_DEBUG
 	  color = gi * gi_strength;

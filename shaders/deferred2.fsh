@@ -182,8 +182,8 @@ void main() {
     vec3 c_center = texture2D(colortex3, uv).rgb;
     gi += c_center;
 
-  	for (int i = -3; i < 4; i++) {
-		  vec2 coord = uv + vec2(i / viewWidth, 0.0);
+  	for (int i = -2; i < 3; i++) {
+		  vec2 coord = uv + vec2(i / viewWidth * 1.5, 0.0);
 
 			vec3 c = texture2D(gaux3, coord).rgb;
   		float bilateral = dot(normalDecode(texture2D(gaux1, coord).rg), frag.N);
