@@ -34,6 +34,8 @@ varying vec2 uv;
 Mask mask;
 Material frag;
 
+//#define CLOUD_CRESPECULAR
+
 #define CrespecularRays
 #include "libs/atmosphere.glsl"
 
@@ -41,7 +43,7 @@ varying vec3 sunLight;
 varying vec3 ambientU;
 
 void main() {
-  vec3 color = vec3(0.0);
+  vec3 color = vec3(1.0);
 
   float flag;
   material_sample(frag, uv, flag);
@@ -49,18 +51,26 @@ void main() {
   init_mask(mask, flag, uv);
 
   // Calculate atmospheric scattering depth
+  #ifdef CLOUD_CRESPECULAR
+  if (mask.is_sky) frag.wpos *= 768.0 / far;
+  #else
   if (!mask.is_sky) {
+  #endif
     #ifdef CrespecularRays
     vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 
     float vl_raw;
-    float lit_distance = VL(uv, frag.wpos, vl_raw);
+    float lit_distance = VL(uv, frag.wpos, vl_raw, worldLightPosition);
 
     color.r = lit_distance;
     #else
-    color.r = 0.7;
+    color.r = 1.0;
     #endif
+  #ifdef CLOUD_CRESPECULAR
+
+  #else
   }
+  #endif
 
 /* DRAWBUFFERS:0 */
   gl_FragData[0] = vec4(color, 1.0);

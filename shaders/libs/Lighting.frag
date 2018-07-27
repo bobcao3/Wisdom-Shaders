@@ -207,7 +207,7 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness, o
 				shade += sum4(s1);
 
 				#ifdef SHADOW_COLOR
-				float s2 = step(0.0, sum4(depth) * 0.25 - texture2D(shadowtex0, uv).x - bias);
+				float s2 = smoothstep(0.0, 0.001, sum4(depth) * 0.25 - sum4(textureGather(shadowtex0, uv)) * 0.25 - bias);
 				average_color += mix(vec3(1.0 - sum4(s1) * 0.25), texture2D(shadowcolor0, uv).rgb, s2);
 				color_shade += s2;
 				#endif
@@ -506,17 +506,69 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 #endif
 
 #ifdef SSS
+
+#ifdef SSS_2D_DDA
 float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth, vec2 uv) {
 	float NdotL = dot(N, direction);
-	if (NdotL < 0.3 || length(start) > 32.0) return 0.0; 
+	if (NdotL < 0.0 && cdepth < 64.0) return 0.0;
+	
+	vec4 H0 = gbufferProjection * vec4(start, 1.0);
+	vec4 H1 = gbufferProjection * vec4(start + direction, 1.0);
+	float k0 = 1.0 / H0.w, k1 = 1.0 / H1.w;
+
+	// Prepare DDA data
+	vec2 stepin_uv = fma(H1.st * k1, vec2(0.5), vec2(0.5));//screen_project_depth(start + direction);
+	vec2 dF = (stepin_uv - uv) * vec2(viewWidth, viewHeight);
+	vec2 iuv = uv * vec2(viewWidth, viewHeight);
+	float step_i = floor(max(abs(dF.x), abs(dF.y))) * 0.5;
+	dF /= step_i;
+
+	// DDA 2D ray-depth intersect
+	vec2 pix = 1.0 / vec2(viewWidth, viewHeight);
+	float P0 = fma(H0.z * k0, 0.5, 0.5);
+	float dP = (fma(H1.z * k1, 0.5, 0.5) - P0) / step_i;
+
+	float predict_prev = P0;
+	float ddz = (texture2D(depthtex0, (iuv + dF) * pix).r) - predict_prev;
+	
+	for (int i = 1; i < 16; i++) {
+		vec2 fuv = iuv + i * dF;
+		if (clamp(fuv, vec2(0.0), vec2(viewWidth, viewHeight)) != fuv) break;
+		float P1 = (texture2D(depthtex0, fuv * pix).r);
+	
+		float predict_Zmin = predict_prev;
+		float predict_Zmax = P0 + i * dP;
+		predict_prev = predict_Zmax;
+
+		if (predict_Zmin > predict_Zmax) {
+			float t = predict_Zmin;
+			predict_Zmin = predict_Zmax;
+			predict_Zmax = t;
+		}
+		if (predict_Zmin < 0.0) break;
+	
+		if ( P1 > predict_Zmin
+		  && P1 < predict_Zmax
+		 &&  abs(P1 - (P0 + i * ddz)) > 0.00005
+		) {
+			return 1.0;
+		}
+	}
+
+	return 0.0;
+}
+#else
+float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth, vec2 uv) {
+	float NdotL = dot(N, direction);
+	if (NdotL < 0.3 || length(start) > 64.0) return 0.0; 
 
 	vec3 testPoint = start;
 	float hit_am = 0.0;
 	bool hit = false;
 
 	vec2 step_pos = screen_project(start + direction * 1.0);
-	if (clamp(step_pos, vec2(0.0), vec2(1.0)) != step_pos) return 0.0;
-	float step_pix = length((step_pos - uv) * vec2(viewWidth, viewHeight)) * 0.26;
+	vec2 step_delta = (step_pos - uv) * vec2(viewWidth, viewHeight);
+	float step_pix = max(abs(step_delta.x), abs(step_delta.y));
 
 	float h = 1.0 / step_pix;
 	bool bi = false;
@@ -543,14 +595,6 @@ float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth, vec
 		sampleDepth = linearizeDepth(texture2D(depthtex1, uv).x);
 		testDepth = getLinearDepthOfViewCoord(testPoint);
 
-		//if (!hit) hit = sampleDepth < testDepth;
-		//
-		//if (hit)
-		//	h *= sampleDepth > testDepth ? 0.5 : -0.5;
-		//} else {
-		//	h *= 1.1;
-		//}
-
 		if(sampleDepth < testDepth && testDepth - sampleDepth < 0.0004 * (3.0 - NdotL * 2.0)){
 			hit_am = 1.0;
 			break;
@@ -559,6 +603,8 @@ float screen_space_shadow (vec3 direction, vec3 start, vec3 N, float cdepth, vec
 
 	return hit_am;
 }
+#endif
+
 #endif
 
 //==============================================================================

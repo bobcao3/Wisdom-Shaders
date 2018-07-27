@@ -179,8 +179,6 @@ void main() {
 	t.rgb *= fma(color.a, 0.5, 0.5);
 	#endif
 
-	if (t.a < 0.05) discard;
-
 	#ifdef PARALLAX_SELF_SHADOW
 	t.rgb *= parallax_lit;
 	#endif

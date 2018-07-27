@@ -97,9 +97,11 @@ void motion_blur(in sampler2D screen, inout vec3 color, in vec2 uv, in vec3 view
 
 #ifdef BLOOM
 
+
+vec2 texelSize = 1.0 / vec2(viewWidth, viewHeight);
+
 vec4 texture_Bicubic(sampler2D tex, vec2 uv)
 {
-
 	uv = uv * vec2(viewWidth, viewHeight) - 1.0;
 	vec2 iuv = floor( uv );
 	vec2 fuv = uv - iuv;
@@ -111,16 +113,19 @@ vec4 texture_Bicubic(sampler2D tex, vec2 uv)
     float h0y = h0(fuv.y);
     float h1y = h1(fuv.y);
 
-	vec2 texelSize = 1.0 / vec2(viewWidth, viewHeight);
 	vec2 p0 = (vec2(iuv.x + h0x, iuv.y + h0y) + 0.5) * texelSize;
+	vec4 t0 = texture2D(tex, p0);
 	vec2 p1 = (vec2(iuv.x + h1x, iuv.y + h0y) + 0.5) * texelSize;
+	vec4 t1 = texture2D(tex, p1);
 	vec2 p2 = (vec2(iuv.x + h0x, iuv.y + h1y) + 0.5) * texelSize;
+	vec4 t2 = texture2D(tex, p2);
 	vec2 p3 = (vec2(iuv.x + h1x, iuv.y + h1y) + 0.5) * texelSize;
+	vec4 t3 = texture2D(tex, p3);
 
-    return g0(fuv.y) * (g0x * texture2D(tex, p0)  +
-                        g1x * texture2D(tex, p1)) +
-           g1(fuv.y) * (g0x * texture2D(tex, p2)  +
-                        g1x * texture2D(tex, p3));
+    return g0(fuv.y) * (g0x * t0  +
+                        g1x * t1) +
+           g1(fuv.y) * (g0x * t2  +
+                        g1x * t3);
 }
 
 #define DIRTY_LENS

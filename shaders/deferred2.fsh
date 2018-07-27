@@ -128,9 +128,9 @@ void main() {
     ambient.color4 = ambient3 * ao;
     ambient.color5 = ambientD * ao;
 
-    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.01;
-  	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.008;
-    const vec3 torch_warm = vec3(1.2311, 0.7, 0.4286) * 0.01;
+    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.005;
+  	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.004;
+    const vec3 torch_warm = vec3(1.2311, 0.7, 0.4286) * 0.005;
   	//#define WHITE_LIGHT
     //#define WARM_LIGHT
     #define TORCH_LIGHT
@@ -154,8 +154,8 @@ void main() {
 
     float wetness2 = wetness * smoothstep(0.92, 1.0, frag.skylight) * float(!mask.is_plant);
 		if (wetness2 > 0.0) {
-			float wet = noise((frag.wpos + cameraPosition).xz * 0.5 - frameTimeCounter * 0.02);
-			wet += noise((frag.wpos + cameraPosition).xz * 0.6 - frameTimeCounter * 0.01) * 0.5;
+			float wet = noise_tex((frag.wpos + cameraPosition).xz * 0.5 - frameTimeCounter * 0.02);
+			wet += noise_tex((frag.wpos + cameraPosition).xz * 0.6 - frameTimeCounter * 0.01) * 0.5;
 			wet = clamp(wetness2 * 3.0, 0.0, 1.0) * clamp(wet * 2.0 + wetness2, 0.0, 1.0);
 			
 			if (wet > 0.0) {
@@ -164,8 +164,8 @@ void main() {
 				frag.N = mix(frag.N, frag.Nflat, wet);
 			
         #ifdef RAIN_DROPS_ANIMATION
-				frag.N.x += noise((frag.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
-				frag.N.y -= noise((frag.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
+				frag.N.x += noise_tex((frag.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
+				frag.N.y -= noise_tex((frag.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
 				frag.N = normalize(frag.N);
         #endif
 			}
@@ -211,22 +211,26 @@ void main() {
     #endif
   } else {
     vec3 nwpos = normalize(frag.wpos);
-    color = texture2D(colortex0, uv).rgb;
+    vec3 skybox = texture2D(colortex0, uv).rgb;
 
     float mu_s = dot(nwpos, worldLightPosition);
     float mu = abs(mu_s);
+
+    color += scatter(vec3(0., 60e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
+    float horizon_mask = smoothstep(0.1, 0.3, luma(color));
+    
     #ifdef CLOUDS_2D
     float cmie = calc_clouds(nwpos * 512.0, cameraPosition);
-    color *= 1.0 - cmie;
+    color += skybox * smoothstep(0.1, 0.2, nwpos.y) * (1.0 - cmie);
 
     float opmu2 = 1. + mu*mu;
     float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
-    vec3 sunlight = sunraw * 1.3;
-    color += (1.4 * luma(ambientU_noC) + sunlight * phaseM) * cmie;
+    color += (luma(ambientU_noC) + sunraw * phaseM * 0.3) * cmie;
+    #else
+    color += skybox * smoothstep(0.1, 0.2, nwpos.y);
     #endif
-
-    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
-    color += sunraw * 30.0 * step(0.9997, mu_s) * smoothstep(0.2, 0.3, luma(color));
+    
+    color += sunraw * 20.0 * step(0.9997, mu_s) * horizon_mask;
   }
 
 /* DRAWBUFFERS:56 */

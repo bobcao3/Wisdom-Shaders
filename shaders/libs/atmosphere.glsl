@@ -2,36 +2,36 @@
 #include "vectors.glsl"
 #include "noise.glsl"
 
+float day = float(worldTime) / 24000.0;
+float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
+float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, max(rainStrength, wetness));
+
 // ============
-const float R0 = 6360e3;
-const float Ra = 6400e3;
+const float R0 = 6370e3;
+const float Ra = 6470e3;
 #ifdef AT_LSTEP
 const int steps = 8;
-const int stepss = 3;
-const vec3 I0 = vec3(1.2311, 1.0, 0.8286) * 13.0;
+const int stepss = 2;
+const vec3 I0 = vec3(2.0);
 
 const vec3 I = I0;
 #else
 const int steps = 8;
 const int stepss = 4;
-const vec3 I0 = vec3(10.0);//vec3(1.2311, 1.0, 0.8286) * 15.0;
+const vec3 I0 = vec3(2.0);
 
-vec3 I = I0 * (1.0 - wetness * 0.8);
+vec3 I = I0 * (1.2 - cloud_coverage * 1.0);
 #endif
 const float g = .76;
 const float g2 = g * g;
-float Hr = 10.0 * 1e3;
-float Hm = 1.6 * 1e3;
+float Hr = 12e3;
+float Hm = 4.6e3;
 
 const vec3 C = vec3(0., -R0, 0.);
 const vec3 bM = vec3(21e-6);
 const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
 
 #define CLOUDS_2D
-
-float day = float(worldTime) / 24000.0;
-float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
-float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, max(rainStrength, wetness));
 
 #ifdef CLOUDS_2D
 const mat2 octave_c = mat2(1.4,1.2,-1.2,1.4);
@@ -65,10 +65,14 @@ void densities(in vec3 pos, out vec2 des) {
 	// des.y = Mie
 	float h = length(pos - C) - R0;
 	des.x = exp(-h/Hr);
+
+	// Add Ozone layer densities
+	des.x += exp(-max(0.0, (h - 35e3)) /  5e3) * exp(-max(0.0, (35e3 - h)) / 15e3) * 0.2;
+
 	#ifdef AT_LSTEP
 	des.y = exp(-h/Hm);
 	#else
-	des.y = exp(-h/Hm) + cloud_coverage * smoothstep(0.8, 1.0, 1.0 - h * 3e-5);
+	des.y = exp(-h/Hm) * (1.0 + cloud_coverage);
 	#endif
 }
 
@@ -85,7 +89,7 @@ float escape(in vec3 p, in vec3 d, in float R) {
 
 // this can be explained: http://www.scratchapixel.com/lessons/3d-advanced-lessons/simulating-the-colors-of-the-sky/atmospheric-scattering/
 vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
-	if (d.y < 0.0) d.y = 0.0004 / (-d.y + 0.02) - 0.02;
+	if (d.y < 0.0) d.y = 0.0025 / (-d.y + 0.05) - 0.05;
 
 	float L = min(l, escape(o, d, Ra));
 	float mu = dot(d, Ds);
@@ -112,19 +116,20 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 
 		float Ls = escape(p, Ds, Ra);
 		if (Ls > 0.) {
-			float dls = Ls / float(stepss);
+			//float dls = Ls;
 			vec2 depth_in = vec2(0.0);
 			for (int j = 0; j < stepss; ++j) {
-				float ls = float(j) * dls;
+				float ls = float(j) / float(stepss) * Ls;
 				vec3 ps = p + Ds * ls;
 				vec2 des_in;
 				densities(ps, des_in);
 				depth_in += des_in;
 			}
-			depth_in *= vec2(dls);
+			depth_in *= vec2(Ls) / float(stepss);
 			depth_in += depth;
 
 			vec3 A = exp(-(bR * depth_in.x + bM * depth_in.y));
+
 			R += A * des.x;
 			M += A * des.y;
 		} else {
@@ -132,28 +137,28 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 		}
 	}
 
-	return I * (R * bR * phaseR + M * bM * phaseM) + 0.001 + vec3(0.02, 0.035, 0.08) * phaseM_moon * (0.5 - wetness * 0.45);
+	return I * (R * bR * phaseR + M * bM * phaseM) + 0.001 + vec3(0.02, 0.035, 0.08) * phaseM_moon * (0.5 - wetness * 0.45) * smoothstep(0.05, 0.2, d.y);
 }
 // ============
 
 #ifdef CrespecularRays
 
 #ifdef HIGH_QUALITY_Crespecular
-const float vl_steps = 48.0;
-const int vl_loop = 48;
+const float vl_steps = 24.0;
+const int vl_loop = 24;
 #else
 const float vl_steps = 8.0;
 const int vl_loop = 8;
 #endif
 
-float VL(vec2 uv, vec3 owpos, out float vl) {
+float VL(vec2 uv, vec3 owpos, out float vl, vec3 wL) {
 	vec3 adj_owpos = owpos - vec3(0.0,1.62,0.0);
 	float adj_depth = length(adj_owpos);
 
 	vec3 swpos = owpos;
 	float step_length = min(shadowDistance, adj_depth) / vl_steps;
 	vec3 dir = normalize(adj_owpos) * step_length;
-	float prev = 0.0, total = 0.0;
+	float prev = 1.0, total = 0.0;
 
 	#ifndef BAYER_64
 	#define BAYER_64
@@ -167,6 +172,7 @@ float VL(vec2 uv, vec3 owpos, out float vl) {
 		swpos -= dir;
 		dither = fract(dither + 0.618);
 		vec3 shadowpos = wpos2shadowpos(swpos + dir * dither);
+
 		#ifdef HIGH_LEVEL_SHADER
 		float sdepth = texelFetch2D(shadowtex0, ivec2(shadowpos.xy * vec2(shadowMapResolution)), 0).x;
 		#else
@@ -174,6 +180,12 @@ float VL(vec2 uv, vec3 owpos, out float vl) {
 		#endif
 
 		float hit = float(shadowpos.z + 0.0006 < sdepth);
+		if (shadowpos.x < 0.0 || shadowpos.y < 0.0 || shadowpos.x > 1.0 || shadowpos.y > 1.0 || shadowpos.z < 0.0 || shadowpos.z > 1.0) hit = 1.0;
+
+		#ifdef CLOUD_CRESPECULAR
+		hit = min(hit, 1.0 - calc_clouds(wL * 512.0, swpos + dir * dither));
+		#endif
+	
 		total += (prev + hit) * step_length * 0.5;
 
 		prev = hit;

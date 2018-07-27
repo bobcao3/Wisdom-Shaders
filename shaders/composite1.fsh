@@ -57,6 +57,16 @@ void main() {
 
   init_mask(mask, flag, uv);
 
+  float scatteram = 1.0;
+  #ifdef CrespecularRays
+  // Blur and collect scattering
+  scatteram  = sum4(textureGather      (colortex0, uv              ));
+  scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2(-1, 0)));
+  scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2(-1,-1)));
+  scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2( 0,-1)));
+  scatteram *= 0.0625;
+  #endif
+
   if (!mask.is_sky || frag.cdepthN < 0.999) {
     float fog_coord = min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0);
     color *= 1.0 - fog_coord * 0.8;
@@ -75,6 +85,8 @@ void main() {
     #else
     color += texture2D(gaux4, project_skybox2uv(nwpos)).rgb * fog_coord;
     #endif
+  } else {
+    color *= scatteram;
   }
 
   if (isEyeInWater == 1 && !mask.is_water) {

@@ -138,7 +138,7 @@ void main() {
 		 float refraction_index = max(0.0, dot(refracted, -frag.N));
          refracted = frag.vpos + refracted;
 		vec2 uv_refra = screen_project(refracted);
-		if (uv_refra.y < 0.0) uv_refra = uv1;
+		//if (clamp(uv_refra, vec2(0.0), vec2(1.0)) != uv_refra) uv_refra = uv1;
 		color = texture2D(gaux3, uv_refra);                     // Read deferred state composite, refracted
 
 		#ifdef ADVANCED_REFRACTION

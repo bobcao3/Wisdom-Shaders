@@ -22,7 +22,7 @@ varying vec2 uv;
 
 const int RGBA8 = 0, R11_G11_B10 = 1, RGB16 = 2, RGBA32F = 3, RGBA16 = 4, RGB8 = 5;
 
-const int colortex0Format = RGBA16;
+const int colortex0Format = RGBA8;
 const int colortex1Format = RGBA8;
 const int colortex2Format = RGBA16;
 const int colortex3Format = RGBA32F;
@@ -100,7 +100,7 @@ void main() {
 	}
 	#endif
 
-	float exposure = 2.0 / (eyeBrightnessSmooth.y / 240.0 * luma(sunLight) * 0.4 + 0.7);
+	float exposure = 4.0 / (eyeBrightnessSmooth.y / 240.0 * luma(sunLight) * 0.4 + 0.7);
 
 	#ifdef BLOOM
 	vec3 rawB;

@@ -40,7 +40,7 @@ varying vec3 worldLightPosition;
 void main() {
   vec3 color = vec3(0.0);
 
-  if (uv.y < 0.5) {
+  if (uv.y < 0.25 && uv.x < 0.501) {
     vec3 nwpos = project_uv2skybox(uv);
 
     float mu_s = dot(nwpos, worldLightPosition);
