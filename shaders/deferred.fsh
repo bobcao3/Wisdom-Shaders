@@ -45,17 +45,19 @@ void main() {
 
     float mu_s = dot(nwpos, worldLightPosition);
     float mu = abs(mu_s);
+
+    color += scatter(vec3(0., 60e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
+    float horizon_mask = smoothstep(0.1, 0.3, luma(color));
+    
     #ifdef CLOUDS_2D
     float cmie = calc_clouds(nwpos * 512.0, cameraPosition);
-    color *= 1.0 - cmie;
 
     float opmu2 = 1. + mu*mu;
     float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
-    vec3 sunlight = sunraw * 1.3;
-    color += (1.4 * luma(ambientU) + sunlight * phaseM) * cmie;
+    color += (luma(ambientU) + sunraw * phaseM * 0.3) * cmie;
     #endif
-
-    color += scatter(vec3(0., 25e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
+    
+    color += sunraw * 20.0 * step(0.9997, mu_s) * horizon_mask;
   }
 
 /* DRAWBUFFERS:7 */

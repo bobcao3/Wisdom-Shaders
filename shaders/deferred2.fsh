@@ -128,9 +128,9 @@ void main() {
     ambient.color4 = ambient3 * ao;
     ambient.color5 = ambientD * ao;
 
-    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.005;
-  	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.004;
-    const vec3 torch_warm = vec3(1.2311, 0.7, 0.4286) * 0.005;
+    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.2;
+  	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.15;
+    const vec3 torch_warm = vec3(1.2311, 0.7, 0.4286) * 0.2;
   	//#define WHITE_LIGHT
     //#define WARM_LIGHT
     #define TORCH_LIGHT
@@ -147,7 +147,7 @@ void main() {
     torch.attenuation = light_mclightmap_attenuation(frag.torchlight) * ao;
 
     #ifdef HAND_LIGHT
-    hand.light.color = torch.color * float(heldBlockLightValue) * 10.0;
+    hand.light.color = torch.color * float(heldBlockLightValue);
     hand.L = -frag.vpos;
     hand.light.attenuation = 1.0 / (distanceSquared(hand.L, frag.vpos) + 1.0);
     #endif
@@ -203,7 +203,7 @@ void main() {
 	  color = vec3(ao);
 	  #endif
 	
-    color = mix(color, frag.albedo, frag.emmisive);
+    color = mix(color, frag.albedo * 0.5, frag.emmisive);
 
     //#define SSS_DEBUG
     #ifdef SSS_DEBUG
@@ -211,13 +211,13 @@ void main() {
     #endif
   } else {
     vec3 nwpos = normalize(frag.wpos);
-    vec3 skybox = texture2D(colortex0, uv).rgb;
+    vec3 skybox = texture2D(colortex0, uv).rgb * 0.5;
 
     float mu_s = dot(nwpos, worldLightPosition);
     float mu = abs(mu_s);
 
     color += scatter(vec3(0., 60e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
-    float horizon_mask = smoothstep(0.1, 0.3, luma(color));
+    float horizon_mask = smoothstep(0.05, 0.14, luma(color));
     
     #ifdef CLOUDS_2D
     float cmie = calc_clouds(nwpos * 512.0, cameraPosition);

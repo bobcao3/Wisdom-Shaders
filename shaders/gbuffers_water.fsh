@@ -117,7 +117,7 @@ void main() {
 		material_build(
 			frag,
 			vpos, wpos, N, N,
-			vec3(1.0), vec3(0.95,0.002,0.0), lmcoord);
+			vec3(1.0), vec3(0.97,0.002,0.0), lmcoord);
 
 		// Waving water & parallax
 		#ifdef WATER_PARALLAX
@@ -217,7 +217,26 @@ void main() {
 		ambient.attenuation = light_mclightmap_simulated_GI(lmcoord.y);
 	    ambient.color = ambientU;
 
-		color.rgb = light_calc_PBR(sun, frag, 1.0, false) + light_calc_diffuse(ambient, frag);
+		LightSource torch;
+	    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.2;
+  		const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.15;
+    	const vec3 torch_warm = vec3(1.2311, 0.7, 0.4286) * 0.2;
+  		//#define WHITE_LIGHT
+    	//#define WARM_LIGHT
+    	#define TORCH_LIGHT
+
+	  	#ifdef TORCH_LIGHT
+	    torch.color = torch1900K;
+		#endif
+	    #ifdef WARM_LIGHT
+	    torch.color = torch_warm;
+	    #endif
+	    #ifdef WHITE_LIGHT
+		torch.color = torch5500K;
+		#endif
+	    torch.attenuation = light_mclightmap_attenuation(lmcoord.x);
+
+		color.rgb = light_calc_PBR(sun, frag, 1.0, false) + light_calc_diffuse(ambient, frag) + light_calc_diffuse(torch, frag);
 	}
 
 	#define WATER_IBL
