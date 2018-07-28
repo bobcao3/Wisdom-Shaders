@@ -46,6 +46,7 @@ option.WATER_PARALLAX=Water Parallax
 option.WAVING_FOILAGE=Waving Foilage
 option.WAVING_SHADOW=Waving Foilage Shadow
 option.WHITE_LIGHT=Modern White Light
+option.MARS_ATMOSPHERE=Mars Atmosphere
 
 value.SSR_STEPS.16=Low
 value.SSR_STEPS.20=Med

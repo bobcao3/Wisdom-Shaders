@@ -81,10 +81,10 @@ void main() {
 	// ===============
 	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 	float f = pow(max(abs(worldLightPosition.y) - 0.05, 0.0), 0.9) * 5.0;
-	sunraw = texture2D(gaux4, project_skybox2uv(worldLightPosition)).rgb * (1.0 - cloud_coverage * 0.999) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0) * 0.1 * (1.0 - rainStrength * 0.8);
+	sunraw = texture2D(gaux4, project_skybox2uv(worldLightPosition)).rgb * (1.0 - cloud_coverage * 0.9);
 	sunLight = (sunraw) * f;
 
-	ambientU = texture2D(gaux4, vec2(0.0, 0.25)).rgb * 5.0;
+	ambientU = texture2D(gaux4, vec2(0.0, 0.25)).rgb * 4.0;
 
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 

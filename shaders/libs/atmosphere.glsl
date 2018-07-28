@@ -4,32 +4,45 @@
 
 float day = float(worldTime) / 24000.0;
 float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
-float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, max(rainStrength, wetness));
+float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.3, max(rainStrength, wetness));
 
 // ============
+const float g = .76;
+const float g2 = g * g;
+
+//#define MARS_ATMOSPHERE
+#ifdef MARS_ATMOSPHERE
+const float R0 = 3389e3;
+const float Ra = 3460e3;
+float Hr = 8e3;
+float Hm = 4.3e3;
+
+const vec3 I0 = vec3(1.3);
+const vec3 bR = vec3(33.1e-6, 13.5e-6, 5.8e-6);
+#else
 const float R0 = 6370e3;
 const float Ra = 6470e3;
+float Hr = 12e3;
+float Hm = 4.3e3;
+
+const vec3 I0 = vec3(2.5);
+const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
+#endif
+
 #ifdef AT_LSTEP
 const int steps = 8;
 const int stepss = 2;
-const vec3 I0 = vec3(2.0);
 
 const vec3 I = I0;
 #else
 const int steps = 8;
 const int stepss = 4;
-const vec3 I0 = vec3(2.0);
 
-vec3 I = I0 * (1.2 - cloud_coverage * 1.0);
+vec3 I = I0 * (1.0 - cloud_coverage * 0.7);
 #endif
-const float g = .76;
-const float g2 = g * g;
-float Hr = 12e3;
-float Hm = 4.6e3;
 
 const vec3 C = vec3(0., -R0, 0.);
 const vec3 bM = vec3(21e-6);
-const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
 
 #define CLOUDS_2D
 
@@ -66,8 +79,10 @@ void densities(in vec3 pos, out vec2 des) {
 	float h = length(pos - C) - R0;
 	des.x = exp(-h/Hr);
 
+	#ifndef MARS_ATMOSPHERE
 	// Add Ozone layer densities
 	des.x += exp(-max(0.0, (h - 35e3)) /  5e3) * exp(-max(0.0, (35e3 - h)) / 15e3) * 0.2;
+	#endif
 
 	#ifdef AT_LSTEP
 	des.y = exp(-h/Hm);
@@ -137,7 +152,7 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 		}
 	}
 
-	return I * (R * bR * phaseR + M * bM * phaseM) + 0.001 + vec3(0.02, 0.035, 0.08) * phaseM_moon * (0.5 - wetness * 0.45) * smoothstep(0.05, 0.2, d.y);
+	return I * (R * bR * phaseR + M * bM * phaseM + vec3(0.0001, 0.00017, 0.0003) + 0.3 * vec3(0.005, 0.0055, 0.01) * phaseM_moon * smoothstep(0.05, 0.2, d.y));
 }
 // ============
 

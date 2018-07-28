@@ -50,16 +50,13 @@ vec3 light_calc_diffuse_harmonics(LightSourceHarmonics Li, Material mat, vec3 N)
 	return Li.attenuation * mat.albedo * x;
 }
 
-float light_mclightmap_attenuation(in float l) {
-	float light_distance = smoothstep(0.0, 1.0, clamp((1.0 - pow(l, 3.6)), 0.08, 1.0));
-	const float max_light = 100.0;
+float light_mclightmap_attenuation(in float lm) {
+	float falloff = 7.0;
 
-	const float light_quadratic = 3.0f;
-	const float light_constant1 = 1.09f;
-	const float light_constant_linear = 0.4;
-	const float light_constant2 = 1.29f;
+	lm = exp(-(1.0 - lm) * falloff);
+	lm = max(0.0, lm - exp(-falloff));
 
-	return clamp(pow(light_constant1 / light_distance, light_quadratic) + l * light_constant_linear - light_constant2, 0.0, max_light);
+	return lm;
 }
 
 float light_mclightmap_simulated_GI(in float Ld) {

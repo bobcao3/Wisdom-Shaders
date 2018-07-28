@@ -46,6 +46,7 @@ option.WATER_PARALLAX=水体视差
 option.WAVING_FOILAGE=植物晃动
 option.WAVING_SHADOW=植物晃动阴影
 option.WHITE_LIGHT=现代白光
+option.MARS_ATMOSPHERE=火星大气
 
 value.SSR_STEPS.16=低
 value.SSR_STEPS.20=中
