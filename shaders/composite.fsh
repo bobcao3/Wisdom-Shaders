@@ -46,7 +46,7 @@ void main() {
   vec3 color = vec3(1.0);
 
   float flag;
-  material_sample(frag, uv, flag);
+  material_sample_partial(frag, uv, (isEyeInWater == 1) ? texture2D(depthtex1, uv).r : texture2D(depthtex0, uv).r, flag);
 
   init_mask(mask, flag, uv);
 

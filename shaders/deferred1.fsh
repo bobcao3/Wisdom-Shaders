@@ -67,7 +67,7 @@ void main() {
 	
   	#ifdef GI
   	vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
-  	vec3 spos = wpos2shadowpos(frag.wpos - wN * 0.07 * frag.cdepth);
+  	vec3 spos = shadowpos_transform(frag.wpos - wN * 0.07 * frag.cdepth);
   	gi = calcGI(shadowtex1, shadowcolor0, spos, wN);
 
     vec4 prev_pos = gbufferPreviousModelView * vec4(frag.wpos - previousCameraPosition + cameraPosition, 1.0);

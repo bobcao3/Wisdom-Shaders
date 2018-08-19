@@ -86,8 +86,6 @@ void main() {
 
 	vec4 watermixcolor = vec4(0.0);
 
-	vec3 waterfog = vec3(1.0);
-
 	if (maskFlag(data, waterFlag)) {
 		// Water Rendering starts here
 		vec4 p = gbufferProjection * vec4(vpos, 1.0);  // Reproject vpos to clip pos
@@ -164,13 +162,14 @@ void main() {
 		dist_diff_N = 1.0;                                       // Clamp out the sky behind
 
 		float absorption = pow2(2.0 / (dist_diff_N + 1.0) - 1.0);     // Water absorption factor
+		float scatter_in = (abs(dot(lightPosition, N)) * 0.8 + 0.2);  // Scatter-in factor
 		vec3 watercolor = color.rgb * glcolor
 		   * pow(vec3(absorption), vec3(3.0, 0.8, 1.0))         // Water absorption color
-			 * (abs(dot(lightPosition, N)) * 0.8 + 0.2);        // Scatter-in factor
+		   * scatter_in;
 		float light_att = (isEyeInWater == 1) ? float(eyeBrightnessSmooth.y) / 240.0 : lmcoord.y;
 
-		const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.03;
-		waterfog = (max(luma(sunLight), 0.0) * light_att) * (waterfogcolor * glcolor);
+		const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.01;
+		vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * (waterfogcolor * glcolor);
 
 		if (total_refra) watercolor = waterfog * light_att;
     #ifdef REFRACTION
@@ -249,7 +248,7 @@ void main() {
 	vec4 ray_traced = vec4(0.0);
 	vec3 skybox = texture2D(gaux4, project_skybox2uv(reflected)).rgb * pow3(lmcoord.y);
 	if (maskFlag(data, waterFlag)) {
-		skybox = mix(skybox, waterfog, (1.0 - smoothstep(0.0, 0.1, reflected.y + 0.05)) * worldN.y);
+		skybox = mix(skybox, watermixcolor.rgb, (1.0 - smoothstep(0.0, 0.1, reflected.y + 0.05)) * worldN.y);
 	}
 	#ifdef SSR
 	if (dot(reflectedV, N) > 0.0) {

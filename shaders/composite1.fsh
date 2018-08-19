@@ -67,45 +67,44 @@ void main() {
   scatteram *= 0.0625;
   #endif
 
-  if (!mask.is_sky || frag.cdepthN < 0.999) {
-    float fog_coord = min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0);
-    color *= 1.0 - fog_coord * 0.8;
+  if (isEyeInWater == 0) {
+    if (!mask.is_sky || frag.cdepthN < 0.999) {
+      float fog_coord = min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0);
+      color *= 1.0 - fog_coord * 0.8;
 
-    vec3 nwpos = normalize(frag.wpos);
+      vec3 nwpos = normalize(frag.wpos);
 
-    #ifdef CrespecularRays
-    // Blur and collect scattering
-    float scatteram  = sum4(textureGather      (colortex0, uv              ));
-          scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2(-1, 0)));
-          scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2(-1,-1)));
-          scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2( 0,-1)));
-          scatteram *= 0.0625;
-    
-    color += texture2D(gaux4, project_skybox2uv(nwpos)).rgb * scatteram;
-    #else
-    color += texture2D(gaux4, project_skybox2uv(nwpos)).rgb * fog_coord;
-    #endif
+      #ifdef CrespecularRays
+      // Blur and collect scattering    
+      color += texture2D(gaux4, project_skybox2uv(nwpos)).rgb * scatteram;
+      #else
+      color += texture2D(gaux4, project_skybox2uv(nwpos)).rgb * fog_coord;
+      #endif
+    } else {
+      color *= scatteram;
+    }
   } else {
-    color *= scatteram;
-  }
-
-  if (isEyeInWater == 1 && !mask.is_water) {
-    float dist_diff_N = min(1.0, frag.cdepth * 0.0625);             // Distance clamped (0.0 ~ 1.0)
+    const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.01;
+    if (isEyeInWater == 1 && !mask.is_water) {
+      float dist_diff_N = min(1.0, frag.cdepth * 0.03125);             // Distance clamped (0.0 ~ 1.0)
   
-    #ifdef WATER_CAUSTICS
-		color *= smoothstep(0.0, 1.0, fma(get_caustic(frag.wpos + cameraPosition), 1.1, 0.5));
-		#endif
+      #ifdef WATER_CAUSTICS
+		  //color *= smoothstep(0.0, 1.0, fma(get_caustic(frag.wpos + cameraPosition), 1.1, 0.5));
+		  #endif
 
-    float absorption = pow2(2.0 / (dist_diff_N + 1.0) - 1.0);     // Water absorption factor
-		vec3 watercolor = color
-		   * pow(vec3(absorption), vec3(3.0, 0.8, 1.0))         // Water absorption color
-			 * (abs(dot(lightPosition, frag.N)) * 0.8 + 0.2);        // Scatter-in factor
-		float light_att = float(eyeBrightnessSmooth.y) / 240.0;
+      float absorption = pow2(2.0 / (dist_diff_N + 1.0) - 1.0);     // Water absorption factor
+	  	float scatter_in = (abs(dot(lightPosition, frag.N)) * 0.8 + 0.2);  // Scatter-in factor
+  		vec3 watercolor = color.rgb
+	  	   * pow(vec3(absorption), vec3(3.0, 0.8, 1.0))         // Water absorption color
+	  	   * scatter_in;
+		  float light_att = float(eyeBrightnessSmooth.y) / 240.0;
 
-		const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.03;
-		vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * waterfogcolor;
+		  vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * waterfogcolor;
 
-    color = mix(waterfog, watercolor, absorption);
+      color = mix(waterfog, watercolor, absorption);
+    }
+
+    color += scatteram * sunLight * waterfogcolor;
   }
 
 /* DRAWBUFFERS:5 */

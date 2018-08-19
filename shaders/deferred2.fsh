@@ -225,12 +225,12 @@ void main() {
 
     float opmu2 = 1. + mu*mu;
     float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
-    color += (luma(ambientU_noC) + sunraw * phaseM * 0.3) * cmie;
+    color += (luma(ambientU_noC) + sunraw * phaseM * 0.2) * cmie;
     #else
     color += skybox * smoothstep(0.1, 0.2, nwpos.y);
     #endif
     
-    color += sunraw * 20.0 * step(0.9997, mu_s) * horizon_mask;
+    color += sunraw * 5.0 * smoothstep(0.9998, 0.9999, mu_s) * horizon_mask;
   }
 
 /* DRAWBUFFERS:56 */

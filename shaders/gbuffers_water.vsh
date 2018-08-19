@@ -61,7 +61,7 @@ varying vec2 lmcoord;
 attribute vec4 at_tangent;
 
 void main() {
-	data = (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) ? waterFlag : transparentFlag;
+	data = (mc_Entity.x > 7.5 && mc_Entity.x < 9.5 || mc_Entity.y == 1.0) ? waterFlag : transparentFlag;
 	if  (mc_Entity.x == 79.0) data = iceFlag;
 
 	vec4 pos = gl_Vertex;

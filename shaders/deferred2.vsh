@@ -49,11 +49,11 @@ void functions() {
 	sunraw = texture2D(gaux4, project_skybox2uv(worldLightPosition)).rgb * (1.0 - cloud_coverage * 0.9);
 	sunLight = (sunraw) * f * vec3(1.2311, 1.0, 0.8286);
 
-	ambientU = texture2D(gaux4, vec2(0.0,  0.25    )).rgb * 0.3;
-	ambient0 = texture2D(gaux4, vec2(0.0,  0.13293)).rgb * 0.3;
-	ambient1 = texture2D(gaux4, vec2(0.25, 0.13293)).rgb * 0.3;
-	ambient2 = texture2D(gaux4, vec2(0.125,0.13293)).rgb * 0.3;
-	ambient3 = texture2D(gaux4, vec2(0.375,0.13293)).rgb * 0.3;
+	ambientU = texture2D(gaux4, vec2(0.0,  0.25   )).rgb;
+	ambient0 = texture2D(gaux4, vec2(0.0,  0.03293)).rgb;
+	ambient1 = texture2D(gaux4, vec2(0.25, 0.03293)).rgb;
+	ambient2 = texture2D(gaux4, vec2(0.125,0.03293)).rgb;
+	ambient3 = texture2D(gaux4, vec2(0.375,0.03293)).rgb;
 	ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 0.2;
 
 	ambientU_noC = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) * 0.8;

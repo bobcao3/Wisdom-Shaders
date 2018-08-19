@@ -54,7 +54,7 @@ void main() {
 
     float opmu2 = 1. + mu*mu;
     float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
-    color += (luma(ambientU) + sunraw * phaseM * 0.3) * cmie;
+    color += (luma(ambientU) + sunraw * phaseM * 0.2) * cmie;
     #endif
     
     color += sunraw * 20.0 * step(0.9997, mu_s) * horizon_mask;

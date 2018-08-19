@@ -83,7 +83,7 @@ void main() {
 	ndata.xyz = normalize(mat3(shadowProjection) * (gl_NormalMatrix * gl_Normal)) * 0.5 + 0.5;
 	ndata.a = 1.0;
 
-	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
+	if (mc_Entity.x > 7.5 && mc_Entity.x < 9.5 || mc_Entity.y == 1.0) {
 		color = vec3(0.0);
 		ndata.a = 0.0;
 	}

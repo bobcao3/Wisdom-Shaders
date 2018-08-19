@@ -17,7 +17,7 @@ const float Ra = 3460e3;
 float Hr = 8e3;
 float Hm = 4.3e3;
 
-const vec3 I0 = vec3(1.3);
+const vec3 I0 = vec3(1.6);
 const vec3 bR = vec3(33.1e-6, 13.5e-6, 5.8e-6);
 #else
 const float R0 = 6370e3;

@@ -67,11 +67,15 @@ float light_mclightmap_simulated_GI(in float Ld) {
 // Shadow Stuff
 //==============================================================================
 
-vec3 wpos2shadowpos(in vec3 wpos) {
+vec3 shadowpos_transform(in vec3 wpos) {
 	vec4 shadowposition = shadowModelView * vec4(wpos, 1.0f);
 	shadowposition = shadowProjection * shadowposition;
 	shadowposition /= shadowposition.w;
 
+	return shadowposition.xyz;
+}
+
+vec3 shadowpos_distort(in vec3 shadowposition) {
 	float distb = length(shadowposition.xy);
 	float distortFactor = negShadowBias + distb * SHADOW_MAP_BIAS;
 	shadowposition.xy /= distortFactor;
@@ -79,6 +83,10 @@ vec3 wpos2shadowpos(in vec3 wpos) {
 	shadowposition.z = shadowposition.z * 0.5 + 0.25;
 
 	return shadowposition.xyz * 0.5f + 0.5f;
+}
+
+vec3 wpos2shadowpos(in vec3 wpos) {
+	return shadowpos_distort(shadowpos_transform(wpos));
 }
 
 #define SHADOW_FILTER
@@ -192,7 +200,7 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness, o
 		float M2 = M1;
 		#endif
 		if (average_blocker + bias < spos.z || M2 + bias < spos.z) {
-			float range = (12.0 / float(shadowDistance)) * (spos.z - average_blocker) / average_blocker;
+			float range = (6.0 / float(shadowDistance)) * (spos.z - average_blocker) / average_blocker;
 
 			for (int i = 0; i < 12; i++) {
 				dither = fract(dither + 0.618);
@@ -267,9 +275,7 @@ mat2 rotate(float rad) {
 const bool shadowcolor0MipmapEnabled = true;
 
 vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
-	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return vec3(0.0);
-
-	spos.z = (spos.z - 0.25) * 2.0;
+	if (spos != clamp(spos, vec3(-1.0), vec3(1.0))) return vec3(0.0);
 	
 	vec3 color = vec3(0.0);
 	float dither = fract(bayer_64x64(uv, vec2(viewWidth, viewHeight)) + frameCounter * 0.618);
@@ -277,35 +283,39 @@ vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
 
 	float ang = dither * 3.1415926 * 2.0;
 
-	const float scale = 5.0 / shadowDistance;
+	const float scale = 8.0 / shadowDistance;
 	vec2 circleDistribution = rotate(ang) * vec2(scale);
 	//if (circleDistribution.y < 0.0) circleDistribution.y *= 3.0;
 
 	vec3 snorm = normalize(mat3(shadowProjection) * (mat3(shadowModelView) * wNorm));
 
-	float fade_dist = distance(spos.xy, vec2(0.5));
+	float fade_dist = length(spos.xy);
 	if (fade_dist > 0.6) return vec3(0.0);
 	fade_dist = smoothstep(0.0, 0.6, 0.6 - fade_dist);
 
 	const float inv12 = 1.0 / 8.0;
 	const float bias = 1.0 / shadowDistance;
-	const float attenuation = 5.0 / shadowDistance;
+	const float attenuation = 8.0 / shadowDistance;
 
 	for (int i = 0; i < 8; i++) {
-		vec2 uv = circleDistribution * pow2((i + subdither) * inv12) + spos.st;
-		if (clamp(uv, vec2(0.0), vec2(1.0)) != uv) break;
+		vec2 offset = circleDistribution * pow2((i + subdither) * inv12);
+		vec2 uv = offset + spos.st;
+		if (clamp(uv, vec2(-1.0), vec2(1.0)) != uv) break;
+		uv = shadowpos_distort(vec3(uv, spos.z)).xy;
 
-		float shadowDepth = (texture2D(smap, uv).x - 0.25) * 2.0 - bias;
-		vec3 soffset = vec3(uv, shadowDepth) - spos;
+		float shadowDepth = ((texture2D(smap, uv).x * 2.0 - 1.0) - 0.25) * 2.0;
+		vec3 soffset = vec3(offset, shadowDepth - spos.z);
 		float sdist = dot(soffset, soffset);
 		vec3 nsoffset = soffset / sqrt(sdist);
 
 		vec3 nsample = texture2D(shadowcolor1, uv).xyz * 2.0 - 1.0;
 
-		float factor = max(dot(nsoffset, snorm), 0.0) * max(dot(-nsoffset, nsample), 0.0);
+		float factor = max(dot(nsoffset, snorm) - 0.2, 0.0) * max(dot(-nsoffset, nsample) - 0.2, 0.0);
 
 		if (factor > 0.0)
 			color += texture2DLod(smapColor, uv, 2).rgb * factor * max(0.0, 1.0 - sdist * attenuation);
+		else
+			color *= 0.2;
 	}
 	
 	color *= fade_dist;

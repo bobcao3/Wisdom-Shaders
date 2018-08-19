@@ -65,6 +65,20 @@ void material_sample(out Material mat, in vec2 uv, out float flag) {
 	mat.opaque = color.a;
 }
 
+void material_sample_partial(out Material mat, in vec2 uv, in float depth, out float flag) {
+	vec4 vpos = fetch_vpos(uv, depth);
+	vec3 normal = texture2D(gaux1, uv).rgb;
+	flag = normal.b;
+	normal = normalDecode(normal.rg);
+	vec4 n2 = texture2D(colortex2, uv);
+	material_build(
+		mat,
+		vpos.xyz, (gbufferModelViewInverse * vpos).xyz, normal, normalDecode(n2.rg),
+		vec3(1.0), vec3(0.0), n2.ba
+	);
+	mat.opaque = 1.0;
+}
+
 //==============================================================================
 // Mask
 //==============================================================================
