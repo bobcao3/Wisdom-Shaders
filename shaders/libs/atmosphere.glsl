@@ -22,27 +22,27 @@ const vec3 bR = vec3(33.1e-6, 13.5e-6, 5.8e-6);
 #else
 const float R0 = 6370e3;
 const float Ra = 6470e3;
-float Hr = 12e3;
-float Hm = 4.3e3;
+const float Hr = 10e3;
+const float Hm = 2.6e3;
 
-const vec3 I0 = vec3(2.5);
+const vec3 I0 = vec3(10.0);
 const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
 #endif
 
 #ifdef AT_LSTEP
-const int steps = 8;
+const int steps = 6;
 const int stepss = 2;
 
 const vec3 I = I0;
 #else
 const int steps = 8;
-const int stepss = 4;
+const int stepss = 3;
 
 vec3 I = I0 * (1.0 - cloud_coverage * 0.7);
 #endif
 
 const vec3 C = vec3(0., -R0, 0.);
-const vec3 bM = vec3(21e-6);
+const vec3 bM = vec3(31e-6);
 
 #define CLOUDS_2D
 
@@ -152,7 +152,7 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 		}
 	}
 
-	return I * (R * bR * phaseR + M * bM * phaseM + vec3(0.0001, 0.00017, 0.0003) + 0.3 * vec3(0.005, 0.0055, 0.01) * phaseM_moon * smoothstep(0.05, 0.2, d.y));
+	return I * (R * bR * phaseR + M * bM * phaseM + vec3(0.0001, 0.00017, 0.0003) + (0.5 * vec3(0.005, 0.0055, 0.01)) * phaseM_moon * smoothstep(0.05, 0.2, d.y));
 }
 // ============
 

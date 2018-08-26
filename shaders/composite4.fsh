@@ -1,4 +1,4 @@
-#version 120
+#version 130
 
 /*
  * Copyright 2017 Cheng Cao
@@ -43,11 +43,11 @@ const float weight[7] = float[] (0.02, 0.0606, 0.2417, 0.3829, 0.2417, 0.0606, 0
 #endif
 
 #define BLUR_X(i, abs_i) \
-		c = max(texture2DOffset(colortex0, finalCoord, ivec2(i, -2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; bloom += c; lu += smoothstep(0.01, 0.1, luma(c)); \
-		c = max(texture2DOffset(colortex0, finalCoord, ivec2(i, -1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; bloom += c; lu += smoothstep(0.01, 0.1, luma(c)); \
-		c = max(texture2DOffset(colortex0, finalCoord, ivec2(i,  0)).rgb, vec3(0.0f)) * weight[abs_i] * weight[0]; bloom += c; lu += smoothstep(0.01, 0.1, luma(c)); \
-		c = max(texture2DOffset(colortex0, finalCoord, ivec2(i,  1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; bloom += c; lu += smoothstep(0.01, 0.1, luma(c)); \
-		c = max(texture2DOffset(colortex0, finalCoord, ivec2(i,  2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; bloom += c; lu += smoothstep(0.01, 0.1, luma(c));
+		c = max(textureOffset(colortex0, finalCoord, ivec2(i, -2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; bloom += c; lu += luma(c); \
+		c = max(textureOffset(colortex0, finalCoord, ivec2(i, -1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; bloom += c; lu += luma(c); \
+		c = max(textureOffset(colortex0, finalCoord, ivec2(i,  0)).rgb, vec3(0.0f)) * weight[abs_i] * weight[0]; bloom += c; lu += luma(c); \
+		c = max(textureOffset(colortex0, finalCoord, ivec2(i,  1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; bloom += c; lu += luma(c); \
+		c = max(textureOffset(colortex0, finalCoord, ivec2(i,  2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; bloom += c; lu += luma(c);
 
 vec4 LODblur(in float LOD, in vec2 offset) {
 	float scale = exp2(LOD);

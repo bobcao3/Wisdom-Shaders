@@ -130,25 +130,24 @@ vec4 texture_Bicubic(sampler2D tex, vec2 uv)
 
 #define DIRTY_LENS
 
-vec3 bloom(inout vec3 c, in vec2 uv, out vec3 rawblur) {
+vec3 bloom(inout vec3 c, in vec2 uv, float sensitivity, out vec3 rawblur) {
 	vec2 tex = uv * 0.25;
 	vec2 pix_offset = vec2(-.5, -.5) / vec2(viewWidth, viewHeight);
-	vec4 color = texture_Bicubic(colortex0, tex - pix_offset);
-	tex = uv * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.03f);
-	color += texture_Bicubic(colortex0, tex - pix_offset);
-	tex = uv * 0.0625 + vec2(0.125f, 0.25f) + vec2(0.030f, 0.03f);
-	color += texture_Bicubic(colortex0, tex - pix_offset);
-	tex = uv * 0.03125 + vec2(0.1875f, 0.25f) + vec2(0.060f, 0.03f);
-	color += texture_Bicubic(colortex0, tex - pix_offset);
-	tex = uv * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.090f, 0.03f);
-	color += texture_Bicubic(colortex0, tex - pix_offset);
+	vec3 color = vec3(0.0);
+	vec4 s0 = texture_Bicubic(colortex0, tex - pix_offset);
+	    tex = uv * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.03f);
+	vec4 s1 = texture_Bicubic(colortex0, tex - pix_offset);
+	    tex = uv * 0.0625 + vec2(0.125f, 0.25f) + vec2(0.030f, 0.03f);
+	vec4 s2 = texture_Bicubic(colortex0, tex - pix_offset);
+	    tex = uv * 0.03125 + vec2(0.1875f, 0.25f) + vec2(0.060f, 0.03f);
+	vec4 s3 = texture_Bicubic(colortex0, tex - pix_offset);
+	    tex = uv * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.090f, 0.03f);
+	vec4 s4 = texture_Bicubic(colortex0, tex - pix_offset);
 
-	color *= 0.1;
+	rawblur = (s0.rgb + s1.rgb + s2.rgb + s3.rgb + s4.rgb) * 0.2;
 
-	rawblur = color.rgb;
-
-	float l = luma(color.rgb);
-	color.rgb *= color.a;
+	//float l = luma(color.rgb);
+	color = (s0.rgb * s0.a + s1.rgb * s1.a + s2.rgb * s2.a + s3.rgb * s3.a + s4.rgb * s4.a) * 0.2;
 
 	// Dirty lens
 	#ifdef DIRTY_LENS
@@ -165,11 +164,11 @@ vec3 bloom(inout vec3 c, in vec2 uv, out vec3 rawblur) {
 		float col = smoothstep(0.2, 0.6, lh);
 
 		vec3 lens = texture_Bicubic(gaux3, uv).rgb;
-		c = mix(c, mix(color.rgb, color_huge * lens, 0.7), lens * col);
+		c = mix(c, mix(color, color_huge * lens, 0.7), lens * col);
 	}
 	#endif
 
-	return color.rgb;
+	return color;
 }
 #endif
 

@@ -76,7 +76,7 @@ void main() {
 
       #ifdef CrespecularRays
       // Blur and collect scattering    
-      color += texture2D(gaux4, project_skybox2uv(nwpos)).rgb * scatteram;
+      color += scatter(vec3(0., 60e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, R0 + (Ra - R0) * fog_coord) * scatteram;
       #else
       color += texture2D(gaux4, project_skybox2uv(nwpos)).rgb * fog_coord;
       #endif

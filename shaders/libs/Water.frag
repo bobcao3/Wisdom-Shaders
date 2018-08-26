@@ -49,7 +49,7 @@ float getwave(vec3 p, in float lod) {
 	float d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY; i++) {
 		d = sea_octave_micro((fuv+wave_speed * vec2(0.1, 0.9))*freq,choppy);
-		h += d * amp;
+		h += d * amp * mix(lod, 1.0, float(i) * 0.25);
 		fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= 0.5;
 		choppy = mix(choppy,1.0,0.2);
 	}
@@ -68,12 +68,12 @@ float getwave2(vec3 p, in float lod) {
 	float d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY2; i++) {
 		d = sea_octave_micro((fuv+wave_speed * vec2(0.1, 0.9))*freq,choppy);
-		h += d * amp;
+		h += d * amp * mix(lod, 1.0, float(i) * 0.25);
 		fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= 0.5;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
-	return (h * rcp_total_height - SEA_HEIGHT) * lod;
+	return (h * rcp_total_height - SEA_HEIGHT);
 }
 
 vec3 get_water_normal(in vec3 wwpos, in float lod, in vec3 N, in vec3 T, in vec3 B) {

@@ -175,6 +175,8 @@ void main() {
 	vec4 t = texture2D(texture, texcoord_adj) * vec4(color.rgb, 1.0);
 	#endif
 
+	if (t.a < 0.1) discard;
+
 	#ifndef WAO
 	t.rgb *= fma(color.a, 0.5, 0.5);
 	#endif
@@ -193,7 +195,7 @@ void main() {
 	#ifdef CONTINUUM2_TEXTURE_FORMAT
 	gl_FragData[1] = vec4(texture2D(specular, texcoord_adj).brg, 1.0);
 	#else
-	gl_FragData[1] = vec4(texture2D(specular, texcoord_adj).rgb, 1.0);
+	gl_FragData[1] = vec4(texture2D(specular, texcoord_adj).rgb * max(0.0, t.a * 1.3 - 0.3), 1.0);
 	#endif
 	#endif
 

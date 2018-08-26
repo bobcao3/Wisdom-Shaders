@@ -15,7 +15,7 @@
  */
 
 const float gamma = 2.2f;
-const float agamma = 0.74 / 2.2f;
+const float agamma = 0.7 / 2.2f;
 
 vec3 fromGamma(vec3 c) {
   return pow(c, vec3(gamma));

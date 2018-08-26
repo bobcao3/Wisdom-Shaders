@@ -51,7 +51,7 @@ vec3 light_calc_diffuse_harmonics(LightSourceHarmonics Li, Material mat, vec3 N)
 }
 
 float light_mclightmap_attenuation(in float lm) {
-	float falloff = 7.0;
+	float falloff = 5.0;
 
 	lm = exp(-(1.0 - lm) * falloff);
 	lm = max(0.0, lm - exp(-falloff));
@@ -170,9 +170,9 @@ float light_fetch_shadow(in sampler2D smap, in vec3 spos, out float thickness, o
 
 	if (spos != clamp(spos, vec3(0.0), vec3(1.0))) return shade;
 	
-	const float bias_pix = 0.0005;
-	vec2 bias_offcenter = spos.xy * 2.0 - 1.0;
-	float bias = length(bias_offcenter) * bias_pix + shadowPixSize.x * pix_bias;
+	const float bias_pix = 0.002;
+	vec2 bias_offcenter = abs((spos.xy - vec2(0.5)) * 2.0);
+	float bias = pow2(max(bias_offcenter.x, bias_offcenter.y)) * bias_pix + shadowPixSize.x * pix_bias;
 
 	#ifdef SHADOW_FILTER
 		// PCSS - step 1 - find blockers
@@ -310,12 +310,12 @@ vec3 calcGI(sampler2D smap, sampler2D smapColor, in vec3 spos, in vec3 wNorm) {
 
 		vec3 nsample = texture2D(shadowcolor1, uv).xyz * 2.0 - 1.0;
 
-		float factor = max(dot(nsoffset, snorm) - 0.2, 0.0) * max(dot(-nsoffset, nsample) - 0.2, 0.0);
+		float factor = max(dot(nsoffset, snorm) - 0.1, 0.0) * max(dot(-nsoffset, nsample) - 0.1, 0.0);
 
 		if (factor > 0.0)
 			color += texture2DLod(smapColor, uv, 2).rgb * factor * max(0.0, 1.0 - sdist * attenuation);
-		else
-			color *= 0.2;
+	//	else
+	//		color *= 0.6;
 	}
 	
 	color *= fade_dist;
@@ -390,7 +390,7 @@ vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceTh
 	kD *= 1.0 - mat.metalic;
 
 	vec3 nominator = NDF * G * F;
-	float denominator =  4 * NdotV * NdotL + 0.001;
+	float denominator =  4 * NdotV * NdotL + 0.01;
 	vec3 specular = nominator / denominator;
 
 	return (kD / PI * mat.albedo + specular) * radiance;
@@ -412,7 +412,7 @@ vec3 light_calc_PBR_brdf(LightSourcePBR Li, Material mat) {
 	vec3 F = light_PBR_fresnelSchlickRoughness(Positive(dot(H, -mat.nvpos)), F0, mat.roughness);
 
 	vec3 nominator = NDF * G * F;
-	float denominator =  4 * NdotV * NdotL + 0.001;
+	float denominator =  4 * NdotV * NdotL + 0.01;
 	vec3 specular = nominator / denominator;
 
 	return specular * radiance;

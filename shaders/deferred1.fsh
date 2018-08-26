@@ -42,8 +42,6 @@ uniform sampler2D shadowcolor0;
 #include "libs/noise.glsl"
 #include "libs/Lighting.frag"
 
-const bool colortex3Clear = false;
-
 Mask mask;
 Material frag;
 
@@ -79,15 +77,16 @@ void main() {
     vec4 prev_color = texture2D(colortex3, prev_uv);
 
     weight *= max(0.0, 1.0 - distance(linearizeDepth(prev_color.a), linearizeDepth(fma(prev_pos.z, 0.5, 0.5))) * far * 2.0);
+    prev_color.rgb = clamp(vec3(0.0), vec3(1.0), prev_color.rgb);
 
-    gi = mix(gi, texture2D(colortex3, prev_uv).rgb, weight);
+    gi = mix(gi, prev_color.rgb, weight);
   	#endif
   }
 
 /* DRAWBUFFERS:536 */
   gl_FragData[0] = vec4(color, 0.0);
   #ifdef GI
-  gl_FragData[1] = vec4(gi, texture2D(depthtex0, uv).r);
+  gl_FragData[1] = vec4(0.0);
   gl_FragData[2] = vec4(gi, 0.0);
   #endif
 }

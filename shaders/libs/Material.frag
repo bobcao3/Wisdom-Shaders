@@ -44,8 +44,8 @@ void material_build(
 	mat.cdepth = length(vpos);
 	mat.cdepthN = length(vpos) / far;
 
-	mat.roughness = clamp(1.0 - specular.r, 0.0001f, 0.9999f);
-	mat.metalic = clamp(specular.g, 0.0001f, 0.9999f);
+	mat.roughness = clamp(1.0 - specular.r, 0.01f, 0.99f);
+	mat.metalic = clamp(specular.g, 0.01f, 0.95f);
 	mat.emmisive = specular.b;
 }
 

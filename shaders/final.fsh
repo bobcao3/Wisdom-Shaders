@@ -22,7 +22,7 @@ varying vec2 uv;
 
 const int RGBA8 = 0, RGBA16F = 1, RGB16 = 2, RGBA32F = 3, RGBA16 = 4, RGB8 = 5;
 
-const int colortex0Format = RGBA16;
+const int colortex0Format = RGBA16F;
 const int colortex1Format = RGBA8;
 const int colortex2Format = RGBA16;
 const int colortex3Format = RGBA32F;
@@ -100,11 +100,12 @@ void main() {
 	}
 	#endif
 
-	float exposure = 4.0 / (eyeBrightnessSmooth.y / 240.0 * luma(sunLight) * 0.4 + 0.7);
-
 	#ifdef BLOOM
+	float lcenter = luma(texture2D(colortex0, vec2(0.5) * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.03f)).rgb);
+	float exposure = 1.0 / (lcenter + 1.0) + max(0.0, 1.0 - eyeBrightnessSmooth.y / 240.0 * luma(sunLight));
+
 	vec3 rawB;
-	vec3 b = bloom(color, uv_adj, rawB);
+	vec3 b = bloom(color, uv_adj, lcenter, rawB);
 
 	#ifdef RAIN_SCATTER
 	float fog_coord = min(length(frag.wpos) / 90.0, 1.0) * smoothstep(10.0, 40.0, eyeBrightnessSmooth.y);
@@ -120,6 +121,8 @@ void main() {
 	color += max(vec3(0.0), b) * exposure;
 	#endif
 	
+	#else
+	float exposure = 2.0 / (eyeBrightnessSmooth.y / 240.0 * luma(sunLight) + 0.7);
 	#endif
 
 	#ifdef NOISE_AND_GRAIN

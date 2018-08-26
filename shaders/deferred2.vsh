@@ -45,7 +45,7 @@ varying vec3 worldLightPosition;
 
 void functions() {
 	worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
-	float f = pow(max(abs(worldLightPosition.y), 0.0), 1.5) * 5.0;
+	float f = pow(max(abs(worldLightPosition.y), 0.0), 1.5);
 	sunraw = texture2D(gaux4, project_skybox2uv(worldLightPosition)).rgb * (1.0 - cloud_coverage * 0.9);
 	sunLight = (sunraw) * f * vec3(1.2311, 1.0, 0.8286);
 
@@ -56,7 +56,7 @@ void functions() {
 	ambient3 = texture2D(gaux4, vec2(0.375,0.03293)).rgb;
 	ambientD = (ambientU + ambient0 + ambient1 + ambient2 + ambient3) * 0.2;
 
-	ambientU_noC = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra) * 0.8;
+	ambientU_noC = scatter(vec3(0., 25e2, 0.), vec3( 0.0,  1.0,  0.0), worldLightPosition, Ra);
 }
 
 #define Functions

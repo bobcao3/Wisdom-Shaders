@@ -37,6 +37,8 @@ varying vec2 uv;
 
 const bool gaux4MipmapEnabled = true;
 
+const bool colortex3Clear = false;
+
 Mask mask;
 Material frag;
 //LightSourcePBR sun;
@@ -51,6 +53,7 @@ void main() {
   material_sample(frag, uv, flag);
 
   init_mask(mask, flag, uv);
+  vec3 gi = vec3(0.0);
 
   vec3 worldLightPosition = mat3(gbufferModelViewInverse) * normalize(sunPosition);
 
@@ -74,7 +77,6 @@ void main() {
 
     //#define GI_DEBUG
   	#ifdef GI
-  	vec3 gi = vec3(0.0);
     float weight = 0.0;
 
     vec3 c_center = texture2D(colortex3, uv).rgb;
@@ -97,7 +99,7 @@ void main() {
 
     gi /= weight;
 
-    const float gi_strength = 1.0; // [0.5 1.0 2.0]
+    const float gi_strength = 0.5; // [0.25 0.5 1.0]
 
     #ifdef GI_DEBUG
 	  color = gi * gi_strength;

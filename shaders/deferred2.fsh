@@ -108,7 +108,7 @@ void main() {
     #endif
 
     float far_shadow_weight = smoothstep(shadowDistance - 16.0, shadowDistance, frag.cdepth);
-    thickness = mix(thickness, 1.0, far_shadow_weight);
+    thickness = mix(thickness, 1.0, smoothstep(shadowDistance * 0.5, shadowDistance * 0.9, frag.cdepth));
     #ifdef FAR_SHADOW_APPROXIMATION
     shade = mix(shade, max(1.0 - smoothstep(0.9, 0.95, frag.skylight), 1.0 - ao), far_shadow_weight);
     #endif
@@ -128,9 +128,9 @@ void main() {
     ambient.color4 = ambient3 * ao;
     ambient.color5 = ambientD * ao;
 
-    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 0.2;
-  	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.15;
-    const vec3 torch_warm = vec3(1.2311, 0.7, 0.4286) * 0.2;
+    const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 1.0;
+  	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 1.0;
+    const vec3 torch_warm = vec3(1.2311, 0.7, 0.4286) * 1.2;
   	//#define WHITE_LIGHT
     //#define WARM_LIGHT
     #define TORCH_LIGHT
@@ -203,12 +203,14 @@ void main() {
 	  color = vec3(ao);
 	  #endif
 	
-    color = mix(color, frag.albedo * 0.5, frag.emmisive);
+    color = mix(color, frag.albedo, frag.emmisive);
 
     //#define SSS_DEBUG
     #ifdef SSS_DEBUG
     color = vec3(sun.light.attenuation);
     #endif
+
+    //color = vec3(sun.light.color * 0.25);
   } else {
     vec3 nwpos = normalize(frag.wpos);
     vec3 skybox = texture2D(colortex0, uv).rgb * 0.5;
@@ -230,12 +232,13 @@ void main() {
     color += skybox * smoothstep(0.1, 0.2, nwpos.y);
     #endif
     
-    color += sunraw * 5.0 * smoothstep(0.9998, 0.9999, mu_s) * horizon_mask;
+    color += sunraw * 3.0 * smoothstep(0.9998, 0.9999, mu_s) * horizon_mask;
   }
 
-/* DRAWBUFFERS:56 */
+/* DRAWBUFFERS:536 */
   gl_FragData[0] = vec4(color, 0.0);
   #ifdef GI
-  gl_FragData[1] = vec4(gi, 0.0);
+  gl_FragData[1] = vec4(texture2D(gaux3, uv).rgb, 0.0);
+  gl_FragData[2] = vec4(gi, texture2D(depthtex0, uv).r);
   #endif
 }

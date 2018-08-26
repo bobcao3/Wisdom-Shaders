@@ -217,7 +217,7 @@ void main() {
 		ambient.attenuation = light_mclightmap_simulated_GI(lmcoord.y);
 	    ambient.color = ambientU;
 
-		color.rgb = light_calc_PBR(sun, frag, 1.0, false) + light_calc_diffuse(ambient, frag);
+		color.rgb = light_calc_diffuse(ambient, frag);
 	}
 
 	#define WATER_IBL
@@ -249,9 +249,10 @@ void main() {
 
 	if (isEyeInWater == 1) color.rgb = mix(color.rgb, watermixcolor.rgb, watermixcolor.a);
 
+	color.rgb += light_calc_PBR_brdf(sun, frag);
+
 	// PBR lighting (Diffuse + brdf)
 	if (maskFlag(data, waterFlag)) {
-		color.rgb += light_calc_PBR_brdf(sun, frag);
 		color.a = 1.0;
 	}
 

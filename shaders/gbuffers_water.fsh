@@ -115,7 +115,7 @@ void main() {
 		material_build(
 			frag,
 			vpos, wpos, N, N,
-			vec3(1.0), vec3(0.97,0.002,0.0), lmcoord);
+			vec3(1.0), vec3(0.9,0.002,0.0), lmcoord);
 
 		// Waving water & parallax
 		#ifdef WATER_PARALLAX
@@ -163,13 +163,13 @@ void main() {
 
 		float absorption = pow2(2.0 / (dist_diff_N + 1.0) - 1.0);     // Water absorption factor
 		float scatter_in = (abs(dot(lightPosition, N)) * 0.8 + 0.2);  // Scatter-in factor
-		vec3 watercolor = color.rgb * glcolor
+		vec3 watercolor = color.rgb
 		   * pow(vec3(absorption), vec3(3.0, 0.8, 1.0))         // Water absorption color
 		   * scatter_in;
 		float light_att = (isEyeInWater == 1) ? float(eyeBrightnessSmooth.y) / 240.0 : lmcoord.y;
 
 		const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.01;
-		vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * (waterfogcolor * glcolor);
+		vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * (waterfogcolor);
 
 		if (total_refra) watercolor = waterfog * light_att;
     #ifdef REFRACTION
@@ -201,7 +201,7 @@ void main() {
 		material_build(
 			frag,
 			vpos, wpos, N, N,
-			color.rgb, vec3(0.9,0.3,0.0), lmcoord);
+			color.rgb, vec3(0.8,0.5,0.0), lmcoord);
 	}
 
 	// Setup Sun object
@@ -235,7 +235,7 @@ void main() {
 		#endif
 	    torch.attenuation = light_mclightmap_attenuation(lmcoord.x);
 
-		color.rgb = light_calc_PBR(sun, frag, 1.0, false) + light_calc_diffuse(ambient, frag) + light_calc_diffuse(torch, frag);
+		color.rgb = light_calc_diffuse(ambient, frag) + light_calc_diffuse(torch, frag);
 	}
 
 	#define WATER_IBL
@@ -247,9 +247,9 @@ void main() {
 
 	vec4 ray_traced = vec4(0.0);
 	vec3 skybox = texture2D(gaux4, project_skybox2uv(reflected)).rgb * pow3(lmcoord.y);
-	if (maskFlag(data, waterFlag)) {
-		skybox = mix(skybox, watermixcolor.rgb, (1.0 - smoothstep(0.0, 0.1, reflected.y + 0.05)) * worldN.y);
-	}
+	//if (maskFlag(data, waterFlag)) {
+	//	skybox = mix(skybox, watermixcolor.rgb, (1.0 - smoothstep(0.0, 0.1, reflected.y + 0.05)) * worldN.y);
+	//}
 	#ifdef SSR
 	if (dot(reflectedV, N) > 0.0) {
 		ray_traced = ray_trace_ssr(reflectedV, frag.vpos, frag.metalic, gaux3, N);
@@ -270,9 +270,10 @@ void main() {
 
 	if (isEyeInWater == 1) color.rgb = mix(color.rgb, watermixcolor.rgb, watermixcolor.a);
 
+	color.rgb += light_calc_PBR_brdf(sun, frag);
+
 	// PBR lighting (Diffuse + brdf)
 	if (maskFlag(data, waterFlag)) {
-		color.rgb += light_calc_PBR_brdf(sun, frag);
 		color.a = 1.0;
 	}
 

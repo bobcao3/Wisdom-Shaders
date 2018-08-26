@@ -57,7 +57,7 @@ void main() {
     color += (luma(ambientU) + sunraw * phaseM * 0.2) * cmie;
     #endif
     
-    color += sunraw * 20.0 * step(0.9997, mu_s) * horizon_mask;
+    color += sunraw * 7.0 * step(0.9997, mu_s) * horizon_mask;
   }
 
 /* DRAWBUFFERS:7 */

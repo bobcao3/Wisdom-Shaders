@@ -1,4 +1,4 @@
-#version 120
+#version 130
 
 /*
  * Copyright 2017 Cheng Cao
@@ -51,13 +51,13 @@ const float weight[7] = float[] (0.02, 0.0606, 0.2417, 0.3829, 0.2417, 0.0606, 0
 #endif
 
 #define BLUR_X(i, abs_i) \
-		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i, -3)).rgb, vec3(0.0f)) * weight[abs_i] * weight[3]; \
-		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i, -2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; \
-		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i, -1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; \
-		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i,  0)).rgb, vec3(0.0f)) * weight[abs_i] * weight[0]; \
-		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i,  1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; \
-		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i,  2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; \
-		bloom += max(texture2DOffset(gaux2, finalCoord, ivec2(i,  3)).rgb, vec3(0.0f)) * weight[abs_i] * weight[3];
+		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i, -3)).rgb, vec3(0.0f)) * weight[abs_i] * weight[3]; \
+		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i, -2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; \
+		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i, -1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; \
+		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i,  0)).rgb, vec3(0.0f)) * weight[abs_i] * weight[0]; \
+		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i,  1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; \
+		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i,  2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; \
+		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i,  3)).rgb, vec3(0.0f)) * weight[abs_i] * weight[3];
 
 vec3 LODblur(const float LOD, const vec2 offset) {
 	float scale = exp2(LOD);
@@ -88,6 +88,6 @@ void main() {
 	if (uv.y < 0.25 + padding && uv.x < 0.25 + padding) {
 		blur = LODblur(2.0, vec2(0.0f));
 	}
-	gl_FragData[0] = vec4(blur, 1.0);
+	gl_FragData[0] = vec4(blur, luma(blur));
 	#endif
 }
