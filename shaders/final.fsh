@@ -116,9 +116,9 @@ void main() {
 
 	//#define BLOOM_DEBUG
 	#ifdef BLOOM_DEBUG
-	color = max(vec3(0.0), b) * exposure;
+	color = b * exposure;
 	#else
-	color += max(vec3(0.0), b) * exposure;
+	color += b * exposure;
 	#endif
 	
 	#else

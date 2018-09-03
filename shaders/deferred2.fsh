@@ -218,7 +218,7 @@ void main() {
     float mu_s = dot(nwpos, worldLightPosition);
     float mu = abs(mu_s);
 
-    color += scatter(vec3(0., 60e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
+    color += scatter(vec3(0., 1e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
     float horizon_mask = smoothstep(0.05, 0.14, luma(color));
     
     #ifdef CLOUDS_2D

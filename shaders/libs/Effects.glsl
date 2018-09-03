@@ -146,8 +146,7 @@ vec3 bloom(inout vec3 c, in vec2 uv, float sensitivity, out vec3 rawblur) {
 
 	rawblur = (s0.rgb + s1.rgb + s2.rgb + s3.rgb + s4.rgb) * 0.2;
 
-	//float l = luma(color.rgb);
-	color = (s0.rgb * s0.a + s1.rgb * s1.a + s2.rgb * s2.a + s3.rgb * s3.a + s4.rgb * s4.a) * 0.2;
+	color = (s0.rgb * s0.a + s1.rgb * s1.a + s2.rgb * s2.a + s3.rgb * s3.a + s4.rgb * s4.a) * 0.1;
 
 	// Dirty lens
 	#ifdef DIRTY_LENS
@@ -157,7 +156,7 @@ vec3 bloom(inout vec3 c, in vec2 uv, float sensitivity, out vec3 rawblur) {
 	tex = ext_tex * 0.015625 + vec2(0.21875f, 0.25f) + vec2(0.090f, 0.03f);
 	color_huge += texture_Bicubic(colortex0, tex - pix_offset).rgb;
 
-	float lh = luma(color_huge);
+	float lh = luma(color_huge) * 0.5;
 	if (lh > 0.2) {
 		vec2 uv = uv;
 		uv.y = uv.y / viewWidth * viewHeight;
@@ -167,8 +166,8 @@ vec3 bloom(inout vec3 c, in vec2 uv, float sensitivity, out vec3 rawblur) {
 		c = mix(c, mix(color, color_huge * lens, 0.7), lens * col);
 	}
 	#endif
-
-	return color;
+	
+	return color * 0.2;
 }
 #endif
 

@@ -48,6 +48,8 @@ varying vec3 worldLightPosition;
 
 varying vec3 glcolor;
 
+uniform vec3 fogColor;
+
 #define WATER_PARALLAX
 #ifdef WATER_PARALLAX
 varying vec3 tangentpos;
@@ -166,18 +168,20 @@ void main() {
 		vec3 watercolor = color.rgb
 		   * pow(vec3(absorption), vec3(3.0, 0.8, 1.0))         // Water absorption color
 		   * scatter_in;
-		float light_att = (isEyeInWater == 1) ? float(eyeBrightnessSmooth.y) / 240.0 : lmcoord.y;
+		float light_att = (isEyeInWater == 1) ? luma(fogColor) * 2.0 : lmcoord.y;
 
-		const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.01;
-		vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * (waterfogcolor);
+		const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.005;
+		vec3 waterfog = (luma(sunLight) * light_att) * (waterfogcolor);
 
 		if (total_refra) watercolor = waterfog * light_att;
-    #ifdef REFRACTION
-		if (isEyeInWater == 1) watercolor = mix(watercolor, waterfog * light_att, 1.0 - refraction_index);
-    #endif
 
 		// Refraction color composite
+	    #ifdef REFRACTION
+		color = (isEyeInWater == 1) ? vec4(mix(watercolor, waterfog * light_att, 1.0 - refraction_index), 1.0) : vec4(mix(waterfog, watercolor, absorption), 1.0);
+    	#else
 		color = (isEyeInWater == 1) ? vec4(watercolor, 1.0) : vec4(mix(waterfog, watercolor, absorption), 1.0);
+		#endif
+
 		watermixcolor = vec4(waterfog, 1.0 - absorption);
 
 		// Parallax cut-out (depth test)

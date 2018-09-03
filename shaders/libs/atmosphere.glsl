@@ -21,9 +21,9 @@ const vec3 I0 = vec3(1.6);
 const vec3 bR = vec3(33.1e-6, 13.5e-6, 5.8e-6);
 #else
 const float R0 = 6370e3;
-const float Ra = 6470e3;
+const float Ra = 6425e3;
 const float Hr = 10e3;
-const float Hm = 2.6e3;
+const float Hm = 2.7e3;
 
 const vec3 I0 = vec3(10.0);
 const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
@@ -104,7 +104,7 @@ float escape(in vec3 p, in vec3 d, in float R) {
 
 // this can be explained: http://www.scratchapixel.com/lessons/3d-advanced-lessons/simulating-the-colors-of-the-sky/atmospheric-scattering/
 vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
-	if (d.y < 0.0) d.y = 0.0025 / (-d.y + 0.05) - 0.05;
+	if (d.y < 0.0) d.y = 0.0009 / (-d.y + 0.03) - 0.03;
 
 	float L = min(l, escape(o, d, Ra));
 	float mu = dot(d, Ds);
@@ -113,6 +113,7 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 	float phaseM = .1193662 * (1. - g2) * opmu2;
 	float phaseM_moon = phaseM / ((2. + g2) * pow(1. + g2 + 2.*g*mu, 1.5));
 	phaseM /= ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
+	phaseM_moon *= max(0.5, l / 200e3);
 
 	vec2 depth = vec2(0.0);
 	vec3 R = vec3(0.), M = vec3(0.);
@@ -121,7 +122,7 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 
 	for (int i = 0; i < steps; ++i) {
 		float dl = u0 * exp2(i);
-		float l = - u0 * (1 - exp2(i + 1));
+		float l = - u0 * (1.0 - exp2(i + 1));
 		vec3 p = o + d * l;
 
 		vec2 des;
@@ -152,7 +153,7 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 		}
 	}
 
-	return I * (R * bR * phaseR + M * bM * phaseM + vec3(0.0001, 0.00017, 0.0003) + (0.5 * vec3(0.005, 0.0055, 0.01)) * phaseM_moon * smoothstep(0.05, 0.2, d.y));
+	return I * (R * bR * phaseR + M * bM * phaseM + vec3(0.0001, 0.00017, 0.0003) + (0.02 * vec3(0.005, 0.0055, 0.01)) * phaseM_moon * smoothstep(0.05, 0.2, d.y));
 }
 // ============
 

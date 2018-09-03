@@ -49,6 +49,8 @@ varying vec3 worldLightPosition;
 
 const bool colortex0MipmapEnabled = true;
 
+uniform vec3 fogColor;
+
 void main() {
   vec3 color = texture2D(gaux2, uv).rgb;
 
@@ -70,13 +72,13 @@ void main() {
   if (isEyeInWater == 0) {
     if (!mask.is_sky || frag.cdepthN < 0.999) {
       float fog_coord = min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0);
-      color *= 1.0 - fog_coord * 0.8;
+      color *= 1.0 - fog_coord * 0.9;
 
       vec3 nwpos = normalize(frag.wpos);
 
       #ifdef CrespecularRays
       // Blur and collect scattering    
-      color += scatter(vec3(0., 60e2 + cameraPosition.y, 0.), nwpos, worldLightPosition, R0 + (Ra - R0) * fog_coord) * scatteram;
+      color += scatter(vec3(0., 1e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, 85e3 * scatteram);
       #else
       color += texture2D(gaux4, project_skybox2uv(nwpos)).rgb * fog_coord;
       #endif
@@ -84,7 +86,7 @@ void main() {
       color *= scatteram;
     }
   } else {
-    const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.01;
+    const vec3 waterfogcolor = vec3(0.1,0.511,0.694) * 0.005;
     if (isEyeInWater == 1 && !mask.is_water) {
       float dist_diff_N = min(1.0, frag.cdepth * 0.03125);             // Distance clamped (0.0 ~ 1.0)
   
@@ -97,14 +99,14 @@ void main() {
   		vec3 watercolor = color.rgb
 	  	   * pow(vec3(absorption), vec3(3.0, 0.8, 1.0))         // Water absorption color
 	  	   * scatter_in;
-		  float light_att = float(eyeBrightnessSmooth.y) / 240.0;
+		  float light_att = luma(fogColor) * 2.0;
 
-		  vec3 waterfog = (max(luma(sunLight), 0.0) * light_att) * waterfogcolor;
+		  vec3 waterfog = (luma(sunLight) * light_att) * waterfogcolor;
 
       color = mix(waterfog, watercolor, absorption);
     }
 
-    color += scatteram * sunLight * waterfogcolor;
+    color += smoothstep(0.0, 0.1, scatteram) * sunLight * waterfogcolor * 0.5;
   }
 
 /* DRAWBUFFERS:5 */
