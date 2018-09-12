@@ -75,10 +75,14 @@ vec3 shadowpos_transform(in vec3 wpos) {
 	return shadowposition.xyz;
 }
 
+float logistics(float x) {
+	return pow(2.0 / (1.0 + exp(-3.0*x)) - 1.0, 0.7);
+}
+
 vec3 shadowpos_distort(in vec3 shadowposition) {
 	float distb = length(shadowposition.xy);
-	float distortFactor = negShadowBias + distb * SHADOW_MAP_BIAS;
-	shadowposition.xy /= distortFactor;
+	shadowposition.xy /= distb;
+	shadowposition.xy *= logistics(distb);
 
 	shadowposition.z = shadowposition.z * 0.5 + 0.25;
 

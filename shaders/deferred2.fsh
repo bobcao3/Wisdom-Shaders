@@ -91,7 +91,8 @@ void main() {
 
     float thickness = 1.0, shade = 0.0;
     vec3 scolor;
-    shade = light_fetch_shadow(shadowtex1, wpos2shadowpos(frag.wpos), thickness, scolor, (1.0 - max(0.0, dot(frag.N, lightPosition))) * 0.5);
+    vec3 spos = wpos2shadowpos(frag.wpos + wN * 0.07);
+    shade = light_fetch_shadow(shadowtex1, spos, thickness, scolor, (1.0 - max(0.0, dot(frag.N, lightPosition))) * 0.5 + 0.05);
     sun.light.color *= scolor;
 
     float ao = 1.0;
@@ -107,7 +108,7 @@ void main() {
     #endif
     #endif
 
-    float far_shadow_weight = smoothstep(shadowDistance - 16.0, shadowDistance, frag.cdepth);
+    float far_shadow_weight = smoothstep(shadowDistance * 2.0 - 32.0, shadowDistance * 2.0, frag.cdepth);
     thickness = mix(thickness, 1.0, smoothstep(shadowDistance * 0.5, shadowDistance * 0.9, frag.cdepth));
     #ifdef FAR_SHADOW_APPROXIMATION
     shade = mix(shade, max(1.0 - smoothstep(0.9, 0.95, frag.skylight), 1.0 - ao), far_shadow_weight);
@@ -218,7 +219,7 @@ void main() {
     float mu_s = dot(nwpos, worldLightPosition);
     float mu = abs(mu_s);
 
-    color += scatter(vec3(0., 1e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
+    color += scatter(vec3(0., 2e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, Ra);
     float horizon_mask = smoothstep(0.05, 0.14, luma(color));
     
     #ifdef CLOUDS_2D

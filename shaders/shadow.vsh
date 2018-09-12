@@ -52,6 +52,10 @@ float hash(vec2 p) {
 }
 #endif
 
+float logistics(float x) {
+	return pow(2.0 / (1.0 + exp(-3.0*x)) - 1.0, 0.7);
+}
+
 void main() {
 	vec4 position = gl_Vertex;
 	color = gl_Color.rgb * (gl_TextureMatrix[1] *  gl_MultiTexCoord1).y;
@@ -73,7 +77,8 @@ void main() {
 
 	float l = length(position.xy);
 
-	position.xy /= fma(l, SHADOW_MAP_BIAS, negShadowBias);
+	position.xy /= l;
+	position.xy *= logistics(l);//fma(l, SHADOW_MAP_BIAS, negShadowBias);
 
 	position.z = position.z * 0.5 + 0.25;
 

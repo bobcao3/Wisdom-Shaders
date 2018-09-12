@@ -104,7 +104,7 @@ float escape(in vec3 p, in vec3 d, in float R) {
 
 // this can be explained: http://www.scratchapixel.com/lessons/3d-advanced-lessons/simulating-the-colors-of-the-sky/atmospheric-scattering/
 vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
-	if (d.y < 0.0) d.y = 0.0009 / (-d.y + 0.03) - 0.03;
+	if (d.y < 0.0) d.y = 0.0016 / (-d.y + 0.04) - 0.04;
 
 	float L = min(l, escape(o, d, Ra));
 	float mu = dot(d, Ds);
@@ -157,6 +157,20 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 }
 // ============
 
+float groundFogH(in float d, in float h, in vec3 rayDir) {
+	const float b = 1.0;
+	const float c = 1.0;
+	float y = rayDir.y;
+	return clamp(0.0, 1.0, c * exp(-h*b) * (1.0-exp( -y*b ))/y);
+}
+
+float groundFog(in float d, in float h, in vec3 rayDir) {
+	const float b = 1.0;
+	const float c = 1.0;
+	float y = rayDir.y;//sign(rayDir.y) * max(abs(rayDir.y), 0.00002);
+	return clamp(0.0, 1.0, c * exp(-h*b) * (1.0-exp( -d*y*b ))/y);
+}
+
 #ifdef CrespecularRays
 
 #ifdef HIGH_QUALITY_Crespecular
@@ -172,7 +186,7 @@ float VL(vec2 uv, vec3 owpos, out float vl, vec3 wL) {
 	float adj_depth = length(adj_owpos);
 
 	vec3 swpos = owpos;
-	float step_length = min(shadowDistance, adj_depth) / vl_steps;
+	float step_length = min(shadowDistance * 1.8, adj_depth) / vl_steps;
 	vec3 dir = normalize(adj_owpos) * step_length;
 	float prev = 1.0, total = 0.0;
 

@@ -71,17 +71,23 @@ void main() {
 
   if (isEyeInWater == 0) {
     if (!mask.is_sky || frag.cdepthN < 0.999) {
-      float fog_coord = min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0);
-      color *= 1.0 - fog_coord * 0.9;
-
-      vec3 nwpos = normalize(frag.wpos);
-
+      vec3 nwpos = normalize(frag.wpos + vec3(0.0, 1.7, 0.0));
+      
       #ifdef CrespecularRays
+      float fog_coord = groundFog(min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0), cameraPosition.y / 256.0, nwpos);
+      float fog_H = groundFogH(min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0), cameraPosition.y / 256.0, nwpos);
+      color *= 1.0 - fog_coord;
+      
       // Blur and collect scattering    
-      color += scatter(vec3(0., 1e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, 85e3 * scatteram);
+      color += fog_H * scatter(vec3(0., 2e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, 85e3 * scatteram);
       #else
-      color += texture2D(gaux4, project_skybox2uv(nwpos)).rgb * fog_coord;
+      float fog_coord = groundFog(min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0), cameraPosition.y / 256.0, nwpos);
+      color *= 1.0 - fog_coord;
+    
+      color = mix(color, texture2D(gaux4, project_skybox2uv(nwpos)).rgb, fog_coord);
       #endif
+
+      //color = scatter(vec3(0., 1e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, 85e3 * scatteram) * fog_coord;
     } else {
       color *= scatteram;
     }

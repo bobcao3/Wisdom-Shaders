@@ -51,13 +51,13 @@ const float weight[7] = float[] (0.02, 0.0606, 0.2417, 0.3829, 0.2417, 0.0606, 0
 #endif
 
 #define BLUR_X(i, abs_i) \
-		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i, -3)).rgb, vec3(0.0f)) * weight[abs_i] * weight[3]; \
-		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i, -2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; \
-		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i, -1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; \
-		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i,  0)).rgb, vec3(0.0f)) * weight[abs_i] * weight[0]; \
-		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i,  1)).rgb, vec3(0.0f)) * weight[abs_i] * weight[1]; \
-		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i,  2)).rgb, vec3(0.0f)) * weight[abs_i] * weight[2]; \
-		bloom += max(textureOffset(gaux2, finalCoord, ivec2(i,  3)).rgb, vec3(0.0f)) * weight[abs_i] * weight[3];
+		bloom += clamp(textureOffset(gaux2, finalCoord, ivec2(i, -3)).rgb, vec3(0.0f), vec3(2.0f)) * weight[abs_i] * weight[3]; \
+		bloom += clamp(textureOffset(gaux2, finalCoord, ivec2(i, -2)).rgb, vec3(0.0f), vec3(2.0f)) * weight[abs_i] * weight[2]; \
+		bloom += clamp(textureOffset(gaux2, finalCoord, ivec2(i, -1)).rgb, vec3(0.0f), vec3(2.0f)) * weight[abs_i] * weight[1]; \
+		bloom += clamp(textureOffset(gaux2, finalCoord, ivec2(i,  0)).rgb, vec3(0.0f), vec3(2.0f)) * weight[abs_i] * weight[0]; \
+		bloom += clamp(textureOffset(gaux2, finalCoord, ivec2(i,  1)).rgb, vec3(0.0f), vec3(2.0f)) * weight[abs_i] * weight[1]; \
+		bloom += clamp(textureOffset(gaux2, finalCoord, ivec2(i,  2)).rgb, vec3(0.0f), vec3(2.0f)) * weight[abs_i] * weight[2]; \
+		bloom += clamp(textureOffset(gaux2, finalCoord, ivec2(i,  3)).rgb, vec3(0.0f), vec3(2.0f)) * weight[abs_i] * weight[3];
 
 vec3 LODblur(const float LOD, const vec2 offset) {
 	float scale = exp2(LOD);
