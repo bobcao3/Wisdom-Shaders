@@ -82,7 +82,6 @@ void main() {
       color += fog_H * scatter(vec3(0., 2e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, 85e3 * scatteram);
       #else
       float fog_coord = groundFog(min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0), cameraPosition.y / 256.0, nwpos);
-      color *= 1.0 - fog_coord;
     
       color = mix(color, texture2D(gaux4, project_skybox2uv(nwpos)).rgb, fog_coord);
       #endif
