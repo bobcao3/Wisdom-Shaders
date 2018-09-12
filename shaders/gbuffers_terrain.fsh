@@ -150,7 +150,7 @@ float getDirectional(float lm, vec3 normal2) {
 	vec3 TL = normalize(vec3(Lx * tangent + 0.005 * normal + Ly * binormal));
 	float dir_lighting = fma((dot(normal2, TL)), 0.33, 0.67);
 	
-	return clamp(0.0, 1.0, dir_lighting * 1.4);
+	return clamp(dir_lighting * 1.4, 0.0, 1.0);
 }
 #endif
 
@@ -215,7 +215,7 @@ void main() {
 		vec2 lmFinal = lmcoord;
 		lmFinal.x *= getDirectional(lmFinal.x, normal2);
 		lmFinal.y *= getDirectional(lmFinal.y, normal2);
-		gl_FragData[2] = vec4(nflat, mix(lmFinal, lmcoord, clamp(0.0, 1.0, (dis - 64.0) * 0.03125)));
+		gl_FragData[2] = vec4(nflat, mix(lmFinal, lmcoord, clamp((dis - 64.0) * 0.03125, 0.0, 1.0)));
 		#else
 		gl_FragData[2] = vec4(nflat, lmcoord);
 		#endif

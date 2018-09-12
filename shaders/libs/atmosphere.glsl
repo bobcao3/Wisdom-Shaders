@@ -161,14 +161,14 @@ float groundFogH(in float d, in float h, in vec3 rayDir) {
 	const float b = 1.0;
 	const float c = 1.0;
 	float y = rayDir.y;
-	return clamp(0.0, 1.0, c * exp(-h*b) * (1.0-exp( -y*b ))/y);
+	return clamp(c * exp(-h*b) * (1.0-exp( -y*b ))/y, 0.0, 1.0);
 }
 
 float groundFog(in float d, in float h, in vec3 rayDir) {
 	const float b = 1.0;
 	const float c = 1.0;
 	float y = rayDir.y;//sign(rayDir.y) * max(abs(rayDir.y), 0.00002);
-	return clamp(0.0, 1.0, c * exp(-h*b) * (1.0-exp( -d*y*b ))/y);
+	return clamp(c * exp(-h*b) * (1.0-exp( -d*y*b ))/y, 0.0, 1.0);
 }
 
 #ifdef CrespecularRays

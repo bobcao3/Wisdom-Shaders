@@ -77,7 +77,7 @@ void main() {
     vec4 prev_color = texture2D(colortex3, prev_uv);
 
     weight *= max(0.0, 1.0 - distance(linearizeDepth(prev_color.a), linearizeDepth(fma(prev_pos.z, 0.5, 0.5))) * far * 2.0);
-    prev_color.rgb = clamp(vec3(0.0), vec3(1.0), prev_color.rgb);
+    prev_color.rgb = clamp(prev_color.rgb, vec3(0.0), vec3(1.0));
 
     gi = mix(gi, prev_color.rgb, weight);
   	#endif
