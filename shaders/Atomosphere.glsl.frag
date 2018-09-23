@@ -40,6 +40,8 @@ f16vec3 calc_atmosphere(in f16vec3 sphere, in f16vec3 vsphere) {
 
 	//at += suncolor * 0.3 * pow(VdotS, 4.0) * rainStrength;
 
+	at += skyRGB * 0.003;
+
 	return at;
 }
 
@@ -66,7 +68,7 @@ f16vec4 calc_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 
 	n *= smoothstep(0.0, 140.0, sphere.y);
 
-	return f16vec4(mist_color + pow(dotS, 3.0) * (1.0 - n) * suncolor * 0.5 * (1.0 - extShadow), 0.5 * n);
+	return f16vec4(mist_color + pow(dotS, 3.0) * (1.0 - n) * suncolor * 0.3 * (1.0 - extShadow), 0.5 * n);
 }
 
 #define HQ_VOLUMETRICS
@@ -105,7 +107,7 @@ f16vec4 volumetric_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 	f16vec3 ray = cam;
 	f16vec3 ray_step = normalize(sphere);
 
-	float16_t dither = bayer_32x32(texcoord, vec2(viewWidth, viewHeight));
+	float16_t dither = bayer_64x64(texcoord, vec2(viewWidth, viewHeight));
 
 	for (int i = 0; i < 14; i++) {
 		float16_t h = cloud_depth_map(ray.xz);
@@ -128,7 +130,7 @@ f16vec4 volumetric_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 			// Step back to intersect
 			ray -= (line_to_dot - cloud_half * h + 6.0 / ray_step.y) * ray_step;
 
-			color.a = 1.0;
+			color.a = smoothstep(0.0, 1.0, abs(h));
 			break;
 		}
 
@@ -137,7 +139,7 @@ f16vec4 volumetric_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 
 	if (color.a > 0.0) {
 		float16_t sunIllumnation = 1.0 - cloud_depth_map((ray + worldLightPosition * 30.0).xz);
-		color.rgb += (0.3 + pow(dotS, 4.0) * 0.7) * suncolor * 0.5 * (1.0 - extShadow) * sunIllumnation * (1.0 - max(cloud_coverage, 0.0));
+		color.rgb += (0.3 + pow(dotS, 4.0) * 0.7) * suncolor * 0.3 * (1.0 - extShadow) * sunIllumnation * (1.0 - max(cloud_coverage, 0.0));
 		color.a = min(1.0, cloud_depth_map((ray + ray_step * 50.0).xz) * 3.0) * smoothstep(0.0, 50.0 * (1.0 + cloud_coverage * 2.0), sphere.y);
 		color.rgb *= mix(0.7 + (ray.y - cloud_med) / cloud_half * 0.47 * (clamp(sphere.y / 80.0, 0.0, 0.5) + 0.5), 1.2, max(0.0, cloud_coverage * 1.3));
 	}

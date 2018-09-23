@@ -60,7 +60,7 @@ vec3 lensFlare(vec3 color, vec2 uv) {
 #define SATURATION 2.0 // [0.6 1.0 1.5 2.0]
 
 #define SCREEN_RAIN_DROPS
-#define DISTORTION_FIX
+//#define DISTORTION_FIX
 
 uniform float nightVision;
 uniform float blindness;

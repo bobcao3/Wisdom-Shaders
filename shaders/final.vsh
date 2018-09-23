@@ -50,7 +50,7 @@ uniform sampler2D depthtex0;
 
 #endif
 
-#define DISTORTION_FIX
+//#define DISTORTION_FIX
 #ifdef DISTORTION_FIX
 const float strength = 1.0;
 const float cylindricalRatio = 1.0;

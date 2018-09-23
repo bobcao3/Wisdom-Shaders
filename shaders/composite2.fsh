@@ -11,7 +11,6 @@ const bool colortex1MipmapEnabled = true;
 #include "GlslConfig"
 
 //#define SPACE
-#define DIRECTIONAL_LIGHTMAP
 
 #include "CompositeUniform.glsl.frag"
 #include "Utilities.glsl.frag"
@@ -63,9 +62,9 @@ void main() {
 	// build up materials & light sources
 	if (!mask.is_sky) {
 		#ifdef MODERN
-		const vec3 torch_color = vec3(0.016f, 0.012f, 0.011f);
+		const vec3 torch_color = vec3(0.016f, 0.012f, 0.011f) * 10.0f;
 		#else
-		const vec3 torch_color = vec3(0.2435f, 0.0921f, 0.01053f) * 0.1f;
+		const vec3 torch_color = vec3(0.2435f, 0.0921f, 0.01053f) * 3.0f;
 		#endif
 		torch.color = torch_color;
 		torch.attenuation = light_mclightmap_attenuation(mclight.x);
@@ -104,12 +103,7 @@ void main() {
 
 		#ifdef DIRECTIONAL_LIGHTMAP
 		if (!mask.is_hand) {
-			vec3 T = normalize(dFdx(land.vpos));
-			vec3 B = normalize(dFdy(land.vpos));
-			vec3 N = cross(T, B);
-		
-			amb.attenuation *= lightmap_normals(land.N, mclight.y, T, B, N);
-			torch.attenuation *= lightmap_normals(land.N, mclight.x, T, B, N);
+			
 		}
 		#endif
 

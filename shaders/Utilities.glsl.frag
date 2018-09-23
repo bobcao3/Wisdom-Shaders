@@ -55,10 +55,10 @@ void calcCommons() {
 	float TimeSunset   = ((clamp(wTimeF, 10000.0, 12000.0) - 10000.0) / 2000.0) - ((clamp(wTimeF, 12500.0, 12750.0) - 12500.0) / 250.0);
 	float TimeMidnight = ((clamp(wTimeF, 12500.0, 12750.0) - 12500.0) / 250.0) - ((clamp(wTimeF, 23000.0, 24000.0) - 23000.0) / 1000.0);
 
-	const vec3 suncolor_sunrise = vec3(0.9243, 0.4, 0.0913) * 3.22;
-	const vec3 suncolor_noon = vec3(1.2311, 1.0, 0.8286) * 4.3;
-	const vec3 suncolor_sunset = vec3(0.9943, 0.419, 0.0945) * 3.6;
-	const vec3 suncolor_midnight = vec3(0.34, 0.5, 0.6) * 0.4;
+	const vec3 suncolor_sunrise = vec3(0.9243, 0.4, 0.0913) * 2.22;
+	const vec3 suncolor_noon = vec3(1.2311, 1.0, 0.8286) * 3.3;
+	const vec3 suncolor_sunset = vec3(0.9943, 0.419, 0.0945) * 2.6;
+	const vec3 suncolor_midnight = vec3(0.34, 0.5, 0.6) * 0.2;
 
 	float day = wTimeF / 24000.0;
 	float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
@@ -120,7 +120,7 @@ const float circle_count = 25.0;
 
 // Color adjustment
 
-const vec3 agamma = vec3(0.8 / gamma);
+const vec3 agamma = vec3(0.7 / gamma);
 
 float luma(in vec3 color) { return dot(color,vec3(0.2126, 0.7152, 0.0722)); }
 
