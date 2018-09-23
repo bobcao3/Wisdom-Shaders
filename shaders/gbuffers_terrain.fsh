@@ -56,8 +56,12 @@ varying float dis;
 varying f16vec3 tangent;
 varying f16vec3 binormal;
 
-f16vec2 normalEncode(f16vec3 n) {return sqrt(-n.z*0.125f+0.125f) * normalize(n.xy) + 0.5f;}
+f16vec2 normalEncode(f16vec3 n) {
+	return sqrt(-n.z*0.125f+0.125f) * normalize(n.xy) + 0.5f;
+}
 #endif
+
+#define DIRECTIONAL_LIGHTMAP
 
 uniform ivec2 atlasSize;
 
@@ -153,6 +157,31 @@ vec2 ParallaxMapping(in vec2 coord) {
 }
 #endif
 
+float rand(float n){return fract(sin(n) * 43758.5453123);}
+
+float noise(float p){
+	float fl = floor(p);
+	float fc = fract(p);
+	return mix(rand(fl), rand(fl + 1.0), fc);
+}
+
+#if defined(DIRECTIONAL_LIGHTMAP) && defined(NORMALS)
+float lightmap_normals(vec3 N, float l) {
+	if (l < 0.0001 || l > 0.98) {
+		return 1.0;
+	}
+
+	float dither = noise(dis) * 0.1;
+
+	float Lx = dFdx(l) * 120.0 + dither;
+	float Ly = dFdy(l) * 120.0 + dither;
+
+	vec3 TL = normalize(vec3(Lx * tangent + 0.0005 * normal + Ly * binormal));
+
+	return clamp(dot(N, TL) * 0.2 + 0.8, 0.0, 1.0);
+}
+#endif
+
 //#define SPECULAR_TO_PBR_CONVERSION
 //#define CONTINUUM2_TEXTURE_FORMAT
 
@@ -170,6 +199,7 @@ void main() {
 	#endif
 
 	gl_FragData[0] = t * color;
+	vec2 lm;
 	#ifdef NORMALS
 		f16vec2 n2 = normalEncode(normal);
 		f16vec3 normal2 = normal;
@@ -180,6 +210,11 @@ void main() {
 			f16mat3 tbnMatrix = mat3(tangent, binormal, normal);
 			normal2 = tbnMatrix * normal2;
 		}
+
+		#ifdef DIRECTIONAL_LIGHTMAP
+		lm = lmcoord * vec2(lightmap_normals(normal2, lmcoord.x), lightmap_normals(normal2, lmcoord.y));
+		#endif
+
 		vec2 d = normalEncode(normal2);
 		if (!(d.x > 0.0 && d.y > 0.0)) d = n2;
 		gl_FragData[1] = vec4(d, flag, 1.0);
@@ -197,5 +232,10 @@ void main() {
 	gl_FragData[2] = texture2D(specular, texcoord_adj);
 	#endif
 	#endif
+
+	#if defined(DIRECTIONAL_LIGHTMAP) && defined(NORMALS)
+	gl_FragData[3] = vec4(lm, n2);
+	#else
 	gl_FragData[3] = vec4(lmcoord, n2);
+	#endif
 }

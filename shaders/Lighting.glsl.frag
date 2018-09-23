@@ -26,16 +26,13 @@ vec3 light_calc_diffuse(LightSource Li, Material mat) {
 	return Li.attenuation * mat.albedo * Li.color;
 }
 
-float light_mclightmap_attenuation(in float l) {
-	float light_distance = clamp((1.0 - pow(l, 4.6)), 0.08, 1.0);
-	const float max_light = 100.0;
+float light_mclightmap_attenuation(in float lm) {
+	float falloff = 5.0;
 
-	const float light_quadratic = 4.9f;
-	const float light_constant1 = 1.09f;
-	const float light_constant_linear = 0.1;
-	const float light_constant2 = 1.09f;
+	lm = exp(-(1.0 - lm) * falloff);
+	lm = max(0.0, lm - exp(-falloff));
 
-	return clamp(pow(light_constant1 / light_distance, light_quadratic) + l * light_constant_linear - light_constant2, 0.0, max_light);
+	return lm;
 }
 
 // #define FAKE_GI_REFLECTION
@@ -220,21 +217,6 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 
 	return a2 / denom;
 }
-
-#ifdef DIRECTIONAL_LIGHTMAP
-float lightmap_normals(vec3 N, float lm, vec3 tangent, vec3 binormal, vec3 normal) {
-	if (lm < 0.0001 || lm > 0.98) return 1.0;
-
-	float dither = bayer_64x64(texcoord, vec2(viewWidth, viewHeight)) * 0.1 - 0.05;
-
-	float Lx = dFdx(lm) * 120.0 + dither;
-	float Ly = dFdy(lm) * 120.0 - dither;
-
-	vec3 TL = normalize(vec3(Lx * tangent + 0.0005 * normal + Ly * binormal));
-
-	return clamp(dot(N, TL) * 0.5 + 0.5, 0.1, 1.0);
-}
-#endif
 
 vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceThick) {
 	float NdotV = Positive(dot(mat.N, -mat.nvpos));
