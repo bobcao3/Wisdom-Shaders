@@ -13,4 +13,4 @@ const float gamma = 2.2f;
 #define WISDOM_AMBIENT_OCCLUSION
 #define HQ_AO
 
-#define Version 3212
+#define Version 3231
