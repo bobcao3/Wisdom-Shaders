@@ -51,6 +51,12 @@ const bool colortex0MipmapEnabled = true;
 
 uniform vec3 fogColor;
 
+float sum4_depth_bias(sampler2D buf, sampler2D depth, float cutoff, vec2 uv, ivec2 offset) {
+  vec4 c = textureGatherOffset(buf, uv, offset);
+  vec4 d = step(cutoff, textureGatherOffset(depth, uv, offset));
+  return dot(c, vec4(1.0) - d);
+}
+
 void main() {
   vec3 color = texture2D(gaux2, uv).rgb;
 
@@ -62,15 +68,19 @@ void main() {
   float scatteram = 1.0;
   #ifdef CrespecularRays
   // Blur and collect scattering
-  scatteram  = sum4(textureGather      (colortex0, uv              ));
-  scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2(-1, 0)));
-  scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2(-1,-1)));
-  scatteram += sum4(textureGatherOffset(colortex0, uv, ivec2( 0,-1)));
-  scatteram *= 0.0625;
+  if (frag.cdepthN >= 1.0) {
+    scatteram = texture2D(colortex0, uv).r;
+  } else {
+    scatteram  = sum4_depth_bias(colortex0, depthtex0, 0.99999, uv, ivec2( 0, 1));
+    scatteram += sum4_depth_bias(colortex0, depthtex0, 0.99999, uv, ivec2( 0,-1));
+    scatteram += sum4_depth_bias(colortex0, depthtex0, 0.99999, uv, ivec2(-1, 0));
+    scatteram += sum4_depth_bias(colortex0, depthtex0, 0.99999, uv, ivec2( 1, 0));
+    scatteram *= 0.0625;
+  }
   #endif
 
   if (isEyeInWater == 0) {
-    if (!mask.is_sky || frag.cdepthN < 0.999) {
+    if (!mask.is_sky || frag.cdepthN <= 1.0) {
       vec3 nwpos = normalize(frag.wpos + vec3(0.0, 1.7, 0.0));
       
       #ifdef CrespecularRays
@@ -79,14 +89,12 @@ void main() {
       color *= 1.0 - fog_coord;
       
       // Blur and collect scattering    
-      color += fog_H * scatter(vec3(0., 2e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, 85e3 * scatteram);
+      color += fog_H * scatter(vec3(0., 2e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, 84e3 * scatteram);
       #else
       float fog_coord = groundFog(min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0), cameraPosition.y / 256.0, nwpos);
     
       color = mix(color, texture2D(gaux4, project_skybox2uv(nwpos)).rgb, fog_coord);
       #endif
-
-      //color = scatter(vec3(0., 1e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, 85e3 * scatteram) * fog_coord;
     } else {
       color *= scatteram;
     }

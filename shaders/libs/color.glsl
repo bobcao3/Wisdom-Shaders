@@ -15,7 +15,7 @@
  */
 
 const float gamma = 2.2f;
-const float agamma = 0.7 / 2.2f;
+const float agamma = 0.8 / 2.2f;
 
 vec3 fromGamma(vec3 c) {
   return pow(c, vec3(gamma));
@@ -25,8 +25,15 @@ vec4 fromGamma(vec4 c) {
   return pow(c, vec4(gamma));
 }
 
+#define SRGB_CLAMP
+
 vec3 toGamma(vec3 c) {
+  #ifdef SRGB_CLAMP
+  vec3 g = pow(c, vec3(agamma));
+  return vec3(0.0625) + g * vec3(0.9375);
+  #else
   return pow(c, vec3(agamma));
+  #endif
 }
 
 float luma(vec3 c) {
@@ -53,4 +60,15 @@ void ACEStonemap(inout vec3 color, float adapted_lum) {
 	const float d = 0.59f;
 	const float e = 0.14f;
 	color = (color*(a*color+b))/(color*(c*color+d)+e);
+}
+
+vec3 Uncharted2Tonemap(vec3 x) {
+  const float A = 0.15;
+  const float B = 0.50;
+  const float C = 0.10;
+  const float D = 0.20;
+  const float E = 0.02;
+  const float F = 0.30;
+  const float W = 11.2;
+  return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }

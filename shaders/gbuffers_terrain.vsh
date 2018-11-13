@@ -98,7 +98,11 @@ void main() {
 	float time = frameTimeCounter * 3.0;
 	#endif
 
+	#if MC_VERSION >= 10800
+	if (blockId == 31.0) {
+	#else
 	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 || blockId == 59.0 || blockId == 141.0 || blockId == 142.0) {
+	#endif
 		#ifdef WAVING_FOILAGE
 		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
 			float rand_ang = hash(position.xz);
@@ -109,7 +113,11 @@ void main() {
 		#endif
 		color.a *= 0.4;
 		flag = foilage2Flag;
+	#if MC_VERSION >= 10800
+	} else if (blockId == 18.0) {
+	#else
 	} else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0 || mc_Entity.x == 207.0) {
+	#endif
 		#ifdef WAVING_FOILAGE
 		float rand_ang = hash(position.xz);
 		float reset = cos(rand_ang * 10.0 + time * 0.1);
@@ -117,7 +125,11 @@ void main() {
 		position.xyz += (sin(rand_ang * 5.0 + time + position.y) * 0.035 + 0.035) * (reset * maxStrength) * tangent;
 		#endif
 		flag = foilage1Flag;
+	#if MC_VERSION >= 10800
+	}
+	#else
 	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115) flag = foilage2Flag;
+	#endif
 
 	position = gl_ModelViewMatrix * position;
 	vec3 wpos = position.xyz;

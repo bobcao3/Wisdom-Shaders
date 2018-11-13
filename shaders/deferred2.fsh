@@ -32,7 +32,7 @@ varying vec2 uv;
 #include "libs/Material.frag"
 #include "libs/noise.glsl"
 
-#define SSS
+//#define SSS
 
 #include "libs/Lighting.frag"
 
@@ -120,14 +120,14 @@ void main() {
     //shade = shade * smoothstep(0.0, 1.0, thickness * 5.0);
     sun.light.attenuation = 1.0 - shade;
 
-    ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight);
+    ambient.attenuation = light_mclightmap_simulated_GI(frag.skylight) * ao;
 
-    ambient.color0 = ambientU * ao;
-    ambient.color1 = ambient0 * ao;
-    ambient.color2 = ambient1 * ao;
-    ambient.color3 = ambient2 * ao;
-    ambient.color4 = ambient3 * ao;
-    ambient.color5 = ambientD * ao;
+    ambient.color0 = ambientU;
+    ambient.color1 = ambient0;
+    ambient.color2 = ambient1;
+    ambient.color3 = ambient2;
+    ambient.color4 = ambient3;
+    ambient.color5 = ambientD;
 
     const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 1.0;
   	const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 1.0;
@@ -211,7 +211,7 @@ void main() {
     color = vec3(sun.light.attenuation);
     #endif
 
-    //color = vec3(sun.light.color * 0.25);
+    //color = light_calc_diffuse_harmonics(ambient, frag, wN) + light_calc_diffuse(torch, frag);
   } else {
     vec3 nwpos = normalize(frag.wpos);
     vec3 skybox = texture2D(colortex0, uv).rgb * 0.5;

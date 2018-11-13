@@ -178,7 +178,7 @@ void main() {
 	if (t.a < 0.1) discard;
 
 	#ifndef WAO
-	t.rgb *= fma(color.a, 0.5, 0.5);
+	t.rgb *= fma(color.a, 0.75, 0.25);
 	#endif
 
 	#ifdef PARALLAX_SELF_SHADOW

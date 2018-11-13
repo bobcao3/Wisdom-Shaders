@@ -102,6 +102,11 @@ void main() {
 
 	#ifdef BLOOM
 	float lcenter = luma(texture2D(colortex0, vec2(0.5) * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.03f)).rgb);
+	lcenter += luma(texture2D(colortex0, vec2(0.75, 0.5) * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.03f)).rgb);
+	lcenter += luma(texture2D(colortex0, vec2(0.5, 0.75) * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.03f)).rgb);
+	lcenter += luma(texture2D(colortex0, vec2(0.25, 0.5) * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.03f)).rgb);
+	lcenter += luma(texture2D(colortex0, vec2(0.5, 0.25) * 0.125 + vec2(0.0f, 0.25f) + vec2(0.000f, 0.03f)).rgb);
+	lcenter *= 0.2;
 	float exposure = 1.0 / (lcenter + 1.0) + max(0.0, 1.0 - eyeBrightnessSmooth.y / 240.0 * luma(sunLight));
 
 	vec3 rawB;
@@ -149,6 +154,7 @@ void main() {
 	//color = texture2D(colortex3, uv).rgb;
 
 	ACEStonemap(color, (screenBrightness * 0.5 + 1.0) * exposure);
+	//color = vec3(1.0) - exp(-color * (screenBrightness * 0.5 + 1.0) * exposure);
 
 	#ifdef FILMIC_CINEMATIC
 	filmic_cinematic(color);

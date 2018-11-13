@@ -33,7 +33,7 @@ void functions() {
 	sunraw = texture2D(gaux4, project_skybox2uv(worldLightPosition)).rgb * (1.0 - cloud_coverage * 0.999) + vec3(0.03, 0.035, 0.05) * max(-worldLightPosition.y, 0.0) * 0.1 * (1.0 - cloud_coverage * 0.8);
 	sunLight = (sunraw) * f;
 
-	ambientU = texture2D(gaux4, vec2(0.0,  0.25)).rgb;
+	ambientU = texture2D(gaux4, vec2(0.0,  0.125)).rgb;
 }
 
 #define Functions

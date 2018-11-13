@@ -139,17 +139,27 @@ void main() {
          refracted = frag.vpos + refracted;
 		vec2 uv_refra = screen_project(refracted);
 		//if (clamp(uv_refra, vec2(0.0), vec2(1.0)) != uv_refra) uv_refra = uv1;
-		color = texture2D(gaux3, uv_refra);                     // Read deferred state composite, refracted
+		color  = texture2DLod(gaux3, uv_refra, 0);                // Read deferred state composite, refracted
+		color += texture2DLod(gaux3, uv_refra, 1);                // Read deferred state composite, refracted
+		color += texture2DLod(gaux3, uv_refra, 2);                // Read deferred state composite, refracted
+		color += texture2DLod(gaux3, uv_refra, 3);                // Read deferred state composite, refracted
+		color *= 0.25;
+
+		float land_z_test = land_vpos.z;
 
 		#ifdef ADVANCED_REFRACTION
-		land_depth = texture2DLod(depthtex1, uv1.st, 0).r;
+		land_depth = texture2DLod(depthtex1, uv_refra, 0).r;
 		// Re-read deferred state depth
-		land_vpos = fetch_vpos(uv1.st, land_depth).xyz;         // Re-read deferred state vpos
+		land_vpos = fetch_vpos(uv_refra, land_depth).xyz;         // Re-read deferred state vpos
 		if (isEyeInWater != 1)
-			dist_diff = distance(land_vpos, vpos);              // Recalc distance difference - raw (Water absorption)
+			dist_diff = distance(land_vpos, vpos);                // Recalc distance difference - raw (Water absorption)
 		#endif
 		#else
-		color = texture2D(gaux3, uv1.st);                       // Read deferred state composite
+		color  = texture2DLod(gaux3, uv1, 0);                // Read deferred state composite
+		color += texture2DLod(gaux3, uv1, 1);                // Read deferred state composite
+		color += texture2DLod(gaux3, uv1, 2);                // Read deferred state composite
+		color += texture2DLod(gaux3, uv1, 3);                // Read deferred state composite
+		color *= 0.25;
 		#endif
 
 		#ifdef WATER_CAUSTICS
@@ -182,10 +192,12 @@ void main() {
 		color = (isEyeInWater == 1) ? vec4(watercolor, 1.0) : vec4(mix(waterfog, watercolor, absorption), 1.0);
 		#endif
 
-		watermixcolor = vec4(waterfog, 1.0 - absorption);
+		watermixcolor = vec4(waterfog * light_att, 1.0 - absorption);
 
 		// Parallax cut-out (depth test)
-		if (frag.vpos.z < land_vpos.z) discard;
+		#ifdef WATER_PARALLAX
+		if (frag.vpos.z < land_z_test) discard;
+		#endif
 	} else {
 		// Glass / Other transperancy render
 		worldN = wN;

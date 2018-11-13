@@ -11,9 +11,13 @@
 #define FXAA_REDUCE_MUL   (1.0 / 8.0)
 #define FXAA_SPAN_MAX     8.0
 
+//#define FXAA_LUMA
+
 vec3 fxaa(sampler2D tex, vec2 fragCoord, vec2 uv, vec2 resolution) {
     vec3 color;
-    vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);
+    vec2 inverseVP = vec2(0.5 / resolution.x, 0.5 / resolution.y);
+
+    #ifdef FXAA_LUMA
     #ifdef HIGH_LEVEL_SHADER
     ivec2 iuv = ivec2(uv * resolution);
     vec3 rgbNW = texelFetch2DOffset(tex, iuv, 0, ivec2(-1, 0)).rgb;
@@ -37,9 +41,22 @@ vec3 fxaa(sampler2D tex, vec2 fragCoord, vec2 uv, vec2 resolution) {
     float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
     float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
     
+    #else
+    
+    float lumaNW = texture2D(tex, fragCoord + vec2(-1., 0.) * inverseVP).g;
+    float lumaNE = texture2D(tex, fragCoord + vec2( 0., 0.) * inverseVP).g;
+    float lumaSW = texture2D(tex, fragCoord + vec2(-1.,-1.) * inverseVP).g;
+    float lumaSE = texture2D(tex, fragCoord + vec2( 0.,-1.) * inverseVP).g;
+    float lumaM = texture2D(tex, fragCoord).g;
+
+    float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+    float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
+    #endif
+    
     vec2 dir;
     dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
     dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+    dir = normalize(dir);
     
     float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) *
                           (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);

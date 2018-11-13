@@ -12,12 +12,12 @@ const float g2 = g * g;
 
 //#define MARS_ATMOSPHERE
 #ifdef MARS_ATMOSPHERE
-const float R0 = 3389e3;
-const float Ra = 3460e3;
-float Hr = 8e3;
-float Hm = 4.3e3;
+const float R0 = 4389e3;
+const float Ra = 4460e3;
+float Hr = 10e3;
+float Hm = 3.3e3;
 
-const vec3 I0 = vec3(1.6);
+const vec3 I0 = vec3(2.6);
 const vec3 bR = vec3(33.1e-6, 13.5e-6, 5.8e-6);
 #else
 const float R0 = 6370e3;
@@ -35,7 +35,7 @@ const int stepss = 2;
 
 const vec3 I = I0;
 #else
-const int steps = 8;
+const int steps = 6;
 const int stepss = 3;
 
 vec3 I = I0 * (1.0 - cloud_coverage * 0.7);
@@ -153,7 +153,8 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 		}
 	}
 
-	return I * (R * bR * phaseR + M * bM * phaseM + vec3(0.0001, 0.00017, 0.0003) + (0.02 * vec3(0.005, 0.0055, 0.01)) * phaseM_moon * smoothstep(0.05, 0.2, d.y));
+	vec3 color = I * (R * bR * phaseR + M * bM * phaseM + vec3(0.0001, 0.00017, 0.0003) + (0.02 * vec3(0.005, 0.0055, 0.01)) * phaseM_moon * smoothstep(0.05, 0.2, d.y));
+	return max(vec3(0.0), color);
 }
 // ============
 
