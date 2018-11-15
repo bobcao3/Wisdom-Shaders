@@ -34,6 +34,8 @@ varying vec2 uv;
 //#define CrespecularRays
 //#include "libs/atmosphere.glsl"
 
+const bool colortex3Clear = false;
+
 #define BLOOM
 #ifdef BLOOM
 const float padding = 0.02f;
@@ -79,8 +81,10 @@ vec3 LODblur(const float LOD, const vec2 offset) {
 }
 #endif
 
+#define TAA
+
 void main() {
-/* DRAWBUFFERS:0 */
+/* DRAWBUFFERS:03 */
 // bloom
 	#ifdef BLOOM
 	vec3 blur = vec3(0.0);
@@ -89,5 +93,8 @@ void main() {
 		blur = LODblur(2.0, vec2(0.0f));
 	}
 	gl_FragData[0] = vec4(blur, luma(blur));
+	#endif
+	#ifdef TAA
+	gl_FragData[1] = max(vec4(texture2D(gaux2, uv).rgb, texture2D(depthtex0, uv).r), vec4(0.0));
 	#endif
 }

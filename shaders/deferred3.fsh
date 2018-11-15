@@ -37,8 +37,6 @@ varying vec2 uv;
 
 const bool gaux4MipmapEnabled = true;
 
-const bool colortex3Clear = false;
-
 Mask mask;
 Material frag;
 //LightSourcePBR sun;
