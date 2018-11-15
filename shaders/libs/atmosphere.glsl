@@ -30,16 +30,13 @@ const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
 #endif
 
 #ifdef AT_LSTEP
-const int steps = 6;
-const int stepss = 2;
-
-const vec3 I = I0;
-#else
-const int steps = 6;
+const int steps = 4;
 const int stepss = 3;
-
-vec3 I = I0 * (1.0 - cloud_coverage * 0.7);
+#else
+const int steps = 5;
+const int stepss = 3;
 #endif
+vec3 I = I0 * (1.0 - cloud_coverage * 0.7);
 
 const vec3 C = vec3(0., -R0, 0.);
 const vec3 bM = vec3(31e-6);
@@ -53,14 +50,14 @@ float calc_clouds(in vec3 sphere, in vec3 cam) {
 	if (sphere.y < 0.0) return 0.0;
 
 	vec3 c = sphere / max(sphere.y, 0.001) * 768.0;
-	c += noise_tex((c.xz + cam.xz) * 0.001 + frameTimeCounter * 0.01) * 200.0 / sphere.y;
+	c += noise((c.xz + cam.xz) * 0.001 + frameTimeCounter * 0.01) * 200.0 / sphere.y;
 	vec2 uv = (c.xz + cam.xz);
 
 	uv.x += frameTimeCounter * 10.0;
 	uv *= 0.002;
-	float n  = noise_tex(uv * vec2(0.5, 1.0)) * 0.5;
+	float n  = noise(uv * vec2(0.5, 1.0)) * 0.5;
 		uv += vec2(n * 0.6, 0.0) * octave_c; uv *= 6.0;
-		  n += noise_tex(uv) * 0.25;
+		  n += noise(uv) * 0.25;
 		uv += vec2(n * 0.4, 0.0) * octave_c + vec2(frameTimeCounter * 0.1, 0.2); uv *= 3.01;
 		  n += noise(uv) * 0.105;
 		uv += vec2(n, 0.0) * octave_c + vec2(frameTimeCounter * 0.03, 0.1); uv *= 2.02;
@@ -120,9 +117,11 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 
 	float u0 = - (L - 100.0) / (1.0 - exp2(steps));
 
+	float dither = fma(noise(d.xy + d.zz), 0.5, 0.5);
+
 	for (int i = 0; i < steps; ++i) {
-		float dl = u0 * exp2(i);
-		float l = - u0 * (1.0 - exp2(i + 1));
+		float dl = u0 * exp2(i - dither);
+		float l = - u0 * (1.0 - exp2(i - dither + 1));
 		vec3 p = o + d * l;
 
 		vec2 des;

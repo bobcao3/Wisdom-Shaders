@@ -51,11 +51,7 @@ const bool colortex0MipmapEnabled = true;
 
 uniform vec3 fogColor;
 
-float sum4_depth_bias(sampler2D buf, sampler2D depth, float cutoff, vec2 uv, ivec2 offset) {
-  vec4 c = textureGatherOffset(buf, uv, offset);
-  vec4 d = step(cutoff, textureGatherOffset(depth, uv, offset));
-  return dot(c, vec4(1.0) - d);
-}
+#define SUM4_depth_bias(buf, depth, offset) c = textureGatherOffset(buf, uv, offset); d = step(0.99999, textureGatherOffset(depth, uv, offset)); scatteram += dot(c, vec4(1.0) - d);
 
 void main() {
   vec3 color = texture2D(gaux2, uv).rgb;
@@ -65,18 +61,21 @@ void main() {
 
   init_mask(mask, flag, uv);
 
-  float scatteram = 1.0;
   #ifdef CrespecularRays
+  float scatteram = 0.0;
   // Blur and collect scattering
   if (frag.cdepthN >= 1.0) {
     scatteram = texture2D(colortex0, uv).r;
   } else {
-    scatteram  = sum4_depth_bias(colortex0, depthtex0, 0.99999, uv, ivec2( 0, 1));
-    scatteram += sum4_depth_bias(colortex0, depthtex0, 0.99999, uv, ivec2( 0,-1));
-    scatteram += sum4_depth_bias(colortex0, depthtex0, 0.99999, uv, ivec2(-1, 0));
-    scatteram += sum4_depth_bias(colortex0, depthtex0, 0.99999, uv, ivec2( 1, 0));
+    vec4 c, d;
+    SUM4_depth_bias(colortex0, depthtex0, ivec2( 0, 1))
+    SUM4_depth_bias(colortex0, depthtex0, ivec2( 0,-1))
+    SUM4_depth_bias(colortex0, depthtex0, ivec2(-1, 0))
+    SUM4_depth_bias(colortex0, depthtex0, ivec2( 1, 0))
     scatteram *= 0.0625;
   }
+  #else
+  float scatteram = 1.0;
   #endif
 
   if (isEyeInWater == 0) {
@@ -84,14 +83,14 @@ void main() {
       vec3 nwpos = normalize(frag.wpos + vec3(0.0, 1.7, 0.0));
       
       #ifdef CrespecularRays
-      float fog_coord = groundFog(min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0), cameraPosition.y / 256.0, nwpos);
-      float fog_H = groundFogH(min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0), cameraPosition.y / 256.0, nwpos);
+      float fog_coord = groundFog(min(frag.cdepth / (2048.0 - cloud_coverage * 1512.0), 1.0), cameraPosition.y / 512.0, nwpos);
+      float fog_H = groundFogH(min(frag.cdepth / (2048.0 - cloud_coverage * 1512.0), 1.0), cameraPosition.y / 512.0, nwpos);
       color *= 1.0 - fog_coord;
       
       // Blur and collect scattering    
-      color += fog_H * scatter(vec3(0., 2e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, 84e3 * scatteram);
+      color += fog_H * scatter(vec3(0., 2e3 + cameraPosition.y, 0.), nwpos, worldLightPosition, 40e3 * scatteram);
       #else
-      float fog_coord = groundFog(min(frag.cdepth / (1024.0 - cloud_coverage * 768.0), 1.0), cameraPosition.y / 256.0, nwpos);
+      float fog_coord = groundFog(min(frag.cdepth / (2048.0 - cloud_coverage * 1512.0), 1.0), cameraPosition.y / 512.0, nwpos);
     
       color = mix(color, texture2D(gaux4, project_skybox2uv(nwpos)).rgb, fog_coord);
       #endif

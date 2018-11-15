@@ -166,16 +166,7 @@ void main() {
 	if (dis < 64.0) texcoord_adj = ParallaxMapping(texcoord);
 	#endif
 
-	#ifdef HIGH_LEVEL_SHADER
-	vec2 texcoord_dx = dFdx(texcoord_adj);
-	vec2 texcoord_dy = dFdy(texcoord_adj);
-
-	vec4 t = texture2DGrad(texture, texcoord_adj, texcoord_dx, texcoord_dy) * vec4(color.rgb, 1.0);
-	#else
 	vec4 t = texture2D(texture, texcoord_adj) * vec4(color.rgb, 1.0);
-	#endif
-
-	if (t.a < 0.1) discard;
 
 	#ifndef WAO
 	t.rgb *= fma(color.a, 0.75, 0.25);

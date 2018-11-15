@@ -236,10 +236,6 @@ void main() {
     color += sunraw * 3.0 * smoothstep(0.9998, 0.9999, mu_s) * horizon_mask;
   }
 
-/* DRAWBUFFERS:536 */
+/* DRAWBUFFERS:5 */
   gl_FragData[0] = vec4(color, 0.0);
-  #ifdef GI
-  gl_FragData[1] = vec4(texture2D(gaux3, uv).rgb, 0.0);
-  gl_FragData[2] = vec4(gi, texture2D(depthtex0, uv).r);
-  #endif
 }

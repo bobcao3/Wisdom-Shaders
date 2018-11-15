@@ -449,6 +449,11 @@ vec4 light_calc_PBR_IBL(in vec4 color, in vec3 L, Material mat, in vec3 env) {
 
 #ifdef SSR
 #define SSR_STEPS 20 // [16 20 32]
+#ifdef FASTER_SSR
+const int steps_i = SSR_STEPS - 4;
+#else
+const int steps_i = SSR_STEPS;
+#endif
 
 vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf, vec3 N) {
 	vec3 testPoint = start;
@@ -469,7 +474,7 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal, sampler2D colorbuf,
 	float sampleDepth = 0.1;
 	float testDepth = far;
 
-	for(int i = 0; i < SSR_STEPS; i++) {
+	for(int i = 0; i < steps_i; i++) {
 		testPoint += direction * h;
 		vec3 testPointJittered = testPoint + float(!bi) * direction * h * (bayer * 0.2 - 0.1);
 		bayer = fract(bayer + 0.618);

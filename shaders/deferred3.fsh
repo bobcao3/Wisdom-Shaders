@@ -110,7 +110,9 @@ void main() {
 
     vec3 wN = mat3(gbufferModelViewInverse) * frag.N;
     vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.61, 0.0)), wN);
+    float n = noise((frag.wpos.xy + vec2(frag.wpos.z, frameTimeCounter)) * 512.0) * frag.roughness;
     vec3 reflectedV = reflect(frag.nvpos, frag.N);
+  	reflectedV = normalize(reflectedV + vec3(n, -n, fract(2 * n)) * 0.01);
 
     vec4 ray_traced = vec4(0.0);
     #ifdef SSR

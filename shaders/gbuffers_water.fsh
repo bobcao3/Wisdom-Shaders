@@ -65,6 +65,8 @@ varying vec3 tangentpos;
 #include "libs/vectors.glsl"
 #include "libs/Material.frag"
 #include "libs/noise.glsl"
+#define FASTER_SSR
+#define AT_LSTEP
 #include "libs/Lighting.frag"
 #include "libs/atmosphere.glsl"
 
@@ -259,7 +261,9 @@ void main() {
 	#ifdef WATER_IBL
 	// IBL reflection
 	vec3 reflected = reflect(normalize(frag.wpos - vec3(0.0, 1.62, 0.0)), worldN);
+	float n = noise_tex((frag.wpos.xy + frag.wpos.zz) * 512.0 + vec2(frameTimeCounter * 0.001)) * frag.roughness;
 	vec3 reflectedV = reflect(frag.nvpos, frag.N);
+	reflectedV = normalize(reflectedV + vec3(n, -n, fract(2 * n)) * 0.01);
 
 	vec4 ray_traced = vec4(0.0);
 	vec3 skybox = texture2D(gaux4, project_skybox2uv(reflected)).rgb * pow3(lmcoord.y);
