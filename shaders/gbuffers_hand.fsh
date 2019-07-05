@@ -88,7 +88,7 @@ void main() {
 			tangent.z, binormal.z, normal.z);
 		normal2 = normal2 * tbnMatrix;
 		vec2 d = normalEncode(normal2);
-		//if (!(d.x > 0.0 && d.y > 0.0)) d = n2;
+		if (!(d.x > 0.0 && d.y > 0.0)) d = n2;
 		gl_FragData[3] = vec4(d, handFlag, 1.0);
 	#else
 		gl_FragData[3] = vec4(n2, handFlag, 1.0);

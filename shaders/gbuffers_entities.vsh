@@ -25,7 +25,7 @@
 #include "libs/compat.glsl"
 #pragma optimize(on)
 
-uniform mat4 gbufferModelViewInverse;
+uniform mat4 gbufferModelView;
 
 varying vec4 color;
 varying vec2 normal;

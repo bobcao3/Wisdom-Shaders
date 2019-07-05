@@ -22,49 +22,24 @@
 // =============================================================================
 
 #version 120
-
 #include "libs/compat.glsl"
-
 #pragma optimize(on)
 
-#define NORMALS
-
-attribute vec4 mc_Entity;
-attribute vec4 mc_midTexCoord;
-attribute vec4 at_tangent;
-
 uniform mat4 gbufferModelViewInverse;
-uniform float rainStrength;
-uniform float frameTimeCounter;
 
 varying vec4 color;
+varying vec2 normal;
 varying vec4 coords;
-varying vec3 normal;
 
 #define texcoord coords.rg
 #define lmcoord coords.ba
-
-#ifdef NORMALS
-varying vec3 tangent;
-varying vec3 binormal;
-#endif
 
 #include "libs/encoding.glsl"
 
 void main() {
 	color = gl_Color;
-
-	normal = normalize(gl_NormalMatrix * gl_Normal);
-
-	#ifdef NORMALS
-	tangent = normalize(gl_NormalMatrix * (at_tangent.xyz / at_tangent.w));
-    binormal = cross(normal, tangent);
-    #endif
-
-	vec4 position = gl_Vertex;
-	position = gl_ModelViewMatrix * position;
-	vec3 wpos = position.xyz;
-	gl_Position = gl_ProjectionMatrix * position;
-	texcoord = gl_MultiTexCoord0.st;
-	lmcoord = (gl_TextureMatrix[1] *  gl_MultiTexCoord1).xy;
+	gl_Position = ftransform();
+	normal = normalEncode(vec3(0.0, 0.0, 1.0));
+	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
+	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 }
