@@ -140,7 +140,9 @@ void main() {
 		 float refraction_index = max(0.0, dot(refracted, -frag.N));
          refracted = frag.vpos + refracted;
 		vec2 uv_refra = screen_project(refracted);
-		//if (clamp(uv_refra, vec2(0.0), vec2(1.0)) != uv_refra) uv_refra = uv1;
+
+		uv_refra = mix(uv_refra, uv1, max(0.0, distance(uv_refra, vec2(0.5) * 2.0)));
+
 		color  = texture2DLod(gaux3, uv_refra, 0);                // Read deferred state composite, refracted
 		color += texture2DLod(gaux3, uv_refra, 1);                // Read deferred state composite, refracted
 		color += texture2DLod(gaux3, uv_refra, 2);                // Read deferred state composite, refracted

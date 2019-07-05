@@ -44,7 +44,7 @@ void main() {
 	vec4 color = vec4(texture2D(gaux2, uv).rgb, 1.0);
 #endif
 #ifdef TAA
-	vec3 wpos = vec3(gbufferModelViewInverse * fetch_vpos(uv, depthtex0));
+	vec3 wpos = vec3(gbufferModelViewInverse * fetch_vpos(uv, depthtex1));
 	vec4 prev_pos = gbufferPreviousModelView * vec4(wpos - previousCameraPosition + cameraPosition, 1.0);
     prev_pos = gbufferPreviousProjection * prev_pos;
     prev_pos /= prev_pos.w;
