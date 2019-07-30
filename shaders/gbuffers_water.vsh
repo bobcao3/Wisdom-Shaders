@@ -49,7 +49,11 @@ uniform bool isEyeInWater;
 VSH {
 	iswater = 0.95f;
 	vec4 pos = gl_Vertex;
+#if MC_VERSION >= 11300
+	if (mc_Entity.y == 0.0) {
+#else
 	if (mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
+#endif
 		iswater = 0.79f;
 		pos.y += float(isEyeInWater) * 0.3 - 0.2;
 	}
