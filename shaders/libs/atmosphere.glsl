@@ -25,7 +25,7 @@ const float Ra = 6425e3;
 const float Hr = 10e3;
 const float Hm = 2.7e3;
 
-const vec3 I0 = vec3(10.0);
+const vec3 I0 = vec3(10.0) / vec3(1.0, 0.8832, 0.7817); // Adjust for D65
 const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
 #endif
 
