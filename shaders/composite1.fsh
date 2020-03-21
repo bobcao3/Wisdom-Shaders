@@ -103,17 +103,22 @@ void main() {
       float dist_diff_N = min(1.0, frag.cdepth * 0.03125);             // Distance clamped (0.0 ~ 1.0)
   
       #ifdef WATER_CAUSTICS
-		  //color *= smoothstep(0.0, 1.0, fma(get_caustic(frag.wpos + cameraPosition), 1.1, 0.5));
+		  color *= smoothstep(0.0, 1.0, fma(get_caustic(frag.wpos + cameraPosition), 1.1, 0.5));
 		  #endif
+
+		  float light_att = luma(fogColor) * 2.0;
+		  vec3 waterfog = (luma(sunLight) * light_att) * waterfogcolor;
 
       float absorption = pow2(2.0 / (dist_diff_N + 1.0) - 1.0);     // Water absorption factor
 	  	float scatter_in = (abs(dot(lightPosition, frag.N)) * 0.8 + 0.2);  // Scatter-in factor
+
+      if (mask.is_sky) {
+        scatter_in = 1.0;
+      }
+
   		vec3 watercolor = color.rgb
 	  	   * pow(vec3(absorption), vec3(3.0, 0.8, 1.0))         // Water absorption color
 	  	   * scatter_in;
-		  float light_att = luma(fogColor) * 2.0;
-
-		  vec3 waterfog = (luma(sunLight) * light_att) * waterfogcolor;
 
       color = mix(waterfog, watercolor, absorption);
     }

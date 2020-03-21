@@ -4,7 +4,7 @@
 #define NATURAL_WAVE_GENERATOR
 
 #ifdef NATURAL_WAVE_GENERATOR
-const int ITER_GEOMETRY = 3;
+const int ITER_GEOMETRY = 4;
 const int ITER_GEOMETRY2 = 4;
 
 float sea_octave_micro(vec2 fuv, float choppy) {
@@ -48,8 +48,10 @@ float getwave(vec3 p, in float lod) {
 
 	float d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY; i++) {
+		float llod = lod + ((1.0 - lod) * (1.0 / ITER_GEOMETRY) * i);
+
 		d = sea_octave_micro((fuv+wave_speed * vec2(0.1, 0.9))*freq,choppy);
-		h += d * amp * mix(lod, 1.0, float(i) * 0.25);
+		h += d * amp * llod;
 		fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= 0.5;
 		choppy = mix(choppy,1.0,0.2);
 	}
@@ -67,8 +69,10 @@ float getwave2(vec3 p, in float lod) {
 
 	float d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY2; i++) {
+		float llod = lod + ((1.0 - lod) * (1.0 / ITER_GEOMETRY) * i);
+	
 		d = sea_octave_micro((fuv+wave_speed * vec2(0.1, 0.9))*freq,choppy);
-		h += d * amp * mix(lod, 1.0, float(i) * 0.25);
+		h += d * amp * llod;
 		fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= 0.5;
 		choppy = mix(choppy,1.0,0.2);
 	}
