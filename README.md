@@ -6,4 +6,4 @@ Requirements&Specifications are on the website.
 This shader is in THE APACHE License, more information in LICENSE.TXT
 
 # Official website
-https://qionouu.cn/
+https://bc3.moe/wisdom-shaders/
