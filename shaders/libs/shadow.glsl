@@ -1,24 +1,15 @@
 #include "compat.glsl"
 
-INOUT vec4 color;
-INOUT vec3 normal;
-INOUT vec2 uv;
-
-const int countInstances = 4;
-
-uniform int instanceId;
-
 #ifdef VERTEX
+
+out vec4 vcolor;
+out vec2 vuv;
+out vec4 vpos;
 
 uniform vec3 shadowLightPosition;
 uniform vec3 upPosition;
 
 uniform mat4 gbufferModelView;
-
-float max_axis(in vec2 v) {
-    v = abs(v);
-    return max(v.x, v.y);
-}
 
 void main() {
     vec4 input_pos = gl_Vertex;
@@ -28,38 +19,77 @@ void main() {
 
     vec4 proj_pos = mvp_mat * input_pos;
 
-    if (instanceId == 0) {
-        // Top Left
-        if (max_axis(proj_pos.xy) > 0.6) proj_pos.z = 1000000.0;
-        proj_pos.xy *= 1.0;
-        proj_pos.z *= 0.5;
-        proj_pos.xy += vec2(-0.5, 0.5);
-    } else if (instanceId == 1) {
-        // Top Right
-        if (max_axis(proj_pos.xy) > 2.2) proj_pos.z = 1000000.0;
-        proj_pos.xy *= 0.25;
-        proj_pos.z *= 0.5;
-        proj_pos.xy += vec2(0.5, 0.5);
-    } else if (instanceId == 2) {
-        // Bottom Left
-        if (max_axis(proj_pos.xy) > 4.4) proj_pos.z = 1000000.0;
-        proj_pos.xy *= 0.125;
-        proj_pos.z *= 0.5;
-        proj_pos.xy += vec2(-0.5, -0.5);
-    } else if (instanceId == 3) {
-        // Bottom Right
-        proj_pos.xy *= 0.03125;
-        proj_pos.z *= 0.25;
-        proj_pos.xy += vec2(0.5, -0.5);
+    vpos = proj_pos;
+    vuv = mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st;
+    vcolor = gl_Color;
+}
+
+#elif defined(GEOMETRY)
+
+#extension GL_ARB_geometry_shader4 : enable
+const int maxVerticesOut = 12;
+
+in vec4 vcolor[3];
+in vec2 vuv[3];
+in vec4 vpos[3];
+
+out vec4 color;
+out vec2 uv;
+out flat int cascade;
+
+float max_axis(in vec2 v) {
+    v = abs(v);
+    return max(v.x, v.y);
+}
+
+void main() {
+    for (int n = 0; n < 4; n++) {
+        for (int i = 0; i < 3; i++) {
+            cascade = n;
+    
+            vec4 proj_pos = vpos[i];
+
+            if (n == 0) {
+                // Top Left
+                if (max_axis(proj_pos.xy) > 0.6) proj_pos.z = 1000000.0;
+                proj_pos.xy *= 1.0;
+                proj_pos.z *= 0.5;
+                proj_pos.xy += vec2(-0.5, 0.5);
+            } else if (n == 1) {
+                // Top Right
+                if (max_axis(proj_pos.xy) > 2.2) proj_pos.z = 1000000.0;
+                proj_pos.xy *= 0.25;
+                proj_pos.z *= 0.5;
+                proj_pos.xy += vec2(0.5, 0.5);
+            } else if (n == 2) {
+                // Bottom Left
+                if (max_axis(proj_pos.xy) > 4.4) proj_pos.z = 1000000.0;
+                proj_pos.xy *= 0.125;
+                proj_pos.z *= 0.5;
+                proj_pos.xy += vec2(-0.5, -0.5);
+            } else if (n == 3) {
+                // Bottom Right
+                proj_pos.xy *= 0.03125;
+                proj_pos.z *= 0.25;
+                proj_pos.xy += vec2(0.5, -0.5);
+            }
+
+            gl_Position = proj_pos;
+            color = vcolor[i];
+            uv = vuv[i];
+            EmitVertex();
+        }
+
+        EndPrimitive();
     }
-
-
-    gl_Position = proj_pos;
-
-    uv = mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st;
 }
 
 #else
+
+in vec4 color;
+in vec3 normal;
+in vec2 uv;
+in flat int cascade;
 
 uniform sampler2D tex;
 
@@ -68,13 +98,13 @@ uniform sampler2D tex;
 void fragment() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
     
-    if (instanceId == 0) {
+    if (cascade == 0) {
         if (iuv.x > shadowMapQuadRes || iuv.y < shadowMapQuadRes) discard;
-    } else if (instanceId == 1) {
+    } else if (cascade == 1) {
         if (iuv.x < shadowMapQuadRes || iuv.y < shadowMapQuadRes) discard;
-    } else if (instanceId == 2) {
+    } else if (cascade == 2) {
         if (iuv.x > shadowMapQuadRes || iuv.y > shadowMapQuadRes) discard;
-    } else if (instanceId == 3) {
+    } else if (cascade == 3) {
         if (iuv.x < shadowMapQuadRes || iuv.y > shadowMapQuadRes) discard;
     }
 
