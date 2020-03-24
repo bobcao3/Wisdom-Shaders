@@ -56,4 +56,39 @@ float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth, in float 
     return mix(mix(samples.w, samples.z, f.x), mix(samples.x, samples.y, f.x), f.y);
 }
 
+const vec2 poisson_12[12] = vec2 [] (
+	vec2(-0.326212, -0.40581),
+	vec2(-0.840144, -0.07358),
+	vec2(-0.695914,  0.457137),
+	vec2(-0.203345,  0.620716),
+	vec2(0.96234,   -0.194983),
+	vec2(0.473434,  -0.480026),
+	vec2(0.519456,   0.767022),
+	vec2(0.185461,  -0.893124),
+	vec2(0.507431,   0.064425),
+	vec2(0.89642,    0.412458),
+	vec2(-0.32194,  -0.932615),
+	vec2(-0.791559, -0.59771)
+);
+
+float shadowFiltered(in sampler2D tex, in vec3 spos, out float depth, in float bias, in float radius) {
+    const vec2 resolution = vec2(shadowMapResolution);
+    const vec2 invresolution = 1.0 / resolution;
+
+    float shadow = 0.0;
+    depth = 0.0;
+
+    for (int i = 0; i < 12; i++) {
+        float d;
+        shadow += shadowTexSmooth(tex, spos + vec3(poisson_12[i] * radius, 0.0), d, bias);
+        depth += d;
+    }
+
+    const float inv12 = 1.0 / 12.0;
+
+    depth *= inv12;
+
+    return shadow * inv12;
+}
+
 #endif

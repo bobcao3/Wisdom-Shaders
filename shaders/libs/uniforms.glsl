@@ -5,6 +5,8 @@ uniform mat4 gbufferModelView;                  // modelview matrix after settin
 uniform mat4 gbufferProjection;                 // projection matrix when the gbuffers were generated
 uniform mat4 shadowProjection;                  // projection matrix when the shadow map was generated
 uniform mat4 shadowModelView;                   // modelview matrix when the shadow map was generated
+uniform float viewHeight;
+uniform float viewWidth;
 #endif
 #endif
 
@@ -15,6 +17,8 @@ uniform mat4 gbufferModelViewInverse;           // inverse gbufferModelView
 uniform mat4 gbufferProjectionInverse;          // inverse gbufferProjection
 uniform mat4 shadowProjectionInverse;           // inverse shadowProjection
 uniform mat4 shadowModelViewInverse;            // inverse shadowModelView
+uniform vec2 invWidthHeight;
+uniform vec4 projParams;
 #endif
 #endif
 
@@ -43,5 +47,17 @@ uniform vec3 shadowLightPosition;               // shadow light (sun or moon) po
 uniform vec3 upPosition;                        // direction up
 uniform vec3 cameraPosition;                    // camera position in world space
 uniform vec3 previousCameraPosition;            // last frame cameraPosition
+#endif
+#endif
+
+#ifdef BUFFERS
+#ifndef _INCLUDE_BUFFERS
+#define _INCLUDE_BUFFERS
+uniform sampler2D depthtex0;
+uniform sampler2D shadowtex1;
+
+uniform sampler2D colortex0;
+uniform sampler2D colortex1;
+uniform usampler2D colortex4;
 #endif
 #endif

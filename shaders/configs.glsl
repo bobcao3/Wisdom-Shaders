@@ -1,9 +1,10 @@
 #ifndef _INCLUDE_CONFIGS
 #define _INCLUDE_CONFIGS
 
-const int RGBA32UI = 0, RGBA16F = 1;
-const int colortex4Format = RGBA32UI;
+const int RGBA32UI = 0, RGBA16F = 1, RGBA32F = 2;
 const int colortex0Format = RGBA16F;
+const int colortex1Format = RGBA32F;
+const int colortex4Format = RGBA32UI;
 
 const float sunPathRotation = -40.0;
 const int shadowMapResolution = 2048;
