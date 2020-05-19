@@ -1,15 +1,24 @@
 #include "compat.glsl"
 
+uniform int frameCounter;
+
 #ifdef VERTEX
+
+#include "taa.glsl"
+uniform vec2 invWidthHeight;
 
 out vec4 vcolor;
 out vec2 vuv;
 out vec4 vpos;
+out vec3 vnormal;
+out float blockId;
 
 uniform vec3 shadowLightPosition;
 uniform vec3 upPosition;
 
 uniform mat4 gbufferModelView;
+
+attribute vec4 mc_Entity;
 
 void main() {
     vec4 input_pos = gl_Vertex;
@@ -22,6 +31,13 @@ void main() {
     vpos = proj_pos;
     vuv = mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st;
     vcolor = gl_Color;
+    vnormal = normalize(gl_NormalMatrix * gl_Normal);
+
+    blockId = mc_Entity.x;
+
+    if (mc_Entity.y == 0) blockId = 8001;
+
+    gl_Position.st += JitterSampleOffset(frameCounter) * invWidthHeight * gl_Position.w;
 }
 
 #elif defined(GEOMETRY)
@@ -32,6 +48,8 @@ const int maxVerticesOut = 12;
 in vec4 vcolor[3];
 in vec2 vuv[3];
 in vec4 vpos[3];
+in vec3 vnormal[3];
+in float blockId[3];
 
 out vec4 color;
 out vec2 uv;
@@ -43,6 +61,8 @@ float max_axis(in vec2 v) {
 }
 
 void main() {
+    if (vnormal[0].z + vnormal[1].z + vnormal[2].z >= 0 && blockId[0] != 18 && blockId[0] != 31 && blockId[0] != 79 && blockId[0] != 8001) return;
+
     for (int n = 0; n < 4; n++) {
         for (int i = 0; i < 3; i++) {
             cascade = n;

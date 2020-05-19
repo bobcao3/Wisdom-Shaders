@@ -42,13 +42,23 @@ float getHorizonAngle(ivec2 iuv, vec2 offset, vec3 vpos, vec3 nvpos, out float l
     return dot(nvpos, ws);
 }
 
+uniform int frameCounter;
+uniform float aspectRatio;
+
 float getAO(ivec2 iuv, vec2 uv, vec3 vpos, vec3 vnorm) {
     float rand1 = (1.0 / 16.0) * float((((iuv.x + iuv.y) & 0x3) << 2) + (iuv.x & 0x3));
     float rand2 = (1.0 / 4.0) * float((iuv.y - iuv.x) & 0x3);
-    float angle = rand1 * 3.1415926;
-    float radius = 1.0 / -vpos.z;
+    
+    float radius = 2.0 / -vpos.z * gbufferProjection[0][0];
 
-    radius = clamp(radius, 0.001, 0.3);
+    const float rotations[] = {60.0f, 300.0f, 180.0f, 240.0f, 120.0f, 0.0f};
+    float rotation = rotations[frameCounter % 6] / 360.0f;
+    float angle = (rand1 + rotation) * 3.1415926;
+
+    const float offsets[] = { 0.0f, 0.5f, 0.25f, 0.75f };
+    float offset = offsets[(frameCounter / 6 ) % 4];
+
+    radius = clamp(radius, 0.01, 0.2);
 
     vec2 t = vec2(cos(angle), sin(angle));
 
@@ -57,17 +67,16 @@ float getAO(ivec2 iuv, vec2 uv, vec3 vpos, vec3 vnorm) {
     vec3 wo_norm = -normalize(vpos);
 
     for (int i = 0; i < 4; i++) {
-        float r = radius * (float(i) + rand2 + 0.5) * 0.125;
+        float r = radius * (float(i) + fract(rand2 + offset) + 0.05) * 0.125;
 
         float l1;
-        float h1 = getHorizonAngle(iuv, t * r, vpos, wo_norm, l1);
-        float theta1_p = mix(h1, theta1, clamp(l1 - 1, 0.0, 1.0));
-        theta1 = theta1_p > theta1 ? theta1_p : (theta1_p + theta1) * 0.5;
-
+        float h1 = getHorizonAngle(iuv, t * r * vec2(1.0, aspectRatio), vpos, wo_norm, l1);
+        float theta1_p = mix(h1, theta1, clamp((l1 - 1) * 0.5, 0.0, 1.0));
+        theta1 = theta1_p > theta1 ? theta1_p : mix(theta1_p, theta1, 0.7);
         float l2;
-        float h2 = getHorizonAngle(iuv, -t * r, vpos, wo_norm, l2);
-        float theta2_p = mix(h2, theta2, clamp(l2 - 1, 0.0, 1.0));
-        theta2 = theta2_p > theta2 ? theta2_p : (theta2_p + theta2) * 0.5;
+        float h2 = getHorizonAngle(iuv, -t * r * vec2(1.0, aspectRatio), vpos, wo_norm, l2);
+        float theta2_p = mix(h2, theta2, clamp((l2 - 1) * 0.5, 0.0, 1.0));
+        theta2 = theta2_p > theta2 ? theta2_p : mix(theta2_p, theta2, 0.7);
     }
 
     theta1 = -acos(theta1);
@@ -82,7 +91,7 @@ float getAO(ivec2 iuv, vec2 uv, vec3 vpos, vec3 vnorm) {
     float cosxi		= dot(nx, tangent) * invnnx;	// xi = gamma + HALF_PI
     float gamma		= acos(cosxi) - 3.1415926 / 2.0;
     float cos_gamma	= dot(nx, wo_norm) * invnnx;
-    float sin_gamma = sin(gamma);//-2.0 * cosxi;
+    float sin_gamma = -2.0 * cosxi;
 
     theta1 = gamma + max(theta1 - gamma, -3.1415926 / 2.0);
     theta2 = gamma + min(theta2 - gamma,  3.1415926 / 2.0);

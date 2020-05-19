@@ -47,6 +47,7 @@ uniform vec3 shadowLightPosition;               // shadow light (sun or moon) po
 uniform vec3 upPosition;                        // direction up
 uniform vec3 cameraPosition;                    // camera position in world space
 uniform vec3 previousCameraPosition;            // last frame cameraPosition
+uniform vec3 skyColor;
 #endif
 #endif
 
@@ -58,6 +59,8 @@ uniform sampler2D shadowtex1;
 
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
+uniform sampler2D colortex2;
 uniform usampler2D colortex4;
+uniform sampler2D gaux2; // colortex5
 #endif
 #endif

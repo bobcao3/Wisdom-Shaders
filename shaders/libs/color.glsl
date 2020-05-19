@@ -17,6 +17,10 @@ vec3 toGamma(vec3 c) {
     return pow(c, vec3(invGamma));
 }
 
+float luma(vec3 c) {
+    return dot(c, vec3(0.2126, 0.7152, 0.0722));
+}
+
 const mat3 ACESInputMat = mat3(
     vec3(0.59719, 0.07600, 0.02840),
     vec3(0.35458, 0.90834, 0.13383),

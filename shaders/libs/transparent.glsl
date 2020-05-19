@@ -4,13 +4,14 @@
 #include "color.glsl"
 
 INOUT vec4 color;
-
-uniform int frameCounter;
+INOUT vec3 normal;
+INOUT vec4 viewPos;
+INOUT vec2 uv;
+INOUT float layer;
 
 #ifdef VERTEX
 
-#include "taa.glsl"
-uniform vec2 invWidthHeight;
+attribute vec4 mc_Entity;
 
 void main() {
     vec4 input_pos = gl_Vertex;
@@ -19,13 +20,13 @@ void main() {
     mat4 mvp_mat = gl_ModelViewProjectionMatrix;
 
     color = gl_Color;
+    uv = mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st;
+    normal = normalize(gl_NormalMatrix * gl_Normal);
 
-    vec4 position = model_view_mat * input_pos;
+    viewPos = model_view_mat * input_pos;
+    gl_Position = proj_mat * viewPos;
 
-    gl_Position = mvp_mat * input_pos;
-    gl_FogFragCoord = length(position.xyz);
-
-    gl_Position.st += JitterSampleOffset(frameCounter) * invWidthHeight * gl_Position.w;
+    layer = mc_Entity.x;
 }
 
 #else
@@ -36,11 +37,27 @@ uniform vec4 projParams;
 
 uniform int fogMode;
 
+#define VECTORS
+#define BUFFERS
+#include "uniforms.glsl"
+
 #include "noise.glsl"
+
+uniform int frameCounter;
 
 void fragment() {
 /* DRAWBUFFERS:0 */
-    gl_FragData[0] = color + bayer8(gl_FragCoord.st) / 128.0;
+    vec4 c = color * texture(tex, uv);
+    c.rgb = fromGamma(c.rgb);
+
+    ivec2 iuv = ivec2(gl_FragCoord.st);
+
+    float fresnel = pow(1.0 - max(dot(normal, -normalize(viewPos.xyz)), 0.0), 2.0);
+    c.rgb = c.rgb * texelFetch(gaux2, iuv, 0).rgb + c.rgb * fresnel * skyColor;
+
+    c.a = clamp(0.7 * c.a + fresnel * 0.3, 0.0, 1.0);
+
+    gl_FragData[0] = c;
 
     if(fogMode == 9729)
         gl_FragData[0].rgb = mix(gl_Fog.color.rgb, gl_FragData[0].rgb, clamp((gl_Fog.end - gl_FogFragCoord) / (gl_Fog.end - gl_Fog.start), 0.0, 1.0));

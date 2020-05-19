@@ -16,9 +16,9 @@ void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
 
     vec4 color = texelFetch(colortex0, iuv, 0);
-    if (iuv.x < shadowMapQuadRes / 2 && iuv.y < shadowMapQuadRes / 2) {
-        color = texelFetch(shadowtex0, iuv * 4, 0);
-    }
+    // if (iuv.x < shadowMapQuadRes / 2 && iuv.y < shadowMapQuadRes / 2) {
+    //    color = texelFetch(shadowtex0, iuv * 4, 0);
+    // }
 
     float exposure = 0.5;
 

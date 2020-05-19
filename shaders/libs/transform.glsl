@@ -42,7 +42,7 @@ vec3 world2shadowView(in vec3 world_pos) {
     return (shadowModelView * vec4(world_pos, 1.0)).xyz;
 }
 
-vec3 world2shadowProj(in vec3 world_pos, out float bias) {
+vec3 world2shadowProj(in vec3 world_pos, out float bias, out float scale) {
     vec4 shadow_proj_pos = vec4(world2shadowView(world_pos), 1.0);
     shadow_proj_pos = shadowProjection * shadow_proj_pos;
     shadow_proj_pos.xyz /= shadow_proj_pos.w;
@@ -54,29 +54,55 @@ vec3 world2shadowProj(in vec3 world_pos, out float bias) {
         // Top Left
         spos.xy *= 1.0;
         spos.z *= 0.5;
+        scale = 1.0;
         spos.xy += vec2(-0.5, 0.5);
-        bias = 0.00005;
+        bias = 0.0001;
     } else if (largest_axis < 1.9) {
         // Top Right
         spos.xy *= 0.25;
         spos.z *= 0.5;
+        scale = 0.25;
         spos.xy += vec2(0.5, 0.5);
-        bias = 0.0001;
+        bias = 0.0002;
     } else if (largest_axis < 3.8) {
         // Bottom Left
         spos.xy *= 0.125;
         spos.z *= 0.5;
+        scale = 0.5;
         spos.xy += vec2(-0.5, -0.5);
-        bias = 0.0005;
+        bias = 0.001;
     } else if (largest_axis < 16) {
         // Bottom Right
         spos.xy *= 0.03125;
         spos.z *= 0.25;
+        scale = 0.25;
         spos.xy += vec2(0.5, -0.5);
-        bias = 0.001;
+        bias = 0.002;
     } else {
         spos = vec3(-1);
     }
 
+    bias = 0.0;
+
     return spos * 0.5 + 0.5;
+}
+
+float sposLinear(in vec3 spos) {
+    float largest_axis = max(abs(spos.x), abs(spos.y));
+
+    if (largest_axis < 0.495) {
+        // Top Left
+        return spos.z * 2.0;
+    } else if (largest_axis < 1.9) {
+        // Top Right
+        return spos.z * 2.0;
+    } else if (largest_axis < 3.8) {
+        // Bottom Left
+        return spos.z * 2.0;
+    } else if (largest_axis < 16) {
+        // Bottom Right
+        return spos.z * 4.0;
+    } else {
+        return 1.0;
+    }
 }
