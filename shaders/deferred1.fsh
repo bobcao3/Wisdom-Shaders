@@ -71,11 +71,11 @@ float getAO(ivec2 iuv, vec2 uv, vec3 vpos, vec3 vnorm) {
 
         float l1;
         float h1 = getHorizonAngle(iuv, t * r * vec2(1.0, aspectRatio), vpos, wo_norm, l1);
-        float theta1_p = mix(h1, theta1, clamp((l1 - 1) * 0.5, 0.0, 1.0));
+        float theta1_p = mix(h1, theta1, clamp((l1 - 4) * 0.3, 0.0, 1.0));
         theta1 = theta1_p > theta1 ? theta1_p : mix(theta1_p, theta1, 0.7);
         float l2;
         float h2 = getHorizonAngle(iuv, -t * r * vec2(1.0, aspectRatio), vpos, wo_norm, l2);
-        float theta2_p = mix(h2, theta2, clamp((l2 - 1) * 0.5, 0.0, 1.0));
+        float theta2_p = mix(h2, theta2, clamp((l2 - 4) * 0.3, 0.0, 1.0));
         theta2 = theta2_p > theta2 ? theta2_p : mix(theta2_p, theta2, 0.7);
     }
 
