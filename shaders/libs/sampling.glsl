@@ -51,25 +51,32 @@ float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth, in float 
 
     vec2 f = fract(spos.xy * resolution);
 
-    vec4 samples = step(spos.z, textureGather(tex, spos.xy + invresolution * 0.5) + bias);
+    vec4 dsamples = textureGather(tex, spos.xy + invresolution * 0.5);
+    vec4 samples = step(spos.z, dsamples + bias);
+
+    depth = dot(dsamples, vec4(0.25));
     
     return mix(mix(samples.w, samples.z, f.x), mix(samples.x, samples.y, f.x), f.y);
 }
 
-const vec2 poisson_12[12] = vec2 [] (
-	vec2(-0.326212, -0.40581),
-	vec2(-0.840144, -0.07358),
-	vec2(-0.695914,  0.457137),
-	vec2(-0.203345,  0.620716),
-	vec2(0.96234,   -0.194983),
-	vec2(0.473434,  -0.480026),
-	vec2(0.519456,   0.767022),
-	vec2(0.185461,  -0.893124),
-	vec2(0.507431,   0.064425),
-	vec2(0.89642,    0.412458),
-	vec2(-0.32194,  -0.932615),
-	vec2(-0.791559, -0.59771)
-);
+#include "./noise.glsl"
+
+float getShadowRadiusPCSS(in sampler2D tex, in vec3 spos, out float depth, in float scale) {
+    const vec2 resolution = vec2(shadowMapResolution);
+    const vec2 invresolution = 1.0 / resolution;
+
+    float shadow = 0.0;
+    depth = 1.0;
+
+    for (int i = 0; i < 12; i++) {
+        vec4 dsample = textureGather(tex, spos.xy + invresolution * 0.5 + vec2(poisson_12[i] * 0.05));
+        depth = min(depth, min(min(dsample.x, dsample.y), min(dsample.z, dsample.w)));
+    }
+
+    const float sunSize = 0.2;
+
+    return max(spos.z - depth, 0.0005) * sunSize * scale;
+}
 
 float shadowFiltered(in sampler2D tex, in vec3 spos, out float depth, in float bias, in float radius) {
     const vec2 resolution = vec2(shadowMapResolution);
