@@ -19,7 +19,12 @@ const int shadowMapQuadRes = shadowMapResolution / 2;
 
 const bool colortex2Clear = false;
 
+#ifndef MC_RENDER_QUALITY
 #define MC_RENDER_QUALITY 1.0
+#endif
+
+#ifndef MC_SHADOW_QUALITY
 #define MC_SHADOW_QUALITY 1.0
+#endif
 
 #endif
