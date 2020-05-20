@@ -95,16 +95,16 @@ void main() {
         vec3 world_pos = view2world(view_pos);
 
         //int cascade = int(clamp(floor(log2(max(abs(world_pos.x), abs(world_pos.z)) / 8.0)), 0.0, 4.0));
-        float bias, scale;
-        vec3 shadow_proj_pos = world2shadowProj(world_pos + world_normal * 0.05, bias, scale);
+        float scale;
+        vec3 shadow_proj_pos = world2shadowProj(world_pos + world_normal * 0.01);
 
         float shadow_sampled_depth;
 #ifdef PCSS
-        float shadow_radius = getShadowRadiusPCSS(shadowtex1, shadow_proj_pos, shadow_sampled_depth, scale);
+        float shadow_radius = getShadowRadiusPCSS(shadowtex1, shadow_proj_pos, shadow_sampled_depth, iuv);
 #else
-        const float shadow_radius = 0.0005;
+        const float shadow_radius = 0.001;
 #endif
-        float shadow = shadowFiltered(shadowtex1, shadow_proj_pos, shadow_sampled_depth, bias, shadow_radius);
+        float shadow = shadowFiltered(shadowtex1, shadow_proj_pos, shadow_sampled_depth, shadow_radius, iuv);
         vec3 sun_vec = normalize(shadowLightPosition);
 
         vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));

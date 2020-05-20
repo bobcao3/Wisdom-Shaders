@@ -2,6 +2,7 @@
 #define _INCLUDE_SAMPLING
 
 #include "./../configs.glsl"
+#include "./transform.glsl"
 
 // Bicubic sampling from Robobo1221
 vec4 Cubic(float x) {
@@ -45,14 +46,14 @@ vec4 bicubicSample(sampler2D tex, vec2 coord) {
     return mix(mix(sample3, sample2, sx), mix(sample1, sample0, sx), sy);
 }
 
-float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth, in float bias) {
+float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth) {
     const vec2 resolution = vec2(shadowMapResolution);
     const vec2 invresolution = 1.0 / resolution;
 
     vec2 f = fract(spos.xy * resolution);
 
     vec4 dsamples = textureGather(tex, spos.xy + invresolution * 0.5);
-    vec4 samples = step(spos.z, dsamples + bias);
+    vec4 samples = step(spos.z, dsamples);
 
     depth = dot(dsamples, vec4(0.25));
     
@@ -61,37 +62,48 @@ float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth, in float 
 
 #include "./noise.glsl"
 
-float getShadowRadiusPCSS(in sampler2D tex, in vec3 spos, out float depth, in float scale) {
+#include "taa.glsl"
+uniform int frameCounter;
+
+float getShadowRadiusPCSS(in sampler2D tex, in vec3 spos, out float depth, in ivec2 iuv) {
     const vec2 resolution = vec2(shadowMapResolution);
     const vec2 invresolution = 1.0 / resolution;
 
-    float shadow = 0.0;
-    depth = 1.0;
+    float s, ds;
+    depth = 100.0;
 
-    for (int i = 0; i < 12; i++) {
-        vec4 dsample = textureGather(tex, spos.xy + invresolution * 0.5 + vec2(poisson_12[i] * 0.05));
-        depth = min(depth, min(min(dsample.x, dsample.y), min(dsample.z, dsample.w)));
+    for (int i = 0; i < 4; i++) {
+        vec2 grid_sample = fract(WeylNth(i - frameCounter & 0x7) + bayer8(iuv));
+        vec2 direction = vec2(cos(grid_sample.x * 3.1415926 * 2.0), sin(grid_sample.x * 3.1415926 * 2.0)) * grid_sample.y;
+
+        vec3 spos_cascaded = shadowProjCascaded(spos + vec3(direction * 0.01, 0.0), s, ds);
+        vec4 dsample = textureGather(tex, spos_cascaded.xy + invresolution * 0.5);
+        depth = min(depth, (min(min(dsample.x, dsample.y), min(dsample.z, dsample.w)) * 2.0 - 1.0) * ds);
     }
 
-    const float sunSize = 0.2;
+    const float sunSize = 0.08;
 
-    return max(spos.z - depth, 0.0005) * sunSize * scale;
+    return max((spos.z - depth), 0.001) * sunSize;
 }
 
-float shadowFiltered(in sampler2D tex, in vec3 spos, out float depth, in float bias, in float radius) {
+float shadowFiltered(in sampler2D tex, in vec3 spos, out float depth, in float radius, in ivec2 iuv) {
     const vec2 resolution = vec2(shadowMapResolution);
     const vec2 invresolution = 1.0 / resolution;
 
     float shadow = 0.0;
     depth = 0.0;
 
-    for (int i = 0; i < 12; i++) {
-        float d;
-        shadow += shadowTexSmooth(tex, spos + vec3(poisson_12[i] * radius, 0.0), d, bias);
-        depth += d;
+    for (int i = 0; i < 8; i++) {
+        float d, s, ds;
+
+        vec2 grid_sample = fract(WeylNth(i + frameCounter & 0x7) + bayer8(iuv));
+        vec2 direction = vec2(cos(grid_sample.x * 3.1415926 * 2.0), sin(grid_sample.x * 3.1415926 * 2.0)) * grid_sample.y;
+
+        shadow += shadowTexSmooth(tex, shadowProjCascaded(spos + vec3(direction * radius, 0.0), s, ds), d);
+        depth += (d * 2.0 - 1.0) * ds;
     }
 
-    const float inv12 = 1.0 / 12.0;
+    const float inv12 = 1.0 / 8.0;
 
     depth *= inv12;
 
