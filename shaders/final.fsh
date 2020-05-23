@@ -41,7 +41,7 @@ void main() {
     }
 #endif
 
-    float exposure = clamp(3.0 / L, 0.5, 10.0);
+    float exposure = clamp(3.0 / L, 0.1, 10.0);
 
     color = toGamma(color * exposure);
     color.rgb = ACESFitted(color.rgb) * 1.4;

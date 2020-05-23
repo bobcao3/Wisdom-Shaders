@@ -15,6 +15,8 @@
 
 uniform float rainStrength;
 
+#include "libs/raytrace.glsl"
+
 #define PCSS
 
 void main() {
@@ -38,6 +40,7 @@ void main() {
     if (proj_pos.z < 0.9999) {
         vec3 view_pos = proj2view(proj_pos);
         vec3 world_pos = view2world(view_pos);
+        vec3 sun_vec = shadowLightPosition * 0.01;
 
         //int cascade = int(clamp(floor(log2(max(abs(world_pos.x), abs(world_pos.z)) / 8.0)), 0.0, 4.0));
         float scale;
@@ -50,9 +53,15 @@ void main() {
         const float shadow_radius = 0.001;
 #endif
         float shadow = shadowFiltered(shadowtex1, shadow_proj_pos, shadow_sampled_depth, shadow_radius, iuv);
-        //shadow = min(1.0, contactShadow(view_pos, vec2(iuv), normal));
-        vec3 sun_vec = normalize(shadowLightPosition);
+        
+        vec3 b = normalize(cross(sun_vec, normal));
+        vec3 t = cross(normal, b);
 
+        float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 2.0, 1.0, 0.05) != ivec2(0));
+        rt_contact_shadow *= clamp(abs(t.z - sun_vec.z) * 10.0 - 2.0, 0.0, 1.0);
+        
+        shadow = min(shadow, 1.0 - rt_contact_shadow);
+        
         vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));
         float subsurface_depth = 1.0 - smoothstep(sposLinear(spos_diff) * 128.0, 0.0, subsurface * 0.5 + pow(abs(dot(normalize(view_pos), sun_vec)), 8.0));
 
@@ -62,9 +71,8 @@ void main() {
             shadow = max(0.0, dot(normal, sun_vec)) * shadow;
         }
 
-        float sunDotUp = dot(normalize(sunPosition), normalize(upPosition));
-        float sunIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01) * (1.0 - rainStrength * 0.9);
-        float ambientIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01);
+        float sunDotUp = dot(sunPosition * 0.01, normalize(upPosition));
+        float sunIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01) * (1.0 - rainStrength * 0.95);
 
         vec3 sun_I = vec3(9.8) * sunIntensity; // 98000 lux
         vec3 L = sun_I * shadow;
@@ -74,7 +82,7 @@ void main() {
 
         color.rgb = diffuse_bsdf(color.rgb) * L;
     } else {
-        color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 3.0;
+        color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 2.5;
     }
 
 /* DRAWBUFFERS:0 */

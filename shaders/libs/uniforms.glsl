@@ -60,6 +60,7 @@ uniform sampler2D shadowtex1;
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
 uniform sampler2D colortex2;
+uniform sampler2D colortex3;
 uniform usampler2D colortex4;
 uniform sampler2D gaux2; // colortex5
 #endif
