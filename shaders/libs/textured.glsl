@@ -64,9 +64,11 @@ void fragment() {
     float dL = min(length(ddx), length(ddy.x));
     int lod = clamp(int(round(log2(dL * textureSize(tex, 0).x))), 0, 3);
 
+    vec2 lmcoord_dithered = lmcoord + bayer8(gl_FragCoord.st) * 0.004;
+
     vec4 c = color * fromGamma(textureLod(tex, uv, lod));
     if (c.a < threshold) discard;
-    fragData[0] = uvec4(normalEncode(normal), packUnorm4x8(c), packUnorm4x8(vec4(lmcoord, subsurface, 0.0)), 0);
+    fragData[0] = uvec4(normalEncode(normal), packUnorm4x8(c), packUnorm4x8(vec4(lmcoord_dithered, subsurface, 0.0)), 0);
 }
 
 #endif
