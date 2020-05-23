@@ -9,7 +9,12 @@ INOUT vec4 viewPos;
 INOUT vec2 uv;
 INOUT float layer;
 
+uniform int frameCounter;
+
 #ifdef VERTEX
+
+#include "taa.glsl"
+uniform vec2 invWidthHeight;
 
 attribute vec4 mc_Entity;
 
@@ -27,6 +32,8 @@ void main() {
     gl_Position = proj_mat * viewPos;
 
     layer = mc_Entity.x;
+
+    gl_Position.st += JitterSampleOffset(frameCounter) * invWidthHeight * gl_Position.w;
 }
 
 #else
@@ -42,8 +49,6 @@ uniform int fogMode;
 #include "uniforms.glsl"
 
 #include "noise.glsl"
-
-uniform int frameCounter;
 
 void fragment() {
 /* DRAWBUFFERS:0 */

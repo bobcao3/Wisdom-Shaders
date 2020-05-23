@@ -3,7 +3,7 @@
 
 const int RGBA32UI = 0, RGBA16F = 1, RGBA32F = 2;
 const int colortex0Format = RGBA16F;
-const int colortex1Format = RGBA32F;
+const int colortex1Format = RGBA16F;
 const int colortex2Format = RGBA16F;
 const int colortex4Format = RGBA32UI;
 const int colortex5Format = RGBA16F;

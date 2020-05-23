@@ -4,109 +4,34 @@
 #define BUFFERS
 
 #include "libs/encoding.glsl"
+#include "libs/sampling.glsl"
+#include "libs/bsdf.glsl"
 #include "libs/transform.glsl"
+#include "libs/color.glsl"
 
-float rand(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-}
+#define VECTORS
+#define CLIPPING_PLANE
+#include "libs/uniforms.glsl"
 
-float bayer2(vec2 a){
-    a = floor(a);
-    return fract( dot(a, vec2(.5f, a.y * .75f)) );
-}
+uniform float rainStrength;
 
-#define bayer4(a)   (bayer2( .5f*(a))*.25f+bayer2(a))
-#define bayer8(a)   (bayer4( .5f*(a))*.25f+bayer2(a))
-#define bayer16(a)  (bayer8( .5f*(a))*.25f+bayer2(a))
-#define bayer32(a)  (bayer16(.5f*(a))*.25f+bayer2(a))
-#define bayer64(a)  (bayer32(.5f*(a))*.25f+bayer2(a))
-
-float getHorizonAngle(ivec2 iuv, vec2 offset, vec3 vpos, vec3 nvpos, out float l) {
-    ivec2 ioffset = ivec2(offset * vec2(viewHeight, viewHeight));
-    ivec2 suv = iuv + ioffset;
-
-    if (suv.x < 0 || suv.y < 0 || suv.x > viewWidth || suv.y > viewHeight) return -1.0;
-
-    float lod = 1;
-    float depth_sample = texelFetch(depthtex0, suv, 0).r;
-
-    vec3 proj_pos = getProjPos(suv, depth_sample);
-    vec3 view_pos = proj2view(proj_pos);
-    
-    vec3 ws = view_pos - vpos;
-    l = sqrt(dot(ws, ws));
-    ws /= l;
-
-    return dot(nvpos, ws);
-}
-
-uniform int frameCounter;
-uniform float aspectRatio;
-
-float getAO(ivec2 iuv, vec2 uv, vec3 vpos, vec3 vnorm) {
-    float rand1 = (1.0 / 16.0) * float((((iuv.x + iuv.y) & 0x3) << 2) + (iuv.x & 0x3));
-    float rand2 = (1.0 / 4.0) * float((iuv.y - iuv.x) & 0x3);
-    
-    float radius = 2.0 / -vpos.z * gbufferProjection[0][0];
-
-    const float rotations[] = {60.0f, 300.0f, 180.0f, 240.0f, 120.0f, 0.0f};
-    float rotation = rotations[frameCounter % 6] / 360.0f;
-    float angle = (rand1 + rotation) * 3.1415926;
-
-    const float offsets[] = { 0.0f, 0.5f, 0.25f, 0.75f };
-    float offset = offsets[(frameCounter / 6 ) % 4];
-
-    radius = clamp(radius, 0.01, 0.2);
-
-    vec2 t = vec2(cos(angle), sin(angle));
-
-    float theta1 = -1.0, theta2 = -1.0;
-
-    vec3 wo_norm = -normalize(vpos);
-
-    for (int i = 0; i < 4; i++) {
-        float r = radius * (float(i) + fract(rand2 + offset) + 0.05) * 0.125;
-
-        float l1;
-        float h1 = getHorizonAngle(iuv, t * r * vec2(1.0, aspectRatio), vpos, wo_norm, l1);
-        float theta1_p = mix(h1, theta1, clamp((l1 - 2) * 0.5, 0.0, 1.0));
-        theta1 = theta1_p > theta1 ? theta1_p : mix(theta1_p, theta1, 0.7);
-        float l2;
-        float h2 = getHorizonAngle(iuv, -t * r * vec2(1.0, aspectRatio), vpos, wo_norm, l2);
-        float theta2_p = mix(h2, theta2, clamp((l2 - 2) * 0.5, 0.0, 1.0));
-        theta2 = theta2_p > theta2 ? theta2_p : mix(theta2_p, theta2, 0.7);
-    }
-
-    theta1 = -acos(theta1);
-    theta2 = acos(theta2);
-    
-    vec3 bitangent	= normalize(cross(vec3(t, 0.0), wo_norm));
-    vec3 tangent	= cross(wo_norm, bitangent);
-    vec3 nx			= vnorm - bitangent * dot(vnorm, bitangent);
-
-    float nnx		= length(nx);
-    float invnnx	= 1.0 / (nnx + 1e-6);			// to avoid division with zero
-    float cosxi		= dot(nx, tangent) * invnnx;	// xi = gamma + HALF_PI
-    float gamma		= acos(cosxi) - 3.1415926 / 2.0;
-    float cos_gamma	= dot(nx, wo_norm) * invnnx;
-    float sin_gamma = -2.0 * cosxi;
-
-    theta1 = gamma + max(theta1 - gamma, -3.1415926 / 2.0);
-    theta2 = gamma + min(theta2 - gamma,  3.1415926 / 2.0);
-
-    float alpha = 0.5 * cos_gamma + 0.5 * (theta1 + theta2) * sin_gamma - 0.25 * (cos(2.0 * theta1 - gamma) + cos(2.0 * theta2 - gamma));
-
-    return nnx * alpha;
-}
+#define PCSS
 
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
-    vec2 uv = iuv * invWidthHeight;
+    vec2 uv = vec2(iuv) * invWidthHeight;
 
-    vec4 color = vec4(0.0);
-    vec3 proj_pos = getProjPos(uv, color.r);
+    float depth = getDepth(iuv);
+    vec3 proj_pos = getProjPos(iuv, depth);
 
-    vec3 normal = normalDecode(texelFetch(colortex4, iuv, 0).r);
+    uvec4 gbuffers = texelFetch(colortex4, iuv, 0);
+
+    vec4 color = unpackUnorm4x8(gbuffers.g);
+    vec3 normal = normalDecode(gbuffers.r);
+
+    vec4 decoded_b = unpackUnorm4x8(gbuffers.b);
+    vec2 lmcoord = decoded_b.st;
+    float subsurface = decoded_b.b;
 
     vec3 world_normal = mat3(gbufferModelViewInverse) * normal;
 
@@ -114,10 +39,44 @@ void main() {
         vec3 view_pos = proj2view(proj_pos);
         vec3 world_pos = view2world(view_pos);
 
-        color.g = getAO(iuv, uv, view_pos, normal);
-        color.r = linearizeDepth(color.r);
+        //int cascade = int(clamp(floor(log2(max(abs(world_pos.x), abs(world_pos.z)) / 8.0)), 0.0, 4.0));
+        float scale;
+        vec3 shadow_proj_pos = world2shadowProj(world_pos + world_normal * 0.05);
+
+        float shadow_sampled_depth;
+#ifdef PCSS
+        float shadow_radius = getShadowRadiusPCSS(shadowtex1, shadow_proj_pos, shadow_sampled_depth, iuv);
+#else
+        const float shadow_radius = 0.001;
+#endif
+        float shadow = shadowFiltered(shadowtex1, shadow_proj_pos, shadow_sampled_depth, shadow_radius, iuv);
+        //shadow = min(1.0, contactShadow(view_pos, vec2(iuv), normal));
+        vec3 sun_vec = normalize(shadowLightPosition);
+
+        vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));
+        float subsurface_depth = 1.0 - smoothstep(sposLinear(spos_diff) * 128.0, 0.0, subsurface * 0.5 + pow(abs(dot(normalize(view_pos), sun_vec)), 8.0));
+
+        if (subsurface > 0.0) {
+            shadow = min(subsurface_depth, 1.0);
+        } else {
+            shadow = max(0.0, dot(normal, sun_vec)) * shadow;
+        }
+
+        float sunDotUp = dot(normalize(sunPosition), normalize(upPosition));
+        float sunIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01) * (1.0 - rainStrength * 0.9);
+        float ambientIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01);
+
+        vec3 sun_I = vec3(9.8) * sunIntensity; // 98000 lux
+        vec3 L = sun_I * shadow;
+
+        float blockLight = pow(lmcoord.x, 4.0);
+        L += vec3(1.0, 0.8, 0.6) * 1.0 * blockLight; // 10000 lux
+
+        color.rgb = diffuse_bsdf(color.rgb) * L;
+    } else {
+        color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 3.0;
     }
 
-/* DRAWBUFFERS:1 */
+/* DRAWBUFFERS:0 */
     gl_FragData[0] = color;
 }
