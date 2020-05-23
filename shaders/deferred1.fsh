@@ -73,16 +73,17 @@ void main() {
         //vec3 ray_trace_dir = reflect(normalize(view_pos), normal);
         const int num_sspt_rays = 2;
         const float weight_per_ray = 1.0 / float(num_sspt_rays);
+        const float num_directions = 4096 * num_sspt_rays;
 
         for (int i = 0; i < num_sspt_rays; i++) {
             float noise_sample = fract(bayer64(iuv));
-            vec2 grid_sample = WeylNth(int(noise_sample * (4096 * num_sspt_rays) + (frameCounter & 0xFF) * (4096 * num_sspt_rays) + i));
+            vec2 grid_sample = WeylNth(int(noise_sample * num_directions + (frameCounter & 0xFF) * num_directions + i));
             grid_sample.x *= 0.8;
             vec3 object_space_sample = get_uniform_hemisphere_weighted(grid_sample);
             vec3 ray_trace_dir = make_coord_space(normal) * object_space_sample;
             //vec3 ray_trace_dir = reflect(normalize(view_pos), normal);
 
-            ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false, 1.0, 1.4, 0.25);
+            ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false, 1.0, 1.35, 0.5);
             if (reflected != ivec2(0)) {
                 vec3 radiance = texelFetch(colortex0, reflected, 0).rgb;
 
@@ -99,7 +100,7 @@ void main() {
         ao = ao * weight_per_ray;
         L *= weight_per_ray;
 
-        L += skyColor * min(skyLight, ao) * 2.5; // 15000 lux
+        L += (0.001 + skyColor) * min(skyLight, ao) * 2.5; // 15000 lux
         
         vec4 world_pos_prev = vec4(world_pos - previousCameraPosition + cameraPosition, 1.0);
         vec4 proj_pos_prev = gbufferPreviousProjection * (gbufferPreviousModelView * world_pos_prev);
@@ -114,8 +115,9 @@ void main() {
         }
 
         float history_depth = proj_pos_prev.z * 0.5 + 0.5;
-        if (abs(history.a - history_depth) / history_depth > 0.05) {
-            mix_weight = 1.0;
+        float depth_difference = abs(history.a - history_depth) / history_depth;
+        if (depth_difference > 0.001) {
+            mix_weight = smoothstep(depth_difference, 0.001, 0.005);
         }
 
         composite = mix(history.rgb, L, mix_weight);

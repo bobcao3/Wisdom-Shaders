@@ -31,6 +31,8 @@ void main() {
     viewPos = model_view_mat * input_pos;
     gl_Position = proj_mat * viewPos;
 
+    gl_FogFragCoord = length(viewPos.xyz);
+
     layer = mc_Entity.x;
 
     gl_Position.st += JitterSampleOffset(frameCounter) * invWidthHeight * gl_Position.w;
@@ -60,7 +62,7 @@ void fragment() {
     float fresnel = pow(1.0 - max(dot(normal, -normalize(viewPos.xyz)), 0.0), 2.0);
     c.rgb = c.rgb * texelFetch(gaux2, iuv, 0).rgb + c.rgb * fresnel * skyColor;
 
-    c.a = clamp(0.7 * c.a + fresnel * 0.3, 0.0, 1.0);
+    c.a = clamp(0.7 + fresnel * 0.3, 0.0, 1.0);
 
     gl_FragData[0] = c;
 
