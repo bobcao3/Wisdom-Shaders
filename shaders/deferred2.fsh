@@ -10,6 +10,7 @@
 #include "libs/color.glsl"
 
 #define VECTORS
+#define CLIPPING_PLANE
 #include "libs/uniforms.glsl"
 
 vec4 l1(in vec4 a, in vec4 b) {
@@ -68,6 +69,114 @@ vec3 GTAOMultiBounce(float visibility, vec3 albedo) {
     return max(x, ((x * a + b) * x + c) * x);
 }
 
+vec3 get_uniform_hemisphere_weighted(vec2 r) {
+    float sin_theta = sin(acos(r.x));
+    float phi = 2.0 * 3.1415926 * r.y;
+
+    return vec3(cos(phi) * sin_theta, sin(phi) * sin_theta, r.x);
+}
+
+mat3 make_coord_space(vec3 n) {
+    vec3 n_alter = n;
+    if (n.y == 0) {
+        n.y += 0.5;
+    } else {
+        n.x += 0.5; 
+    }
+    n_alter = normalize(n_alter);
+
+    vec3 b = normalize(cross(n_alter, n));
+    vec3 t = cross(n, b);
+
+    return mat3(t, b, n);
+}
+
+ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals) {
+    const float maxDistance = 1.0;
+    float rayLength = ((vpos.z + dir.z * maxDistance) > near) ? (near - vpos.z) / dir.z : maxDistance;
+
+    vec3 vpos_target = vpos + dir * rayLength;
+
+    vec4 start_proj_pos = gbufferProjection * vec4(vpos, 1.0);
+    vec4 target_proj_pos = gbufferProjection * vec4(vpos_target, 1.0);
+
+    float k0 = 1.0 / start_proj_pos.w;
+    float k1 = 1.0 / target_proj_pos.w;
+
+    vec3 P0 = start_proj_pos.xyz * k0;
+    vec3 P1 = target_proj_pos.xyz * k1;
+
+    vec2 ZW = vec2(vpos.z * k0, k0);
+    vec2 dZW = vec2(vpos_target.z * k1 - vpos.z * k0, k1 - k0);
+
+    vec2 uv_dir = (P1.st - P0.st) * 0.5;
+    uv_dir *= vec2(viewWidth, viewHeight);
+
+    float invdx = 1.0;
+
+    if (abs(uv_dir.x) > abs(uv_dir.y)) {
+        invdx = 1.0 / abs(uv_dir.x);
+        uv_dir = vec2(sign(uv_dir.x), uv_dir.y * invdx);
+    } else {
+        invdx = 1.0 / abs(uv_dir.y);
+        uv_dir = vec2(uv_dir.x * invdx, sign(uv_dir.y));
+    }
+
+    float stride = (viewHeight - viewHeight * min(0.96, -vpos.z * 0.001)) / 16.0;
+    float dither = bayer64(iuv + (frameCounter & 0xF)) + 0.01;
+
+    uv_dir *= stride;
+    dZW *= invdx * stride;
+
+    iuv += uv_dir * dither;
+    ZW += dZW * dither;
+    float z_prev = ZW.x / ZW.y;
+
+    float zThickness = 16.0;//1.0 + (-vpos.z * 0.5);
+
+    ivec2 hit = ivec2(0);
+
+    float last_z = 0.0;
+
+    for (int i = 0; i < 16; i++) {
+        iuv += uv_dir;
+        ZW += dZW;
+
+        if (iuv.x < 0 || iuv.y < 0 || iuv.x > viewWidth || iuv.y > viewHeight) return ivec2(0);
+
+        float z = (ZW.x + dZW.x * 0.5) / (ZW.y + dZW.y * 0.5);
+
+        if (z > far) break;
+
+        float zmin = z_prev, zmax = z;
+        if (z_prev > z) {
+            zmin = z;
+            zmax = z_prev;
+        }
+
+        z_prev = z;
+
+        //float sampled_zmax = texelFetch(depthtex0, ivec2(iuv), 0).r;
+        float sampled_zmax = proj2view(getProjPos(ivec2(iuv))).z;
+        last_z = sampled_zmax;
+        float sampled_zmin = sampled_zmax - zThickness;
+
+        if (zmax > sampled_zmin && zmin < sampled_zmax && abs(ZW.x / ZW.y - sampled_zmax) < zThickness) {
+            hit = ivec2(iuv);
+            break;                
+        }
+    }
+
+    if (checkNormals) {
+        vec3 n = normalDecode(texelFetch(colortex4, hit, 0).r);
+        if (dot(n, dir) > 0) {
+            return ivec2(0);
+        }
+    }
+
+    return hit;
+}
+
 #define PCSS
 
 void main() {
@@ -80,9 +189,9 @@ void main() {
     uvec4 gbuffers = texelFetch(colortex4, iuv, 0);
 
     vec4 color = unpackUnorm4x8(gbuffers.g);
-    vec3 normal;
-    float _depth;
-    decode_depth_normal(gbuffers.r, normal, _depth);
+    vec3 normal = normalDecode(gbuffers.r);
+
+    vec3 composite = texelFetch(colortex0, iuv, 0).rgb;
 
     vec4 decoded_b = unpackUnorm4x8(gbuffers.b);
     vec2 lmcoord = decoded_b.st;
@@ -94,52 +203,39 @@ void main() {
         vec3 view_pos = proj2view(proj_pos);
         vec3 world_pos = view2world(view_pos);
 
-        //int cascade = int(clamp(floor(log2(max(abs(world_pos.x), abs(world_pos.z)) / 8.0)), 0.0, 4.0));
-        float scale;
-        vec3 shadow_proj_pos = world2shadowProj(world_pos + world_normal * 0.01);
-
-        float shadow_sampled_depth;
-#ifdef PCSS
-        float shadow_radius = getShadowRadiusPCSS(shadowtex1, shadow_proj_pos, shadow_sampled_depth, iuv);
-#else
-        const float shadow_radius = 0.001;
-#endif
-        float shadow = shadowFiltered(shadowtex1, shadow_proj_pos, shadow_sampled_depth, shadow_radius, iuv);
-        vec3 sun_vec = normalize(shadowLightPosition);
-
-        vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));
-        float subsurface_depth = 1.0 - smoothstep(sposLinear(spos_diff) * 256.0, 0.0, subsurface * 0.5 + pow(abs(dot(normalize(view_pos), sun_vec)), 8.0));
-
-        float ao = blurAO(iuv, uv, depth);
-        vec3 bounce_ao = GTAOMultiBounce(ao, color.rgb);
-
-        if (subsurface > 0.0) {
-            shadow = min(subsurface_depth, 1.0) * ao;
-        } else {
-            shadow = max(0.0, dot(normal, sun_vec)) * shadow;
-        }
+        float ao = 0.1;//blurAO(iuv, uv, depth) * 0.5;
 
         float sunDotUp = dot(normalize(sunPosition), normalize(upPosition));
-        float sunIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01) * (1.0 - rainStrength * 0.9);
         float ambientIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01);
 
-        vec3 sun_I = vec3(9.8) * sunIntensity; // 98000 lux
-        vec3 L = sun_I * shadow;
+        float skyLight = smoothstep(0.04, 1.0, lmcoord.y);
+        vec3 L = vec3(0.0);
 
-        float skyLight = lmcoord.y;
-        L += 1.5 * bounce_ao * ambientIntensity * skyLight; // 15000 lux
+        //vec3 ray_trace_dir = reflect(normalize(view_pos), normal);
+        vec2 grid_sample = WeylNth(int(bayer64(iuv) * 4096 + (frameCounter & 0xFF) * 4096));
+        vec3 ray_trace_dir = make_coord_space(normal) * get_uniform_hemisphere_weighted(grid_sample);
 
-        float blockLight = pow(lmcoord.x, 4.0);
-        L += vec3(1.0, 0.8, 0.6) * 1.0 * blockLight; // 10000 lux
+        ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false);
+        if (reflected != ivec2(0)) {
+            vec3 radiance = texelFetch(colortex0, reflected, 0).rgb;
 
-        color.rgb = diffuse_bsdf(color.rgb) * L;
+            vec3 sampled_vpos = proj2view(getProjPos(ivec2(reflected)));
+            vec3 sampled_normal = normalDecode(texelFetch(colortex4, reflected, 0).r);
+            vec3 offset = vec3(sampled_vpos - view_pos);
+            radiance *= max(0.0, dot(normal, ray_trace_dir)) / (1.0 + dot(offset, offset));
+            L += radiance * 3.1415926;
+        } else {
+            ao += 0.9;
+        }
 
-        //color.rgb = bounce_ao;
-    } else {
-        color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 3.0;
+        L += 1.5 * ao * ambientIntensity * skyLight; // 15000 lux
+        
+        composite += diffuse_bsdf(color.rgb) * L;
+
+        composite = L;
     }
 
 /* DRAWBUFFERS:05 */
-    gl_FragData[0] = color;
-    gl_FragData[1] = color;
+    gl_FragData[0] = vec4(composite, 1.0);
+    gl_FragData[1] = vec4(composite, 1.0);
 }

@@ -73,17 +73,17 @@ float getShadowRadiusPCSS(in sampler2D tex, in vec3 spos, out float depth, in iv
     depth = 100.0;
 
     for (int i = 0; i < 4; i++) {
-        vec2 grid_sample = fract(WeylNth(i - frameCounter & 0x7) + bayer8(iuv));
+        vec2 grid_sample = fract(WeylNth(i - (frameCounter & 0x7) * 8) + bayer8(iuv));
         vec2 direction = vec2(cos(grid_sample.x * 3.1415926 * 2.0), sin(grid_sample.x * 3.1415926 * 2.0)) * grid_sample.y;
 
-        vec3 spos_cascaded = shadowProjCascaded(spos + vec3(direction * 0.01, 0.0), s, ds);
+        vec3 spos_cascaded = shadowProjCascaded(spos + vec3(direction * 0.02, 0.0), s, ds);
         vec4 dsample = textureGather(tex, spos_cascaded.xy + invresolution * 0.5);
         depth = min(depth, (min(min(dsample.x, dsample.y), min(dsample.z, dsample.w)) * 2.0 - 1.0) * ds);
     }
 
-    const float sunSize = 0.08;
+    float sunSize = 1.5 / shadowDistance;
 
-    return max((spos.z - depth), 0.001) * sunSize;
+    return max((spos.z - depth) * sunSize, 2.0 / shadowMapResolution);
 }
 
 float shadowFiltered(in sampler2D tex, in vec3 spos, out float depth, in float radius, in ivec2 iuv) {
@@ -96,7 +96,7 @@ float shadowFiltered(in sampler2D tex, in vec3 spos, out float depth, in float r
     for (int i = 0; i < 8; i++) {
         float d, s, ds;
 
-        vec2 grid_sample = fract(WeylNth(i + frameCounter & 0x7) + bayer8(iuv));
+        vec2 grid_sample = fract(WeylNth(i + (frameCounter & 0x7) * 8) + bayer8(iuv));
         vec2 direction = vec2(cos(grid_sample.x * 3.1415926 * 2.0), sin(grid_sample.x * 3.1415926 * 2.0)) * grid_sample.y;
 
         shadow += shadowTexSmooth(tex, shadowProjCascaded(spos + vec3(direction * radius, 0.0), s, ds), d);

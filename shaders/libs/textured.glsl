@@ -58,9 +58,15 @@ void fragment() {
 /* DRAWBUFFERS:4 */
     float threshold = bayer8(vec2(gl_FragCoord.st) + frameCounter) * 0.95 + 0.05;
 
-    vec4 c = color * fromGamma(textureLod(tex, uv, 0));
+    vec2 ddx = dFdx(uv);
+    vec2 ddy = dFdy(uv);
+
+    float dL = min(length(ddx), length(ddy.x));
+    int lod = clamp(int(round(log2(dL * textureSize(tex, 0).x))), 0, 3);
+
+    vec4 c = color * fromGamma(textureLod(tex, uv, lod));
     if (c.a < threshold) discard;
-    fragData[0] = uvec4(encode_depth_normal(normal, gl_FragCoord.z), packUnorm4x8(c), packUnorm4x8(vec4(lmcoord, subsurface, 0.0)), 0);
+    fragData[0] = uvec4(normalEncode(normal), packUnorm4x8(c), packUnorm4x8(vec4(lmcoord, subsurface, 0.0)), 0);
 }
 
 #endif

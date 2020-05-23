@@ -38,7 +38,7 @@ void main() {
     vec3 max_neighbor1 = max(current, max(max(current_n1, current_n3), max(current_n4, current_n6)));
     vec3 clamped_history = (clamp(history.rgb, min_neighbor0, max_neighbor0) + clamp(history.rgb, min_neighbor1, max_neighbor1)) * 0.5;
 
-    vec3 color = mix(clamped_history, current.rgb, 0.05);
+    vec3 color = mix(clamped_history, current.rgb, 0.07);
 
 /* DRAWBUFFERS:0 */
     gl_FragData[0] = vec4(color, 1.0);
