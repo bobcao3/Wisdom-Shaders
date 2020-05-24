@@ -33,6 +33,7 @@ void main() {
 
     if (proj_pos.z < 0.9999) {
         composite += color.rgb * L.rgb;
+        // composite = L.rgb;
     }
 
 /* DRAWBUFFERS:035 */

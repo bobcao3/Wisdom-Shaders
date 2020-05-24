@@ -18,7 +18,7 @@ uniform float viewHeight;
 //#define DEBUG_ADAPTIVE_EXPOSURE
 
 void main() {
-    ivec2 iuv = ivec2(gl_FragCoord.st);
+    ivec2 iuv = ivec2(gl_FragCoord.st * MC_RENDER_QUALITY);
 
     vec4 color = texelFetch(colortex0, iuv, 0);
 
