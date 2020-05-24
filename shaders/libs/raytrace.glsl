@@ -29,12 +29,12 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float 
         uv_dir = vec2(uv_dir.x * invdx, sign(uv_dir.y));
     }
 
-    float dither = bayer64(iuv + (frameCounter & 0xF));
+    float dither = hash(iuv + vec2((frameCounter & 0xF) * viewWidth, 0.0));
 
     uv_dir *= stride;
     dZW *= invdx * stride;
 
-    ivec2 hit = ivec2(0);
+    ivec2 hit = ivec2(-1);
 
     float last_z = 0.0;
 
@@ -46,11 +46,11 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float 
         vec2 P1 = iuv + uv_dir * dither;
         vec2 ZWd = ZW + dZW * dither;
 
-        if (P1.x < 0 || P1.y < 0 || P1.x > viewWidth || P1.y > viewHeight) return ivec2(0);
+        if (P1.x < 0 || P1.y < 0 || P1.x > viewWidth || P1.y > viewHeight) return ivec2(-1);
 
-        float z = (ZWd.x + ZWd.x * 0.5) / (ZWd.y + ZWd.y * 0.5);
+        float z = (ZWd.x + dZW.x * 0.5) / (ZWd.y + dZW.y * 0.5);
 
-        if (-z > far * 0.9) break;
+        if (-z > far * 0.9 || -z < near) break;
 
         float zmin = z_prev, zmax = z;
         if (z_prev > z) {
@@ -77,7 +77,7 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float 
     if (checkNormals) {
         vec3 n = normalDecode(texelFetch(colortex4, hit, 0).r);
         if (dot(n, dir) > 0) {
-            return ivec2(0);
+            return ivec2(-1);
         }
     }
 

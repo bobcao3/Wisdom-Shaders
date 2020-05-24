@@ -5,17 +5,15 @@
 #include "uniforms.glsl"
 
 vec3 normalDecode(uint e) {
-    vec2 enc = unpackUnorm2x16(e);
-	vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
-	float l = dot(nn.xyz,-nn.xyw);
-	nn.z = l;
-	nn.xy *= sqrt(l);
-	return normalize(nn.xyz * 2.0 + vec3(0.0, 0.0, -1.0));
+    vec2 encodedNormal = unpackUnorm2x16(e);
+	encodedNormal = encodedNormal * 4.0 - 2.0;
+	float f = dot(encodedNormal, encodedNormal);
+	float g = sqrt(1.0 - f * 0.25);
+	return vec3(encodedNormal * g, 1.0 - f * 0.5);
 }
 
 uint normalEncode(vec3 n) {
-	vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
-	enc = enc*0.5+0.5;
+	vec2 enc = vec2(n.xy * inversesqrt(n.z * 8.0 + 8.0 + 0.00001) + 0.5);
 	return packUnorm2x16(enc);
 }
 

@@ -1,6 +1,7 @@
 #version 420 compatibility
 #pragma optimize(on)
 
+const bool colortex1Clear = false;
 const bool colortex3Clear = false;
 
 #define VECTORS
@@ -12,6 +13,7 @@ const bool colortex3Clear = false;
 #include "libs/transform.glsl"
 #include "libs/color.glsl"
 #include "libs/transform.glsl"
+#include "libs/noise.glsl"
 
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
@@ -26,18 +28,21 @@ void main() {
     vec3 normal = normalDecode(gbuffers.r);
 
     vec3 composite = texelFetch(colortex0, iuv, 0).rgb;
-    vec4 L = texelFetch(gaux2, iuv, 0);
+    vec4 Ld = texelFetch(gaux2, iuv, 0);
+    vec4 Ls = texelFetch(gaux3, iuv, 0);
 
     vec4 decoded_b = unpackUnorm4x8(gbuffers.b);
     vec2 lmcoord = decoded_b.st;
 
     if (proj_pos.z < 0.9999) {
-        composite += color.rgb * L.rgb;
-        // composite = L.rgb;
+        composite += color.rgb * Ld.rgb + Ls.rgb;
+        // composite = Ld.rgb;
+        // composite = Ls.rgb;
     }
 
-/* DRAWBUFFERS:035 */
+/* DRAWBUFFERS:0135 */
     gl_FragData[0] = vec4(composite, 1.0);
-    gl_FragData[1] = vec4(L);
-    gl_FragData[2] = vec4(composite, 1.0);
+    gl_FragData[1] = vec4(Ls);
+    gl_FragData[2] = vec4(Ld);
+    gl_FragData[3] = vec4(composite, 1.0);
 }

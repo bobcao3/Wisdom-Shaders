@@ -19,6 +19,17 @@ float noise(vec2 p) {
 	u.y), -1.0f);
 }
 
+float Halton(int b, int i) {
+    float r = 0.0;
+    float f = 1.0;
+    while (i > 0) {
+        f = f / float(b);
+        r = r + f * float(i % b);
+        i = int(floor(float(i) / float(b)));
+    }
+    return r;
+}
+
 float noise_tex(in vec2 p) {
 	return fma(texture2D(noisetex, fract(p * 0.0050173)).r, 2.0, -1.0);
 }

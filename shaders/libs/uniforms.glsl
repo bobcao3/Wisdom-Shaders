@@ -63,5 +63,6 @@ uniform sampler2D colortex2;
 uniform sampler2D colortex3;
 uniform usampler2D colortex4;
 uniform sampler2D gaux2; // colortex5
+uniform sampler2D gaux3; // colortex6
 #endif
 #endif

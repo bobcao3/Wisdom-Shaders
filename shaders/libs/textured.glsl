@@ -6,6 +6,7 @@
 INOUT vec4 color;
 INOUT vec3 normal;
 INOUT float subsurface;
+INOUT float blockId;
 INOUT vec3 tangent;
 INOUT vec3 bitangent;
 INOUT vec2 uv;
@@ -37,9 +38,11 @@ void main() {
 
     subsurface = 0.0;
 
-    float blockId = mc_Entity.x;
-    if (blockId == 31.0 || blockId == 18.0) {
-        subsurface = 0.5;
+    blockId = mc_Entity.x;
+    if (blockId == 31.0) {
+        subsurface = 0.3;        
+    } else if (blockId == 18.0) {
+        subsurface = 3.0;
     } else if (blockId == 79.0) {
         subsurface = 1.0;
     } else if (blockId == 8001.0) {
@@ -55,6 +58,7 @@ void main() {
 
 uniform sampler2D tex;
 uniform sampler2D normals;
+uniform sampler2D specular;
 
 uniform vec4 projParams;
 
@@ -74,11 +78,17 @@ void fragment() {
 
     vec3 normal_map = textureLod(normals, uv, lod).rgb * 2.0 - 1.0;
     normal_map = mat3(tangent, bitangent, normal) * normal_map;
-    //normal_map = normalize(normal + normal_map);
+    normal_map = normalize(mix(normal, normal_map, 0.5));
+
+    vec4 specular_map = textureLod(specular, uv, lod);
+
+    if (blockId > 8001.5 && blockId < 8002.5) {
+        specular_map.a = 0.95;
+    }
 
     vec4 c = color * fromGamma(textureLod(tex, uv, lod));
     if (c.a < threshold) discard;
-    fragData[0] = uvec4(normalEncode(normal_map), packUnorm4x8(c), packUnorm4x8(vec4(lmcoord_dithered, subsurface, 0.0)), 0);
+    fragData[0] = uvec4(normalEncode(normal_map), packUnorm4x8(c), packUnorm4x8(vec4(lmcoord_dithered, subsurface / 16.0, specular_map.a)), packUnorm4x8(specular_map));
 }
 
 #endif
