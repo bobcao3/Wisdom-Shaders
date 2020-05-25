@@ -93,7 +93,8 @@ void main() {
             vec3 ray_trace_dir = make_coord_space(normal) * object_space_sample;
             vec3 mirror_dir = reflect(normalize(view_pos), normal);
 
-            ray_trace_dir = grid_sample.y > (1.0 - specular.r + specular.g) * 0.5 ? ray_trace_dir : mirror_dir;
+            float coin_flip = fract(noise_sample + hash(iuv + i));
+            ray_trace_dir = grid_sample.y < pow((1.0 - specular.r + specular.g) * 0.5, 5.0) ? mirror_dir : ray_trace_dir;
 
             ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false, stride, 1.5, 0.25);
             if (reflected.x >= 0 && reflected.y >= 0 && reflected.x < viewWidth && reflected.y < viewHeight) {
