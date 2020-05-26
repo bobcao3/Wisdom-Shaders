@@ -110,4 +110,16 @@ float shadowFiltered(in sampler2D tex, in vec3 spos, out float depth, in float r
     return shadow * inv12;
 }
 
+float sampleDepthLOD(ivec2 iuv, int lod) {
+    if (lod == 0) {
+        return texelFetch(gaux3, iuv, 0).r;
+    } else if (lod == 1) {
+        return texelFetch(gaux3, iuv >> 1, 0).g;
+    } else if (lod == 2) {
+        return texelFetch(gaux3, iuv >> 2, 0).b;
+    } else {
+        return texelFetch(gaux3, iuv >> 3, 0).a;
+    }
+}
+
 #endif

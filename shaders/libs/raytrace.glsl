@@ -1,4 +1,6 @@
-ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float stride, float stride_multiplier, float zThickness) {
+const bool depthtex0MipmapEnabled = true;
+
+ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float stride, float stride_multiplier, float zThickness, out int lod) {
     const float maxDistance = 1.0;
     float rayLength = ((vpos.z + dir.z * maxDistance) > near) ? (near - vpos.z) / dir.z : maxDistance;
 
@@ -60,14 +62,17 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float 
 
         z_prev = z;
 
-        //float sampled_zmax = texelFetch(depthtex0, ivec2(P1), 0).r;
-        float sampled_zmax = proj2view(getProjPos(ivec2(P1))).z;
+        int dlod = clamp(int(floor(log2(length(uv_dir)))), 0, 3);
+
+        float sampled_zbuffer = sampleDepthLOD(ivec2(P1), dlod);
+        float sampled_zmax = proj2view(getProjPos(ivec2(P1), sampled_zbuffer)).z;
         last_z = sampled_zmax;
         float sampled_zmin = sampled_zmax - zThickness;
 
         if (zmax > sampled_zmin && zmin < sampled_zmax) {
             hit = ivec2(P1);
-            break;                
+            lod = dlod;
+            break;
         }
 
         uv_dir *= stride_multiplier;

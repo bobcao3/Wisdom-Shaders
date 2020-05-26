@@ -2,47 +2,24 @@
 #pragma optimize(on)
 
 #define BUFFERS
-#define TRANSFORMATIONS_RESIDUAL
-#define VECTORS
-#define CLIPPING_PLANE
 
 #include "libs/encoding.glsl"
 #include "libs/sampling.glsl"
 #include "libs/bsdf.glsl"
 #include "libs/transform.glsl"
 #include "libs/color.glsl"
+
+#define VECTORS
+#define CLIPPING_PLANE
 #include "libs/uniforms.glsl"
 
 uniform float rainStrength;
 
-const bool colortex0MipmapEnabled = true;
-
-vec3 get_uniform_hemisphere_weighted(vec2 r) {
-    float phi = 2.0 * 3.1415926 * r.y;
-    float sqrt_rx = sqrt(r.x);
-
-    return vec3(cos(phi) * sqrt_rx, sin(phi) * sqrt_rx, sqrt(1.0 - r.x));
-}
-
-mat3 make_coord_space(vec3 n) {
-    vec3 h = n;
-    if (abs(h.x) <= abs(h.y) && abs(h.x) <= abs(h.z))
-        h.x = 1.0;
-    else if (abs(h.y) <= abs(h.x) && abs(h.y) <= abs(h.z))
-        h.y = 1.0;
-    else
-        h.z = 1.0;
-
-    vec3 y = normalize(cross(h, n));
-    vec3 x = normalize(cross(n, y));
-
-    return mat3(x, y, n);
-}
-
 #include "libs/raytrace.glsl"
 
-const bool colortex1Clear = false;
-const bool colortex3Clear = false;
+#define PCSS
+
+uniform int biomeCategory;
 
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
@@ -56,11 +33,11 @@ void main() {
     vec4 color = unpackUnorm4x8(gbuffers.g);
     vec3 normal = normalDecode(gbuffers.r);
 
-    vec3 composite_diffuse = vec3(0.0);
-    vec3 composite_specular = vec3(0.0);
-
     vec4 decoded_b = unpackUnorm4x8(gbuffers.b);
     vec2 lmcoord = decoded_b.st;
+    float subsurface = decoded_b.b * 16.0;
+
+    vec3 world_normal = mat3(gbufferModelViewInverse) * normal;
 
     vec4 specular = unpackUnorm4x8(gbuffers.a);
     specular.r = 1.0 - specular.r;
@@ -70,79 +47,65 @@ void main() {
         vec3 V = normalize(-view_pos);
         vec3 world_pos = view2world(view_pos);
 
-        float ao = 0.0;
+        vec3 sun_vec = shadowLightPosition * 0.01;
+        float shadow;
+        vec3 L = vec3(0.0);
 
-        float sunDotUp = dot(normalize(sunPosition), normalize(upPosition));
-        float ambientIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01);
+        if (biomeCategory != 16) {
+            //int cascade = int(clamp(floor(log2(max(abs(world_pos.x), abs(world_pos.z)) / 8.0)), 0.0, 4.0));
+            float scale;
+            vec3 shadow_proj_pos = world2shadowProj(world_pos + world_normal * 0.05);
 
-        float skyLight = smoothstep(0.04, 1.0, lmcoord.y);
-        vec3 Ld = vec3(0.0);
-        vec3 Ls = vec3(0.0);
+            float shadow_sampled_depth;
+#ifdef PCSS
+            float shadow_radius = getShadowRadiusPCSS(shadowtex1, shadow_proj_pos, shadow_sampled_depth, iuv);
+#else
+            const float shadow_radius = 0.001;
+#endif
+            float shadow = shadowFiltered(shadowtex1, shadow_proj_pos, shadow_sampled_depth, shadow_radius, iuv);
+            
+            vec3 b = normalize(cross(sun_vec, normal));
+            vec3 t = cross(normal, b);
 
-        //vec3 ray_trace_dir = reflect(normalize(view_pos), normal);
-        const int num_sspt_rays = 2;
-        const float weight_per_ray = 1.0 / float(num_sspt_rays);
-        const float num_directions = 4096 * num_sspt_rays;
+            int lod;
+            float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 2.0, 1.1, 0.25, lod) != ivec2(-1));
+            rt_contact_shadow *= clamp(abs(t.z - sun_vec.z) * 10.0 - 2.0, 0.0, 1.0);
+            
+            shadow = min(shadow, 1.0 - rt_contact_shadow);
+            
+            vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));
+            float subsurface_depth = 1.0 - smoothstep(sposLinear(spos_diff) * 128.0, 0.0, subsurface * 0.5 + pow(abs(dot(normalize(view_pos), sun_vec)), 8.0));
 
-        float stride = max(1.0, viewHeight / 1080.0);
-        float noise_sample = fract(bayer64(iuv));
-        for (int i = 0; i < num_sspt_rays; i++) {
-            vec2 grid_sample = WeylNth(int(noise_sample * num_directions + (frameCounter & 0xFF) * num_directions + i));
-            grid_sample.x *= 0.8;
-            vec3 object_space_sample = get_uniform_hemisphere_weighted(grid_sample);
-            vec3 ray_trace_dir = make_coord_space(normal) * object_space_sample;
-            vec3 mirror_dir = reflect(normalize(view_pos), normal);
-
-            float coin_flip = fract(noise_sample + hash(iuv + i));
-            ray_trace_dir = grid_sample.y < pow((1.0 - specular.r + specular.g) * 0.5, 5.0) ? mirror_dir : ray_trace_dir;
-
-            ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false, stride, 1.5, 0.25);
-            if (reflected.x >= 0 && reflected.y >= 0 && reflected.x < viewWidth && reflected.y < viewHeight) {
-                vec3 radiance = texelFetch(colortex0, reflected, 0).rgb;
-
-                radiance *= 1.0 / object_space_sample.z;
-                vec3 kD;
-                vec3 brdf = pbr_brdf(V, ray_trace_dir, normal, color.rgb, specular.r, specular.g, kD);
-                float oren = oren_nayer(V, ray_trace_dir, normal, specular.r, object_space_sample.z, dot(normal, V));
-                Ld += radiance * kD * oren;
-                Ls += radiance * brdf * oren;
+            if (subsurface > 0.0) {
+                shadow = min(subsurface_depth, 1.0);
             } else {
-                ao += 1.0;
+                shadow = step(0.0, dot(normal, sun_vec)) * shadow * oren_nayer(V, sun_vec, normal, specular.r, dot(normal, sun_vec), dot(normal, V));
             }
-        }
-        
-        ao = ao * weight_per_ray;
-        Ld *= weight_per_ray;
-        Ls *= weight_per_ray;
 
-        Ld += (0.001 + skyColor) * min(skyLight, ao) * 2.5; // 15000 lux
-        
-        vec4 world_pos_prev = vec4(world_pos - previousCameraPosition + cameraPosition, 1.0);
-        vec4 proj_pos_prev = gbufferPreviousProjection * (gbufferPreviousModelView * world_pos_prev);
-        proj_pos_prev.xyz /= proj_pos_prev.w;
+            float sunDotUp = dot(sunPosition * 0.01, normalize(upPosition));
+            float sunIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01) * (1.0 - rainStrength * 0.95);
 
-        vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5) + 0.5 * invWidthHeight;
-        vec4 history_d = texture(colortex3, prev_uv);
-        vec4 history_s = texture(colortex1, prev_uv);
-        
-        float mix_weight = 0.05;
-        if (prev_uv.x < 0.0 || prev_uv.x > 1.0 || prev_uv.y < 0.0 || prev_uv.y > 1.0) {
-            mix_weight = 1.0;
+            vec3 sun_I = vec3(9.8) * sunIntensity; // 98000 lux
+            L = sun_I * shadow;
         }
 
-        float history_depth = proj_pos_prev.z * 0.5 + 0.5;
-        float depth_difference = abs(history_d.a - history_depth) / history_depth;
-        if (depth_difference > 0.001) {
-            mix_weight = 1.0;
-        }
+        vec3 kD = pbr_get_kD(color.rgb, specular.g);
 
-        composite_diffuse = clamp(mix(history_d.rgb, Ld, mix_weight), vec3(0.0), vec3(100.0));
-        composite_specular = clamp(mix(history_s.rgb, Ls, 0.1 + 0.9 * mix_weight), vec3(0.0), vec3(100.0));
+        float blockLight = pow(lmcoord.x, 4.0);
+        L += vec3(1.2311, 0.7, 0.4286) * blockLight * kD; // 10000 lux
+
+        float emmisive = decoded_b.a;
+        if (emmisive <= (254.5 / 255.0) && emmisive > 0.05) {
+            color.rgb *= emmisive * 3.0; // Max at 30000 lux
+        } else {
+            color.rgb = clamp(diffuse_specular_brdf(V, sun_vec, normal, color.rgb, specular.r, specular.g) * L, vec3(0.0), vec3(100.0));
+        }
     } else {
-        composite_diffuse = skyColor * 2.5;
+        if (biomeCategory != 16) {
+            color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 2.5;
+        }
     }
 
-/* DRAWBUFFERS:56 */
-    gl_FragData[0] = vec4(composite_diffuse, depth);
-    gl_FragData[1] = vec4(composite_specular, 1.0);
+/* DRAWBUFFERS:0 */
+    gl_FragData[0] = color;
 }
