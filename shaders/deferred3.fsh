@@ -36,7 +36,7 @@ void main() {
 
     if (proj_pos.z < 0.9999) {
         composite += color.rgb * Ld.rgb + Ls.rgb;
-        composite = Ld.rgb;
+        // composite = Ld.rgb;
         // composite = Ls.rgb;
     }
 
