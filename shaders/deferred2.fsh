@@ -64,12 +64,12 @@ void main() {
 
     vec4 specular = unpackUnorm4x8(gbuffers.a);
     specular.r = 1.0 - specular.r;
-
+    
+    vec3 view_pos = proj2view(proj_pos);
+    vec3 V = normalize(-view_pos);
+    vec3 world_pos = view2world(view_pos);
+    
     if (proj_pos.z < 0.9999) {
-        vec3 view_pos = proj2view(proj_pos);
-        vec3 V = normalize(-view_pos);
-        vec3 world_pos = view2world(view_pos);
-
         float ao = 0.0;
 
         float sunDotUp = dot(normalize(sunPosition), normalize(upPosition));
@@ -77,6 +77,7 @@ void main() {
 
         float skyLight = smoothstep(0.04, 1.0, lmcoord.y);
         vec3 Ld = vec3(0.0);
+        vec3 Ld_sky = vec3(0.0);
         vec3 Ls = vec3(0.0);
 
         //vec3 ray_trace_dir = reflect(normalize(view_pos), normal);
@@ -86,6 +87,9 @@ void main() {
 
         float stride = max(1.0, viewHeight / 1080.0);
         float noise_sample = fract(bayer64(iuv));
+
+        int sky_lod = clamp(int((1.0 - specular.r + specular.g) * 3.0), 0, 3);
+
         for (int i = 0; i < num_sspt_rays; i++) {
             vec2 grid_sample = WeylNth(int(noise_sample * num_directions + (frameCounter & 0xFF) * num_directions + i));
             grid_sample.x *= 0.8;
@@ -97,7 +101,7 @@ void main() {
             ray_trace_dir = grid_sample.y < pow((1.0 - specular.r + specular.g) * 0.5, 5.0) ? mirror_dir : ray_trace_dir;
 
             int lod;
-            ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false, stride, 1.5, 0.25, lod);
+            ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false, stride, 1.5, 0.25, i, lod);
             if (reflected.x >= 0 && reflected.y >= 0 && reflected.x < viewWidth && reflected.y < viewHeight) {
                 vec3 radiance = texelFetch(colortex0, reflected >> lod, lod).rgb;
 
@@ -108,15 +112,14 @@ void main() {
                 Ld += radiance * kD * oren;
                 Ls += radiance * brdf * oren;
             } else {
-                ao += 1.0;
+                vec3 world_dir = mat3(gbufferModelViewInverse) * ray_trace_dir;
+                Ld += skyLight * texture(gaux4, project_skybox2uv(world_dir), sky_lod).rgb;
             }
         }
         
         ao = ao * weight_per_ray;
         Ld *= weight_per_ray;
         Ls *= weight_per_ray;
-
-        Ld += (0.001 + skyColor) * min(skyLight, ao) * 2.5; // 15000 lux
         
         vec4 world_pos_prev = vec4(world_pos - previousCameraPosition + cameraPosition, 1.0);
         vec4 proj_pos_prev = gbufferPreviousProjection * (gbufferPreviousModelView * world_pos_prev);
@@ -140,7 +143,8 @@ void main() {
         composite_diffuse = clamp(mix(history_d.rgb, Ld, mix_weight), vec3(0.0), vec3(100.0));
         composite_specular = clamp(mix(history_s.rgb, Ls, 0.1 + 0.9 * mix_weight), vec3(0.0), vec3(100.0));
     } else {
-        composite_diffuse = skyColor * 2.5;
+        vec3 dir = normalize(world_pos);
+        composite_diffuse = texture(gaux4, project_skybox2uv(dir)).rgb;
     }
 
 /* DRAWBUFFERS:13 */

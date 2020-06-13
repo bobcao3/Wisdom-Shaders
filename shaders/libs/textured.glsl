@@ -40,7 +40,7 @@ void main() {
 
     blockId = mc_Entity.x;
     if (blockId == 31.0) {
-        subsurface = 0.3;        
+        subsurface = 0.1;        
     } else if (blockId == 18.0) {
         subsurface = 3.0;
     } else if (blockId == 79.0) {
@@ -63,6 +63,10 @@ uniform sampler2D specular;
 uniform vec4 projParams;
 
 #include "noise.glsl"
+
+#ifdef ENTITY
+
+#endif
 
 void fragment() {
 /* DRAWBUFFERS:4 */

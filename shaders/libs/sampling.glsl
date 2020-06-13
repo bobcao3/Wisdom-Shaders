@@ -50,6 +50,8 @@ float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth) {
     const vec2 resolution = vec2(shadowMapResolution);
     const vec2 invresolution = 1.0 / resolution;
 
+    if (spos.x < 0.0 || spos.x > 1.0 || spos.y < 0.0 || spos.y > 1.0 || spos.z < 0.0 || spos.z > 1.0) return 1.0;
+
     vec2 f = fract(spos.xy * resolution);
 
     vec4 dsamples = textureGather(tex, spos.xy + invresolution * 0.5);

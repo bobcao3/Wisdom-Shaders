@@ -3,6 +3,7 @@
 
 uniform sampler2D colortex0;
 uniform sampler2D colortex2;
+uniform sampler2D gaux4;
 
 uniform sampler2D shadowtex0;
 
@@ -34,6 +35,8 @@ void main() {
         vec2 loc = WeylNth(i);
         L += texture(colortex2, loc).a;
     }
+
+    // color = texelFetch(gaux4, iuv, 0);
 
 #ifdef DEBUG_ADAPTIVE_EXPOSURE
     if (iuv.x < viewWidth / 8 && iuv.y < viewHeight / 8) {

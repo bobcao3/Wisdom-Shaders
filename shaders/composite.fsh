@@ -1,45 +1,52 @@
-#version 420 compatibility
-#pragma optimize(on)
+// #version 420 compatibility
+// #pragma optimize(on)
 
-const bool colortex2Clear = false;
+// #define BUFFERS
 
-#define VECTORS
-#define TRANSFORMATIONS_RESIDUAL
+// #include "libs/encoding.glsl"
+// #include "libs/sampling.glsl"
+// #include "libs/bsdf.glsl"
+// #include "libs/transform.glsl"
+// #include "libs/color.glsl"
+// #include "configs.glsl"
 
-#include "libs/transform.glsl"
+// #define VECTORS
+// #define CLIPPING_PLANE
+// #include "libs/uniforms.glsl"
 
-void main() {
-    ivec2 iuv = ivec2(gl_FragCoord.st);
+// uniform float rainStrength;
+// const bool colortex0MipmapEnabled = true;
 
-    vec3 proj_pos = getProjPos(iuv);
-    vec3 world_pos = view2world(proj2view(proj_pos));
+// #include "libs/raytrace.glsl"
+
+// uniform vec3 fogColor;
+// uniform int biomeCategory;
+
+// void main() {
+//     ivec2 thread_id = ivec2(gl_FragCoord.st);
+//     float jitter = bayer32(thread_id);
     
-    vec4 world_pos_prev = vec4(world_pos - previousCameraPosition + cameraPosition, 1.0);
-    vec4 proj_pos_prev = gbufferPreviousProjection * (gbufferPreviousModelView * world_pos_prev);
-    proj_pos_prev.xy /= proj_pos_prev.w;
+//     ivec3 iuv = ivec3((thread_id >> 3) << 3, (thread_id.y % 8) * 8 + (thread_id.x % 8));
 
-    vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5) + 0.5 * invWidthHeight;
-    vec4 history = texture(colortex2, prev_uv);
-    if (prev_uv.x < 0.0 || prev_uv.x > 1.0 || prev_uv.y < 0.0 || prev_uv.y > 1.0) history = vec4(0.0);
-    vec3 current = texelFetch(colortex0, iuv, 0).rgb;
+//     iuv.xy += ivec2(WeylNth(int(jitter * 4096)) * 8.0); // Jitter on XY
+    
+//     vec3 view_pos = proj2view(getProjPos(iuv.xy, 1.0));
+//     float depth = exp2(jitter + float(iuv.z) * 0.2);
+//     view_pos *= depth / far;
 
-    vec3 current_n0 = texelFetchOffset(colortex0, iuv, 0, ivec2(-1, -1)).rgb;
-    vec3 current_n1 = texelFetchOffset(colortex0, iuv, 0, ivec2(-1,  0)).rgb;
-    vec3 current_n2 = texelFetchOffset(colortex0, iuv, 0, ivec2(-1,  1)).rgb;
-    vec3 current_n3 = texelFetchOffset(colortex0, iuv, 0, ivec2( 0, -1)).rgb;
-    vec3 current_n4 = texelFetchOffset(colortex0, iuv, 0, ivec2( 0,  1)).rgb;
-    vec3 current_n5 = texelFetchOffset(colortex0, iuv, 0, ivec2( 1, -1)).rgb;
-    vec3 current_n6 = texelFetchOffset(colortex0, iuv, 0, ivec2( 1,  0)).rgb;
-    vec3 current_n7 = texelFetchOffset(colortex0, iuv, 0, ivec2( 1,  1)).rgb;
+//     vec3 wpos = view2world(view_pos);
+//     vec3 in_scatter = vec3(0.0);
+//     float extinction = 0.05;
 
-    vec3 min_neighbor0 = min(current, min(min(min(current_n0, current_n1), min(current_n2, current_n3)), min(min(current_n4, current_n5), min(current_n6, current_n7))));
-    vec3 max_neighbor0 = max(current, max(max(max(current_n0, current_n1), max(current_n2, current_n3)), max(max(current_n4, current_n5), max(current_n6, current_n7))));
-    vec3 min_neighbor1 = min(current, min(min(current_n1, current_n3), min(current_n4, current_n6)));
-    vec3 max_neighbor1 = max(current, max(max(current_n1, current_n3), max(current_n4, current_n6)));
-    vec3 clamped_history = (clamp(history.rgb, min_neighbor0, max_neighbor0) + clamp(history.rgb, min_neighbor1, max_neighbor1)) * 0.5;
+//     float _s, _ds;
+//     vec3 spos = shadowProjCascaded(world2shadowProj(wpos), _s, _ds);
+//     float sun_visibility = 1.0;
+//     if (spos != vec3(-1)) {
+//         sun_visibility = step(spos.z, texelFetch(shadowtex1, ivec2(spos.xy * shadowMapResolution), 0).r);
+//     }
 
-    vec3 color = mix(clamped_history, current.rgb, 0.07);
+//     in_scatter = vec3(sun_visibility);
 
-/* DRAWBUFFERS:0 */
-    gl_FragData[0] = vec4(color, 1.0);
-}
+// /* DRAWBUFFERS:5 */
+//     gl_FragData[0] = vec4(in_scatter, extinction);
+// }

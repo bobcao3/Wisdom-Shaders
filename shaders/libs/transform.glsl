@@ -8,6 +8,26 @@
 
 #include "uniforms.glsl"
 
+float norm2(in vec3 a, in vec3 b) {
+    a -= b;
+    return dot(a, a);
+}
+
+#define PI 3.1415926f
+
+vec3 project_uv2skybox(vec2 uv) {
+    vec2 rad = uv * 2.0 * PI;
+    rad.y -= PI * 0.5;
+    return vec3(cos(rad.x) * cos(rad.y), sin(rad.y), sin(rad.x) * cos(rad.y));
+}
+
+vec2 project_skybox2uv(vec3 nwpos) {
+    vec2 rad = vec2(atan(nwpos.z, nwpos.x), asin(nwpos.y));
+    rad += vec2(step(0.0, -rad.x) * (PI * 2.0), PI * 0.5);
+    rad *= 0.5 / PI;
+    return rad;
+}
+
 float getDepth(in ivec2 iuv) {
     return texelFetch(depthtex0, iuv, 0).r;
 }
@@ -83,9 +103,11 @@ vec3 shadowProjCascaded(in vec3 spos, out float scale, out float dscale) {
     return spos * 0.5 + 0.5;
 }
 
+mat4 shadowMVP = shadowProjection * shadowModelView;
+
 vec3 world2shadowProj(in vec3 world_pos) {
-    vec4 shadow_proj_pos = vec4(world2shadowView(world_pos), 1.0);
-    shadow_proj_pos = shadowProjection * shadow_proj_pos;
+    vec4 shadow_proj_pos = vec4(world_pos, 1.0);
+    shadow_proj_pos = shadowMVP * shadow_proj_pos;
     shadow_proj_pos.xyz /= shadow_proj_pos.w;
     vec3 spos = shadow_proj_pos.xyz;
 

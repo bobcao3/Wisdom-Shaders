@@ -7,6 +7,7 @@ INOUT vec4 color;
 INOUT vec3 normal;
 INOUT vec4 viewPos;
 INOUT vec2 uv;
+INOUT vec2 lmcoord;
 INOUT float layer;
 
 uniform int frameCounter;
@@ -27,6 +28,7 @@ void main() {
     color = gl_Color;
     uv = mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st;
     normal = normalize(gl_NormalMatrix * gl_Normal);
+    lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
     viewPos = model_view_mat * input_pos;
     gl_Position = proj_mat * viewPos;
@@ -42,13 +44,10 @@ void main() {
 
 uniform sampler2D tex;
 
-uniform vec4 projParams;
-
-uniform int fogMode;
-
 #define VECTORS
 #define BUFFERS
 #include "uniforms.glsl"
+#include "transform.glsl"
 
 #include "noise.glsl"
 
@@ -59,17 +58,17 @@ void fragment() {
 
     ivec2 iuv = ivec2(gl_FragCoord.st);
 
-    float fresnel = pow(1.0 - max(dot(normal, -normalize(viewPos.xyz)), 0.0), 2.0);
-    c.rgb = c.rgb * texelFetch(gaux2, iuv, 0).rgb + c.rgb * fresnel * skyColor;
+    vec3 nvpos = normalize(viewPos.xyz);
+    float fresnel = pow(1.0 - max(dot(normal, -nvpos), 0.0), 2.0);
+    
+    vec3 reflect_dir = reflect(nvpos, normal);
+    vec3 dir = mat3(gbufferModelViewInverse) * reflect_dir;
+    vec3 sky = texture(gaux4, project_skybox2uv(dir)).rgb;
+    c.rgb = c.rgb * texelFetch(gaux2, iuv, 0).rgb + c.rgb * fresnel * sky * lmcoord.y;
 
     c.a = clamp(0.7 + fresnel * 0.3, 0.0, 1.0);
 
     gl_FragData[0] = c;
-
-    if(fogMode == 9729)
-        gl_FragData[0].rgb = mix(gl_Fog.color.rgb, gl_FragData[0].rgb, clamp((gl_Fog.end - gl_FogFragCoord) / (gl_Fog.end - gl_Fog.start), 0.0, 1.0));
-    else if(fogMode == 2048)
-        gl_FragData[0].rgb = mix(gl_Fog.color.rgb, gl_FragData[0].rgb, clamp(exp(-gl_FogFragCoord * gl_Fog.density), 0.0, 1.0));
 }
 
 #endif

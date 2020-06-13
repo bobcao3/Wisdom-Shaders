@@ -1,6 +1,6 @@
 const bool depthtex0MipmapEnabled = true;
 
-ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float stride, float stride_multiplier, float zThickness, out int lod) {
+ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float stride, float stride_multiplier, float zThickness, int noise_i, out int lod) {
     const float maxDistance = 1.0;
     float rayLength = ((vpos.z + dir.z * maxDistance) > near) ? (near - vpos.z) / dir.z : maxDistance;
 
@@ -31,7 +31,7 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float 
         uv_dir = vec2(uv_dir.x * invdx, sign(uv_dir.y));
     }
 
-    float dither = hash(iuv + vec2((frameCounter & 0xF) * viewWidth, 0.0));
+    float dither = hash(iuv + vec2((noise_i ^ frameCounter & 0xF) * viewWidth, 0.0));
 
     uv_dir *= stride;
     dZW *= invdx * stride;

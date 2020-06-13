@@ -64,5 +64,17 @@ uniform sampler2D colortex3;
 uniform usampler2D colortex4;
 uniform sampler2D gaux2; // colortex5
 uniform sampler2D gaux3; // colortex6
+uniform sampler2D gaux4; // colortex7
+#endif
+#endif
+
+#ifdef TIME
+#ifndef _INCLUDE_TIME
+#define _INCLUDE_TIME
+uniform int worldTime;
+uniform int moonPhase;
+uniform float rainStrength;
+uniform float wetness;
+uniform float frameTimeCounter;
 #endif
 #endif

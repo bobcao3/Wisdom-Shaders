@@ -15,6 +15,8 @@
 
 uniform float rainStrength;
 
+flat in vec3 sun_I;
+
 #include "libs/raytrace.glsl"
 
 #define PCSS
@@ -42,11 +44,12 @@ void main() {
     vec4 specular = unpackUnorm4x8(gbuffers.a);
     specular.r = 1.0 - specular.r;
 
-    if (proj_pos.z < 0.9999) {
-        vec3 view_pos = proj2view(proj_pos);
-        vec3 V = normalize(-view_pos);
-        vec3 world_pos = view2world(view_pos);
+    vec3 view_pos = proj2view(proj_pos);
+    vec3 V = normalize(-view_pos);
+    vec3 world_pos = view2world(view_pos);
 
+    if (proj_pos.z < 0.9999) {
+        
         vec3 sun_vec = shadowLightPosition * 0.01;
         float shadow;
         vec3 L = vec3(0.0);
@@ -63,12 +66,12 @@ void main() {
             const float shadow_radius = 0.001;
 #endif
             float shadow = shadowFiltered(shadowtex1, shadow_proj_pos, shadow_sampled_depth, shadow_radius, iuv);
-            
+
             vec3 b = normalize(cross(sun_vec, normal));
             vec3 t = cross(normal, b);
 
             int lod;
-            float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 2.0, 1.1, 0.25, lod) != ivec2(-1));
+            float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 2.0, 1.1, 0.25, 0, lod) != ivec2(-1));
             rt_contact_shadow *= clamp(abs(t.z - sun_vec.z) * 10.0 - 2.0, 0.0, 1.0);
             
             shadow = min(shadow, 1.0 - rt_contact_shadow);
@@ -82,17 +85,17 @@ void main() {
                 shadow = step(0.0, dot(normal, sun_vec)) * shadow * oren_nayer(V, sun_vec, normal, specular.r, dot(normal, sun_vec), dot(normal, V));
             }
 
-            float sunDotUp = dot(sunPosition * 0.01, normalize(upPosition));
-            float sunIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01) * (1.0 - rainStrength * 0.95);
-
-            vec3 sun_I = vec3(9.8) * sunIntensity; // 98000 lux
             L = sun_I * shadow;
         }
 
         vec3 kD = pbr_get_kD(color.rgb, specular.g);
 
+        const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 1.0;
+        const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.6;
+        const vec3 torch_warm = vec3(1.2311, 0.7, 0.4286) * 0.8;
+
         float blockLight = pow(lmcoord.x, 4.0);
-        L += vec3(1.2311, 0.7, 0.4286) * blockLight * kD; // 10000 lux
+        L += torch1900K * blockLight * kD; // 10000 lux
 
         float emmisive = decoded_b.a;
         if (emmisive <= (254.5 / 255.0) && emmisive > 0.05) {
@@ -102,8 +105,11 @@ void main() {
         }
     } else {
         if (biomeCategory != 16) {
-            color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 2.5;
+            color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb);
         }
+
+        vec3 dir = normalize(world_pos);
+        color.rgb += texture(gaux4, project_skybox2uv(dir)).rgb;
     }
 
 /* DRAWBUFFERS:0 */

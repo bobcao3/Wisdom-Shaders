@@ -1,33 +1,45 @@
-#version 420 compatibility
-#pragma optimize(on)
+// #version 420 compatibility
+// #pragma optimize(on)
 
-uniform sampler2D colortex0;
-uniform sampler2D colortex2;
+// #define BUFFERS
 
-const bool colortex2Clear = false;
+// #include "libs/encoding.glsl"
+// #include "libs/sampling.glsl"
+// #include "libs/bsdf.glsl"
+// #include "libs/transform.glsl"
+// #include "libs/color.glsl"
+// #include "configs.glsl"
 
-#include "libs/taa.glsl"
-#include "libs/color.glsl"
+// #define VECTORS
+// #define CLIPPING_PLANE
+// #include "libs/uniforms.glsl"
 
-uniform int frameCounter;
+// uniform float rainStrength;
+// const bool colortex0MipmapEnabled = true;
 
-const bool colortex0MipmapEnabled = true;
+// #include "libs/raytrace.glsl"
 
-uniform vec2 invWidthHeight;
+// uniform vec3 fogColor;
+// uniform int biomeCategory;
 
-void main() {
-    ivec2 iuv = ivec2(gl_FragCoord.st);
+// void main() {
+//     ivec2 iuv = ivec2(gl_FragCoord.st);
+//     float jitter = bayer32(iuv);
+    
+//     vec3 view_pos = proj2view(getProjPos(iuv.xy));
+//     vec3 wpos = view2world(view_pos);
 
-    vec4 color = texelFetch(colortex0, iuv, 0);
-    float L = 0.0;
+//     vec4 color = vec4(0.0);
 
-    for (int i = 0; i < 4; i++) {
-        vec2 loc = WeylNth(int((frameCounter & 0xFF) * 4 + i + iuv.x ^ iuv.y)) * 0.5 + 0.25;
-        L += luma(textureLod(colortex0, loc, 3).rgb);
-    }
+//     for (int i = 0; i < 16; i++) {
+//         vec3 sample_view_pos = view_pos * ((i + jitter) / 16.0);
+//         ivec3 sample_iuv = ivec3((iuv >> 3) << 3, int(log2(sample_view_pos.z) * 5.0));
+//         ivec2 iuv = sample_iuv.xy + ivec2(sample_iuv.z / 8, sample_iuv.z % 7);
 
-    L = mix(texelFetch(colortex2, iuv, 0).a, L, 0.005);
+//         vec4 froxel_sample = texelFetch(gaux2, iuv, 0);
+//         color.rgb += froxel_sample.rgb / 16.0;
+//     }
 
-/* DRAWBUFFERS:2 */
-    gl_FragData[0] = vec4(color.rgb, L);
-}
+// /* DRAWBUFFERS:0 */
+//     gl_FragData[0] = color;
+// }

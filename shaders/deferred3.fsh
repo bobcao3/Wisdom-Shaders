@@ -9,10 +9,9 @@ const bool colortex3Clear = false;
 
 #include "libs/encoding.glsl"
 #include "libs/sampling.glsl"
+#include "libs/transform.glsl"
 #include "libs/bsdf.glsl"
-#include "libs/transform.glsl"
 #include "libs/color.glsl"
-#include "libs/transform.glsl"
 #include "libs/noise.glsl"
 
 void main() {
