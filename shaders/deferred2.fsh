@@ -81,7 +81,7 @@ void main() {
         vec3 Ls = vec3(0.0);
 
         //vec3 ray_trace_dir = reflect(normalize(view_pos), normal);
-        const int num_sspt_rays = 8;
+        const int num_sspt_rays = 6;
         const float weight_per_ray = 1.0 / float(num_sspt_rays);
         const float num_directions = 4096 * num_sspt_rays;
 
@@ -101,19 +101,21 @@ void main() {
             ray_trace_dir = grid_sample.y < pow((1.0 - specular.r + specular.g) * 0.5, 5.0) ? mirror_dir : ray_trace_dir;
 
             int lod;
-            ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false, stride, 1.5, 0.25, i, lod);
-            if (reflected.x >= 0 && reflected.y >= 0 && reflected.x < viewWidth && reflected.y < viewHeight) {
+            float start_bias = clamp(1.0 / ray_trace_dir.z, 0.0, 10.0) * 0.1;
+            ivec2 reflected = raytrace(view_pos + ray_trace_dir * start_bias, vec2(iuv), ray_trace_dir, false, stride, 1.5, 0.5, i, lod);
+            if (reflected != ivec2(-1)) {
                 vec3 radiance = texelFetch(colortex0, reflected >> lod, lod).rgb;
 
                 radiance *= 1.0 / object_space_sample.z;
                 vec3 kD;
                 vec3 brdf = pbr_brdf(V, ray_trace_dir, normal, color.rgb, specular.r, specular.g, kD);
-                float oren = oren_nayer(V, ray_trace_dir, normal, specular.r, object_space_sample.z, dot(normal, V));
+                float oren = oren_nayer(V, ray_trace_dir, normal, specular.r, object_space_sample.z, abs(dot(normal, V)));
                 Ld += radiance * kD * oren;
                 Ls += radiance * brdf * oren;
             } else {
                 vec3 world_dir = mat3(gbufferModelViewInverse) * ray_trace_dir;
-                Ld += skyLight * texture(gaux4, project_skybox2uv(world_dir), sky_lod).rgb;
+                float sun_disc_occulusion = smoothstep(abs(dot(ray_trace_dir, sunPosition * 0.01)), 0.99, 0.999);
+                Ld += skyLight * texture(gaux4, project_skybox2uv(world_dir), sky_lod).rgb * sun_disc_occulusion;
             }
         }
         

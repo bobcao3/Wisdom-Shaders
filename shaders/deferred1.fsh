@@ -71,7 +71,7 @@ void main() {
             vec3 t = cross(normal, b);
 
             int lod;
-            float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 2.0, 1.1, 0.25, 0, lod) != ivec2(-1));
+            float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 2.0, 1.0, 0.25, 0, lod) != ivec2(-1));
             rt_contact_shadow *= clamp(abs(t.z - sun_vec.z) * 10.0 - 2.0, 0.0, 1.0);
             
             shadow = min(shadow, 1.0 - rt_contact_shadow);
@@ -90,22 +90,24 @@ void main() {
 
         vec3 kD = pbr_get_kD(color.rgb, specular.g);
 
+        color.a = shadow;
+
         const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 1.0;
         const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.6;
         const vec3 torch_warm = vec3(1.2311, 0.7, 0.4286) * 0.8;
 
         float blockLight = pow(lmcoord.x, 4.0);
-        L += torch1900K * blockLight * kD; // 10000 lux
+        vec3 block_L = torch1900K * blockLight * kD; // 10000 lux
 
         float emmisive = decoded_b.a;
         if (emmisive <= (254.5 / 255.0) && emmisive > 0.05) {
             color.rgb *= emmisive * 3.0; // Max at 30000 lux
         } else {
-            color.rgb = clamp(diffuse_specular_brdf(V, sun_vec, normal, color.rgb, specular.r, specular.g) * L, vec3(0.0), vec3(100.0));
+            color.rgb = clamp(diffuse_specular_brdf(V, sun_vec, normal, color.rgb, specular.r, specular.g) * L + color.rgb * block_L, vec3(0.0), vec3(100.0));
         }
     } else {
         if (biomeCategory != 16) {
-            color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb);
+            color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 3.14;
         }
 
         vec3 dir = normalize(world_pos);

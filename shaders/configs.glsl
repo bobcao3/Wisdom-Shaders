@@ -22,7 +22,7 @@ const int shadowMapQuadRes = shadowMapResolution / 2;
 
 const bool colortex2Clear = false;
 
-const float ambientOcclusionLevel = 1.0f;
+const float ambientOcclusionLevel = 0.0f;
 
 #ifndef MC_RENDER_QUALITY
 #define MC_RENDER_QUALITY 1.0

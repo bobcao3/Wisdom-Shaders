@@ -15,6 +15,8 @@ const bool colortex0MipmapEnabled = true;
 
 uniform vec2 invWidthHeight;
 
+uniform float frameTime;
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
 
@@ -26,7 +28,11 @@ void main() {
         L += luma(textureLod(colortex0, loc, 3).rgb);
     }
 
-    L = mix(texelFetch(colortex2, iuv, 0).a, L, 0.005);
+    float decay = 0.995;
+    const float std_fps = 60.0;
+    decay = pow(decay, frameTime * std_fps);
+
+    L = mix(texelFetch(colortex2, iuv, 0).a, L, 1.0 - decay);
 
 /* DRAWBUFFERS:2 */
     gl_FragData[0] = vec4(color.rgb, L);

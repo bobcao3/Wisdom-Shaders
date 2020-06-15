@@ -23,7 +23,7 @@ const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
 const int steps = 6;
 const int stepss = 10;
 
-vec3 I = I0 * (1.0 - cloud_coverage * 0.7);
+vec3 I = I0; // * (1.0 - cloud_coverage * 0.7);
 
 const vec3 C = vec3(0., -R0, 0.);
 const vec3 bM = vec3(31e-6);
@@ -35,7 +35,7 @@ void densities(in vec3 pos, out vec2 des) {
 	des.x = exp(-h/Hr);
 
 	// Add Ozone layer densities
-	des.y += exp(-abs(h - 35e3) /  15e3) * 0.3;
+	des.x += exp(-abs(h - 35e3) /  15e3) * 0.1;
 
 	des.y = exp(-h/Hm) * (1.0 + cloud_coverage);
 }

@@ -9,35 +9,27 @@ uniform vec2 invWidthHeight;
 
 out vec4 vcolor;
 out vec2 vuv;
-out vec4 vpos;
+out vec4 shadow_view_pos;
 out vec3 vnormal;
 out float blockId;
 
 uniform vec3 shadowLightPosition;
 uniform vec3 upPosition;
 
-uniform mat4 gbufferModelView;
-
 attribute vec4 mc_Entity;
 
 void main() {
     vec4 input_pos = gl_Vertex;
-    mat4 model_view_mat = gl_ModelViewMatrix;
-    mat4 proj_mat = gl_ProjectionMatrix;
-    mat4 mvp_mat = gl_ModelViewProjectionMatrix;
 
-    vec4 proj_pos = mvp_mat * input_pos;
-
-    vpos = proj_pos;
     vuv = mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st;
     vcolor = gl_Color;
-    vnormal = normalize(gl_NormalMatrix * gl_Normal);
+    vnormal = gl_NormalMatrix * gl_Normal;
 
     blockId = mc_Entity.x;
 
     if (mc_Entity.y == 0) blockId = 8001;
 
-    gl_Position.st += JitterSampleOffset(frameCounter) * invWidthHeight * gl_Position.w;
+    shadow_view_pos = gl_ModelViewMatrix * input_pos;
 }
 
 #elif defined(GEOMETRY)
@@ -47,60 +39,120 @@ const int maxVerticesOut = 12;
 
 in vec4 vcolor[3];
 in vec2 vuv[3];
-in vec4 vpos[3];
+in vec4 shadow_view_pos[3];
 in vec3 vnormal[3];
 in float blockId[3];
 
 out vec4 color;
 out vec2 uv;
+out vec3 normal;
 out flat int cascade;
+
+uniform mat4 shadowProjection;
+uniform mat4 shadowModelViewInverse;
+uniform mat4 gbufferModelView;
+uniform mat4 gbufferProjection;
+
+uniform float aspectRatio;
+
+uniform vec3 shadowLightPosition;
+uniform vec3 cameraPosition;
 
 float max_axis(in vec2 v) {
     v = abs(v);
     return max(v.x, v.y);
 }
 
+float square(float a) {
+    return a * a;
+}
+
+bool intersect(vec3 orig, vec3 D) { 
+    // Test whether a line crosses the view frustum
+    
+    float tan_theta_h = gbufferProjection[0][0];
+    float tan_theta = sqrt(square(tan_theta_h) + square(tan_theta_h * aspectRatio));
+    float theta = tan_theta;//atan(tan_theta);
+    float cos_theta = cos(theta);
+    float cos2_theta = cos_theta * cos_theta;
+
+    vec3 C = vec3(0.0, 0.0, 16.0);
+    vec3 V = vec3(0.0, 0.0, -1.0);
+    vec3 CO = orig - C;
+
+    float a = square(dot(D, V)) - cos2_theta;
+    float b = 2.0 * (dot(D, V) * dot(CO, V) - dot(D, CO) * cos2_theta);
+    float c = square(dot(CO, V)) - dot(CO, CO) * cos2_theta;
+
+    float det = b * b - 4.0 * a * c;
+    float t0 = det > 0 ? 0.0 : ( sqrt(det) - b) / (2 * a);
+    float t1 = det > 0 ? 0.0 : (-sqrt(det) - b) / (2 * a);
+    vec3 P0 = orig + t0 * D;
+    vec3 P1 = orig + t1 * D;
+
+    return det >= 0.0 && (dot(P0 - C, V) > 0 && dot(P1 - C, V) > 0 );
+}
+
 void main() {
     if (vnormal[0].z + vnormal[1].z + vnormal[2].z >= 0 && blockId[0] != 18 && blockId[0] != 31 && blockId[0] != 79 && blockId[0] != 8001) return;
 
+    vec4 sview_center = (shadow_view_pos[0] + shadow_view_pos[1] + shadow_view_pos[2]) * (1.0 / 3.0);
+
+    vec4 cam_view_pos = (shadowModelViewInverse * sview_center);
+    if (cam_view_pos.y + cameraPosition.y <= 0.5) return;
+    cam_view_pos = gbufferModelView * cam_view_pos;
+
+    if (!intersect(cam_view_pos.xyz, shadowLightPosition * 0.01)) return;
+
+    vec4 emit_pos[3];
+
     for (int n = 0; n < 4; n++) {
+        bool emit = true;
         for (int i = 0; i < 3; i++) {
-            cascade = n;
-    
-            vec4 proj_pos = vpos[i];
+            vec4 proj_pos = shadowProjection * shadow_view_pos[i];
 
             if (n == 0) {
                 // Top Left
-                if (max_axis(proj_pos.xy) > 0.6) proj_pos.z = 1000000.0;
+                if (max_axis(proj_pos.xy) > 0.6) emit = false;
                 proj_pos.xy *= 1.0;
                 proj_pos.z *= 0.5;
                 proj_pos.xy += vec2(-0.5, 0.5);
             } else if (n == 1) {
                 // Top Right
-                if (max_axis(proj_pos.xy) > 2.2) proj_pos.z = 1000000.0;
+                if (max_axis(proj_pos.xy) > 2.2 || max_axis(proj_pos.xy) < 0.4) emit = false;
                 proj_pos.xy *= 0.25;
                 proj_pos.z *= 0.5;
                 proj_pos.xy += vec2(0.5, 0.5);
             } else if (n == 2) {
                 // Bottom Left
-                if (max_axis(proj_pos.xy) > 4.4) proj_pos.z = 1000000.0;
+                if (max_axis(proj_pos.xy) > 4.4 || max_axis(proj_pos.xy) < 1.8) emit = false;
                 proj_pos.xy *= 0.125;
                 proj_pos.z *= 0.5;
                 proj_pos.xy += vec2(-0.5, -0.5);
             } else if (n == 3) {
                 // Bottom Right
+                if (max_axis(proj_pos.xy) < 3.6) emit = false;
                 proj_pos.xy *= 0.03125;
                 proj_pos.z *= 0.25;
                 proj_pos.xy += vec2(0.5, -0.5);
             }
 
-            gl_Position = proj_pos;
-            color = vcolor[i];
-            uv = vuv[i];
-            EmitVertex();
+            if (emit) {
+                emit_pos[i] = proj_pos;
+            }
         }
 
-        EndPrimitive();
+        if (emit) {
+            for (int i = 0; i < 3; i++) {
+                gl_Position = emit_pos[i];
+                color = vcolor[i];
+                uv = vuv[i];
+                normal = normalize(vnormal[i]);
+                cascade = n;
+                EmitVertex();
+            }
+            EndPrimitive();
+        }
     }
 }
 
