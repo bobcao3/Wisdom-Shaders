@@ -54,6 +54,7 @@ uniform mat4 gbufferModelView;
 uniform mat4 gbufferProjection;
 
 uniform float aspectRatio;
+uniform float far;
 
 uniform vec3 shadowLightPosition;
 uniform vec3 cameraPosition;
@@ -70,9 +71,9 @@ float square(float a) {
 bool intersect(vec3 orig, vec3 D) { 
     // Test whether a line crosses the view frustum
     
-    float tan_theta_h = gbufferProjection[0][0];
+    float tan_theta_h = 1.0 / gbufferProjection[1][1];
     float tan_theta = sqrt(square(tan_theta_h) + square(tan_theta_h * aspectRatio));
-    float theta = tan_theta;//atan(tan_theta);
+    float theta = atan(tan_theta);
     float cos_theta = cos(theta);
     float cos2_theta = cos_theta * cos_theta;
 
@@ -80,17 +81,29 @@ bool intersect(vec3 orig, vec3 D) {
     vec3 V = vec3(0.0, 0.0, -1.0);
     vec3 CO = orig - C;
 
+    if (dot(normalize(CO), V) > cos_theta) return true;
+
     float a = square(dot(D, V)) - cos2_theta;
     float b = 2.0 * (dot(D, V) * dot(CO, V) - dot(D, CO) * cos2_theta);
     float c = square(dot(CO, V)) - dot(CO, CO) * cos2_theta;
 
     float det = b * b - 4.0 * a * c;
-    float t0 = det > 0 ? 0.0 : ( sqrt(det) - b) / (2 * a);
-    float t1 = det > 0 ? 0.0 : (-sqrt(det) - b) / (2 * a);
-    vec3 P0 = orig + t0 * D;
-    vec3 P1 = orig + t1 * D;
 
-    return det >= 0.0 && (dot(P0 - C, V) > 0 && dot(P1 - C, V) > 0 );
+    if (det < 0) return false;
+
+    det = sqrt(det);
+    float t1 = (-b - det) / (2. * a);
+    float t2 = (-b + det) / (2. * a);
+
+    float t = t1;
+    if (t < 0.0 || t2 > 0.0 && t2 < t) t = t2;
+    if (t < 0.0) return false;
+
+    vec3 CP = orig + t * D - C;
+    float h = dot(CP, V);
+    if (h < 0.0 || h > far) return false;
+
+    return true;
 }
 
 void main() {
@@ -102,7 +115,7 @@ void main() {
     if (cam_view_pos.y + cameraPosition.y <= 0.5) return;
     cam_view_pos = gbufferModelView * cam_view_pos;
 
-    if (!intersect(cam_view_pos.xyz, shadowLightPosition * 0.01)) return;
+    if (!intersect(cam_view_pos.xyz, -shadowLightPosition * 0.01)) return;
 
     vec4 emit_pos[3];
 
