@@ -1,8 +1,7 @@
 const bool depthtex0MipmapEnabled = true;
 
-ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float stride, float stride_multiplier, float zThickness, int noise_i, out int lod) {
-    const float maxDistance = 1.0;
-    float rayLength = ((vpos.z + dir.z * maxDistance) > near) ? (near - vpos.z) / dir.z : maxDistance;
+ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float stride, float stride_multiplier, float zThickness, int noise_i, inout int lod) {
+    float rayLength = clamp(-vpos.z, 0.1, 16.0);
 
     vec3 vpos_target = vpos + dir * rayLength;
 
@@ -60,20 +59,20 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float 
             zmax = z_prev;
         }
 
-        z_prev = z;
-
-        int dlod = clamp(int(floor(log2(length(uv_dir)))), 0, 3);
+        int dlod = clamp(int(floor(log2(length(uv_dir)))), 0, lod);
 
         float sampled_zbuffer = sampleDepthLOD(ivec2(P1), dlod);
         float sampled_zmax = proj2view(getProjPos(ivec2(P1), sampled_zbuffer)).z;
-        last_z = sampled_zmax;
         float sampled_zmin = sampled_zmax - zThickness;
 
-        if (zmax > sampled_zmin && zmin < sampled_zmax) {
+        if (zmax > sampled_zmin && zmin < sampled_zmax && abs(abs(last_z - sampled_zmax) - abs(z - z_prev)) > 0.001) {
             hit = ivec2(P1);
             lod = dlod;
             break;
         }
+
+        last_z = sampled_zmax;
+        z_prev = z;
 
         uv_dir *= stride_multiplier;
         dZW *= stride_multiplier;

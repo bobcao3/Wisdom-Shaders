@@ -11,7 +11,8 @@ const bool colortex2Clear = false;
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
 
-    vec3 proj_pos = getProjPos(iuv);
+    float depth = getDepth(iuv);
+    vec3 proj_pos = getProjPos(iuv, depth);
     vec3 world_pos = view2world(proj2view(proj_pos));
     
     vec4 world_pos_prev = vec4(world_pos - previousCameraPosition + cameraPosition, 1.0);
@@ -39,6 +40,10 @@ void main() {
     vec3 clamped_history = (clamp(history.rgb, min_neighbor0, max_neighbor0) + clamp(history.rgb, min_neighbor1, max_neighbor1)) * 0.5;
 
     vec3 color = mix(clamped_history, current.rgb, 0.07);
+
+    if (depth <= 0.7) {
+        color = current.rgb;
+    }
 
 /* DRAWBUFFERS:0 */
     gl_FragData[0] = vec4(color, 1.0);

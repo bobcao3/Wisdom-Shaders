@@ -22,6 +22,11 @@ uniform vec2 invWidthHeight;
 attribute vec4 mc_Entity;
 attribute vec4 at_tangent;
 
+
+#ifdef ENTITY
+uniform vec4 entityColor;
+#endif
+
 void main() {
     vec4 input_pos = gl_Vertex;
     mat4 model_view_mat = gl_ModelViewMatrix;
@@ -29,6 +34,9 @@ void main() {
     mat4 mvp_mat = gl_ModelViewProjectionMatrix;
 
     color = gl_Color;
+#ifdef ENTITY
+    color += entityColor;
+#endif
     color.rgb = fromGamma(color.rgb);
     uv = mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st;
     lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
@@ -51,7 +59,9 @@ void main() {
 
     gl_Position = mvp_mat * input_pos;
 
+#ifndef NO_TAA
     gl_Position.st += JitterSampleOffset(frameCounter) * invWidthHeight * gl_Position.w;
+#endif
 }
 
 #else
@@ -63,10 +73,6 @@ uniform sampler2D specular;
 uniform vec4 projParams;
 
 #include "noise.glsl"
-
-#ifdef ENTITY
-
-#endif
 
 float getDirectional(float lm, vec3 normal2) {
 	float Lx = dFdx(lm) * 60.0;

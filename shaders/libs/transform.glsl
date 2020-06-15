@@ -13,18 +13,32 @@ float norm2(in vec3 a, in vec3 b) {
     return dot(a, a);
 }
 
+float fsqrt(float x) {
+    // [Drobot2014a] Low Level Optimizations for GCN
+    return intBitsToFloat(0x1FBD1DF5 + (floatBitsToInt(x) >> 1));
+}
+
+float facos(float x) {
+    // [Eberly2014] GPGPU Programming for Games and Science
+    float res = -0.156583 * abs(x) + 3.1415926 / 2.0;
+    res *= fsqrt(1.0 - abs(x));
+    return x >= 0 ? res : 3.1415926 - res;
+}
+
+
 #define PI 3.1415926f
 
 vec3 project_uv2skybox(vec2 uv) {
-    vec2 rad = uv * 2.0 * PI;
+    vec2 rad = uv * 4.0 * PI;
     rad.y -= PI * 0.5;
-    return vec3(cos(rad.x) * cos(rad.y), sin(rad.y), sin(rad.x) * cos(rad.y));
+    float cos_y = cos(rad.y);
+    return vec3(cos(rad.x) * cos_y, sin(rad.y), sin(rad.x) * cos_y);
 }
 
 vec2 project_skybox2uv(vec3 nwpos) {
     vec2 rad = vec2(atan(nwpos.z, nwpos.x), asin(nwpos.y));
     rad += vec2(step(0.0, -rad.x) * (PI * 2.0), PI * 0.5);
-    rad *= 0.5 / PI;
+    rad *= 0.25 / PI;
     return rad;
 }
 

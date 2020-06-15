@@ -19,9 +19,9 @@ const bool colortex0MipmapEnabled = true;
 
 vec3 get_uniform_hemisphere_weighted(vec2 r) {
     float phi = 2.0 * 3.1415926 * r.y;
-    float sqrt_rx = sqrt(r.x);
+    float sqrt_rx = fsqrt(r.x);
 
-    return vec3(cos(phi) * sqrt_rx, sin(phi) * sqrt_rx, sqrt(1.0 - r.x));
+    return vec3(cos(phi) * sqrt_rx, sin(phi) * sqrt_rx, fsqrt(1.0 - r.x));
 }
 
 mat3 make_coord_space(vec3 n) {
@@ -90,17 +90,19 @@ void main() {
 
         int sky_lod = clamp(int((1.0 - specular.r + specular.g) * 3.0), 0, 3);
 
+        vec3 mirror_dir = reflect(normalize(view_pos), normal);
+        mat3 obj2view = make_coord_space(normal);
+
         for (int i = 0; i < num_sspt_rays; i++) {
             vec2 grid_sample = WeylNth(int(noise_sample * num_directions + (frameCounter & 0xFF) * num_directions + i));
             grid_sample.x *= 0.8;
             vec3 object_space_sample = get_uniform_hemisphere_weighted(grid_sample);
-            vec3 ray_trace_dir = make_coord_space(normal) * object_space_sample;
-            vec3 mirror_dir = reflect(normalize(view_pos), normal);
+            vec3 ray_trace_dir = obj2view * object_space_sample;
 
             float coin_flip = fract(noise_sample + hash(iuv + i));
             ray_trace_dir = grid_sample.y < pow((1.0 - specular.r + specular.g) * 0.5, 5.0) ? mirror_dir : ray_trace_dir;
 
-            int lod;
+            int lod = 3;
             float start_bias = clamp(1.0 / ray_trace_dir.z, 0.0, 10.0) * 0.1;
             ivec2 reflected = raytrace(view_pos + ray_trace_dir * start_bias, vec2(iuv), ray_trace_dir, false, stride, 1.5, 0.5, i, lod);
             if (reflected != ivec2(-1)) {
@@ -114,7 +116,7 @@ void main() {
                 Ls += radiance * brdf * oren;
             } else {
                 vec3 world_dir = mat3(gbufferModelViewInverse) * ray_trace_dir;
-                float sun_disc_occulusion = smoothstep(abs(dot(ray_trace_dir, sunPosition * 0.01)), 0.99, 0.999);
+                float sun_disc_occulusion = smoothstep(abs(dot(ray_trace_dir, sunPosition * 0.01)), 0.9, 0.999);
                 Ld += skyLight * texture(gaux4, project_skybox2uv(world_dir), sky_lod).rgb * sun_disc_occulusion;
             }
         }

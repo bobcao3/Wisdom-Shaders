@@ -70,11 +70,12 @@ void main() {
             vec3 b = normalize(cross(sun_vec, normal));
             vec3 t = cross(normal, b);
 
-            int lod;
-            float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 2.0, 1.0, 0.25, 0, lod) != ivec2(-1));
-            rt_contact_shadow *= clamp(abs(t.z - sun_vec.z) * 10.0 - 2.0, 0.0, 1.0);
-            
-            shadow = min(shadow, 1.0 - rt_contact_shadow);
+            if (depth > 0.7) {
+                int lod = 0;
+                float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 3.0, 1.0, 0.04, 0, lod) != ivec2(-1));
+                
+                shadow = min(shadow, 1.0 - rt_contact_shadow);
+            }
             
             vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));
             float subsurface_depth = 1.0 - smoothstep(sposLinear(spos_diff) * 128.0, 0.0, subsurface * 0.5 + pow(abs(dot(normalize(view_pos), sun_vec)), 8.0));
@@ -86,11 +87,11 @@ void main() {
             }
 
             L = sun_I * shadow;
+
+            color.a = shadow;
         }
 
         vec3 kD = pbr_get_kD(color.rgb, specular.g);
-
-        color.a = shadow;
 
         const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 1.0;
         const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.6;

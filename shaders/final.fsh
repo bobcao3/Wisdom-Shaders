@@ -3,7 +3,7 @@
 
 uniform sampler2D colortex0;
 uniform sampler2D colortex2;
-uniform sampler2D gaux4;
+uniform sampler2D gaux3;
 
 uniform sampler2D shadowtex0;
 
@@ -15,7 +15,7 @@ uniform float viewHeight;
 #include "libs/color.glsl"
 #include "libs/taa.glsl"
 
-#define DEBUG_SHADOWMAP
+// #define DEBUG_SHADOWMAP
 //#define DEBUG_ADAPTIVE_EXPOSURE
 
 void main() {
@@ -29,8 +29,6 @@ void main() {
         vec2 loc = WeylNth(i);
         L += texture(colortex2, loc).a;
     }
-
-    // color = texelFetch(gaux4, iuv, 0);
 
     float exposure = clamp(3.0 / L, 0.1, 10.0);
 

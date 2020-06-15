@@ -2,6 +2,7 @@
 #define TIME
 
 #include "uniforms.glsl"
+#include "transform.glsl"
 #include "noise.glsl"
 
 float day = float(worldTime) / 24000.0;
