@@ -80,8 +80,7 @@ void main() {
         vec3 Ld_sky = vec3(0.0);
         vec3 Ls = vec3(0.0);
 
-        //vec3 ray_trace_dir = reflect(normalize(view_pos), normal);
-        const int num_sspt_rays = 6;
+        const int num_sspt_rays = 4;
         const float weight_per_ray = 1.0 / float(num_sspt_rays);
         const float num_directions = 4096 * num_sspt_rays;
 
@@ -103,7 +102,7 @@ void main() {
             ray_trace_dir = grid_sample.y < pow((1.0 - specular.r + specular.g) * 0.5, 5.0) ? mirror_dir : ray_trace_dir;
 
             int lod = 3;
-            float start_bias = clamp(1.0 / ray_trace_dir.z, 0.0, 10.0) * 0.1;
+            float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
             ivec2 reflected = raytrace(view_pos + ray_trace_dir * start_bias, vec2(iuv), ray_trace_dir, false, stride, 1.5, 0.5, i, lod);
             if (reflected != ivec2(-1)) {
                 vec3 radiance = texelFetch(colortex0, reflected >> lod, lod).rgb;
@@ -116,7 +115,7 @@ void main() {
                 Ls += radiance * brdf * oren;
             } else {
                 vec3 world_dir = mat3(gbufferModelViewInverse) * ray_trace_dir;
-                float sun_disc_occulusion = smoothstep(abs(dot(ray_trace_dir, sunPosition * 0.01)), 0.9, 0.999);
+                float sun_disc_occulusion = 1.0 - smoothstep(0.9, 0.999, abs(dot(ray_trace_dir, sunPosition * 0.01)));
                 Ld += skyLight * texture(gaux4, project_skybox2uv(world_dir), sky_lod).rgb * sun_disc_occulusion;
             }
         }
@@ -139,7 +138,7 @@ void main() {
         }
 
         float history_depth = proj_pos_prev.z * 0.5 + 0.5;
-        float depth_difference = abs(history_d.a - history_depth) / history_depth;
+        float depth_difference = abs(history_s.a - history_depth) / history_depth;
         if (depth_difference > 0.001) {
             mix_weight = 1.0;
         }
@@ -152,6 +151,6 @@ void main() {
     }
 
 /* DRAWBUFFERS:13 */
-    gl_FragData[0] = vec4(composite_specular, 1.0);
+    gl_FragData[0] = vec4(composite_specular, depth);
     gl_FragData[1] = vec4(composite_diffuse, depth);
 }

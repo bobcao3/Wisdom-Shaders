@@ -16,7 +16,7 @@ uniform float viewHeight;
 #include "libs/taa.glsl"
 
 // #define DEBUG_SHADOWMAP
-//#define DEBUG_ADAPTIVE_EXPOSURE
+// #define DEBUG_ADAPTIVE_EXPOSURE
 
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st * MC_RENDER_QUALITY);

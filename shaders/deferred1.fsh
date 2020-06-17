@@ -72,13 +72,14 @@ void main() {
 
             if (depth > 0.7) {
                 int lod = 0;
-                float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 3.0, 1.0, 0.04, 0, lod) != ivec2(-1));
-                
+                float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 4.0, 1.0, 0.04, 0, lod) != ivec2(-1));
+                rt_contact_shadow *= smoothstep(0.20, 0.35, abs(dot(sun_vec, normal)));
+
                 shadow = min(shadow, 1.0 - rt_contact_shadow);
             }
             
             vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));
-            float subsurface_depth = 1.0 - smoothstep(sposLinear(spos_diff) * 128.0, 0.0, subsurface * 0.5 + pow(abs(dot(normalize(view_pos), sun_vec)), 8.0));
+            float subsurface_depth = 1.0 - smoothstep(0.0, subsurface + pow(max(0.0, dot(normalize(view_pos), sun_vec)), 8.0), sposLinear(spos_diff) * 32.0);
 
             if (subsurface > 0.0) {
                 shadow = min(subsurface_depth, 1.0);
@@ -86,7 +87,7 @@ void main() {
                 shadow = step(0.0, dot(normal, sun_vec)) * shadow * oren_nayer(V, sun_vec, normal, specular.r, dot(normal, sun_vec), dot(normal, V));
             }
 
-            L = sun_I * shadow;
+            L = max(vec3(0.0), sun_I * shadow);
 
             color.a = shadow;
         }

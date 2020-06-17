@@ -13,6 +13,10 @@ float norm2(in vec3 a, in vec3 b) {
     return dot(a, a);
 }
 
+float square(float a) {
+    return a * a;
+}
+
 float fsqrt(float x) {
     // [Drobot2014a] Low Level Optimizations for GCN
     return intBitsToFloat(0x1FBD1DF5 + (floatBitsToInt(x) >> 1));
@@ -106,9 +110,9 @@ vec3 shadowProjCascaded(in vec3 spos, out float scale, out float dscale) {
     } else if (largest_axis < 16) {
         // Bottom Right
         spos.xy *= 0.03125;
-        spos.z *= 0.25;
+        spos.z *= 0.125;
         scale = 0.25;
-        dscale = 4.0;
+        dscale = 8.0;
         spos.xy += vec2(0.5, -0.5);
     } else {
         spos = vec3(-1);

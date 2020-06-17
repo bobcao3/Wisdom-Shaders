@@ -14,32 +14,39 @@ const bool colortex3Clear = false;
 #include "libs/color.glsl"
 #include "libs/noise.glsl"
 
+float gaussian_weights[] = {
+    0.071303, 0.131514, 0.189879, 0.214607, 0.189879, 0.131514, 0.071303
+};
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
-    vec2 uv = vec2(iuv) * invWidthHeight;
 
     float depth = getDepth(iuv);
-    vec3 proj_pos = getProjPos(iuv, depth);
 
-    uvec4 gbuffers = texelFetch(colortex4, iuv, 0);
+    vec3 normal = normalDecode(texelFetch(colortex4, iuv, 0).r);
+    
+    vec3 center_color = texelFetch(colortex3, iuv, 0).rgb;
+    vec3 composite = center_color * 0.214607;
+    float total_weights = 0.214607;
 
-    vec4 color = unpackUnorm4x8(gbuffers.g);
-    vec3 normal = normalDecode(gbuffers.r);
+    const float bilateral_weight = 16.0;
 
-    vec3 composite = texelFetch(colortex0, iuv, 0).rgb;
-    vec4 Ld = texelFetch(colortex3, iuv, 0);
-    vec4 Ls = texelFetch(colortex1, iuv, 0);
+    if (depth < 1.0) {
+        #pragma optionNV (unroll all)
+        for (int i = 0; i < 7; i++) if (i != 3) {
+            ivec2 uv_s = iuv + ivec2(i - 3, 0);
+            vec3 ld_s = texelFetch(colortex3, uv_s, 0).rgb;
+            vec3 normal_s = normalDecode(texelFetch(colortex4, uv_s, 0).r);
+            float weight_s = pow(max(0.0, dot(normal_s, normal)), 5.0) * gaussian_weights[i];
+            weight_s *= exp(-norm2(ld_s, center_color) * bilateral_weight);
 
-    vec4 decoded_b = unpackUnorm4x8(gbuffers.b);
-    vec2 lmcoord = decoded_b.st;
+            composite += ld_s * weight_s;
+            total_weights += weight_s;
+        }
 
-    if (proj_pos.z < 0.9999) {
-        composite += color.rgb * Ld.rgb + Ls.rgb;
-        // composite = Ld.rgb;
-        // composite = Ls.rgb;
+        composite /= total_weights;
     }
 
-/* DRAWBUFFERS:05 */
+/* DRAWBUFFERS:5 */
     gl_FragData[0] = vec4(composite, 1.0);
-    gl_FragData[1] = vec4(composite, 1.0);
 }

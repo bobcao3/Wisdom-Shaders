@@ -57,24 +57,22 @@ float max_axis(in vec2 v) {
     return max(v.x, v.y);
 }
 
-float square(float a) {
-    return a * a;
-}
-
 bool intersect(vec3 orig, vec3 D) { 
     // Test whether a line crosses the view frustum
     
     float tan_theta_h = 1.0 / gbufferProjection[1][1];
-    float tan_theta = fsqrt(square(tan_theta_h) + square(tan_theta_h * aspectRatio));
+    float tan_theta = sqrt(square(tan_theta_h) + square(tan_theta_h * aspectRatio));
     float theta = atan(tan_theta);
     float cos_theta = cos(theta);
     float cos2_theta = cos_theta * cos_theta;
 
-    const vec3 C = vec3(0.0, 0.0, 16.0);
+    const vec3 C = vec3(0.0, 0.0, 1.0);
     const vec3 V = vec3(0.0, 0.0, -1.0);
+    vec3 CFar = vec3(0.0, 0.0, -far);
     vec3 CO = orig - C;
 
-    if (-CO.z / length(CO) > cos_theta) return true;
+    vec3 isectFar = orig + D * ((-far - orig.z) / D.z);
+    if (D.z < 0.0 && length(isectFar.xy) < (far + 1.0) * tan_theta) return true;
 
     float a = square(-D.z) - cos2_theta;
     float b = 2.0 * ((-D.z) * (-CO.z) - dot(D, CO) * cos2_theta);
@@ -84,7 +82,7 @@ bool intersect(vec3 orig, vec3 D) {
 
     if (det < 0) return false;
 
-    det = fsqrt(det);
+    det = sqrt(det);
     float inv2a = 1.0 / (2.0 * a);
     float t1 = (-b - det) * inv2a;
     float t2 = (-b + det) * inv2a;
@@ -94,13 +92,13 @@ bool intersect(vec3 orig, vec3 D) {
     if (t < 0.0) return false;
 
     vec3 CP = orig + t * D - C;
-    if (-CP.z < 0.0 || -CP.z > far) return false;
+    if (-CP.z < 0.0 || -CP.z > far + 1.0) return false;
 
     return true;
 }
 
 void main() {
-    if (vnormal[0].z + vnormal[1].z + vnormal[2].z >= 0 && blockId[0] != 18 && blockId[0] != 31 && blockId[0] != 79 && blockId[0] != 8001) return;
+    // if (vnormal[0].z + vnormal[1].z + vnormal[2].z <= 0) return;
 
     vec4 sview_center = (shadow_view_pos[0] + shadow_view_pos[1] + shadow_view_pos[2]) * (1.0 / 3.0);
 
@@ -144,7 +142,7 @@ void main() {
                 // Bottom Right
                 if (max_axis(proj_pos.xy) < 3.6) emit = false;
                 proj_pos.xy *= 0.03125;
-                proj_pos.z *= 0.25;
+                proj_pos.z *= 0.125;
                 proj_pos.xy += vec2(0.5, -0.5);
             }
 

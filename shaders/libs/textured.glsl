@@ -48,9 +48,9 @@ void main() {
 
     blockId = mc_Entity.x;
     if (blockId == 31.0) {
-        subsurface = 0.1;        
+        subsurface = 0.3;        
     } else if (blockId == 18.0) {
-        subsurface = 3.0;
+        subsurface = 2.0;
     } else if (blockId == 79.0) {
         subsurface = 1.0;
     } else if (blockId == 8001.0) {

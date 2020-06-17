@@ -55,7 +55,7 @@ float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth) {
     vec2 f = fract(spos.xy * resolution);
 
     vec4 dsamples = textureGather(tex, spos.xy + invresolution * 0.5);
-    vec4 samples = step(spos.z, dsamples);
+    vec4 samples = step(spos.z, dsamples + 0.00015);
 
     depth = dot(dsamples, vec4(0.25));
     
