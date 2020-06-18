@@ -1,4 +1,4 @@
-const bool depthtex0MipmapEnabled = true;
+// const bool gaux3MipmapEnabled = true;
 
 ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float stride, float stride_multiplier, float zThickness, int noise_i, inout int lod) {
     float rayLength = clamp(-vpos.z, 0.1, 16.0);

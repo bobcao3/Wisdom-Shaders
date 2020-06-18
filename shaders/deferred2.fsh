@@ -101,10 +101,11 @@ void main() {
             float coin_flip = fract(noise_sample + hash(iuv + i));
             ray_trace_dir = grid_sample.y < pow((1.0 - specular.r + specular.g) * 0.5, 5.0) ? mirror_dir : ray_trace_dir;
 
-            int lod = 3;
+            int lod = 4;
             float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
             ivec2 reflected = raytrace(view_pos + ray_trace_dir * start_bias, vec2(iuv), ray_trace_dir, false, stride, 1.5, 0.5, i, lod);
             if (reflected != ivec2(-1)) {
+                lod = min(3, lod);
                 vec3 radiance = texelFetch(colortex0, reflected >> lod, lod).rgb;
 
                 radiance *= 1.0 / object_space_sample.z;

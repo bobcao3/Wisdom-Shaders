@@ -113,15 +113,28 @@ float shadowFiltered(in sampler2D tex, in vec3 spos, out float depth, in float r
 }
 
 float sampleDepthLOD(ivec2 iuv, int lod) {
+    // if (lod == 0) {
+    //     return texelFetch(depthtex0, iuv, 0).r;
+    // } else if (lod == 1) {
+    //     return texelFetch(gaux3, iuv >> 1, 0).g;
+    // } else if (lod == 2) {
+    //     return texelFetch(gaux3, iuv >> 2, 0).b;
+    // } else {
+    //     return texelFetch(gaux3, iuv >> 3, 0).a;
+    // }
+
     if (lod == 0) {
         return texelFetch(depthtex0, iuv, 0).r;
     } else if (lod == 1) {
-        return texelFetch(gaux3, iuv >> 1, 0).g;
+        return texelFetch(gaux3, iuv >> 1, 0).r;
     } else if (lod == 2) {
-        return texelFetch(gaux3, iuv >> 2, 0).b;
-    } else {
-        return texelFetch(gaux3, iuv >> 3, 0).a;
+        return texelFetch(gaux3, (iuv >> 2) + ivec2(0, (int(viewHeight) >> 1)), 0).r;
+    } else if (lod == 3) {
+        return texelFetch(gaux3, (iuv >> 3) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2)), 0).r;
+    } else if (lod == 4) {
+        return texelFetch(gaux3, (iuv >> 4) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2) + (int(viewHeight) >> 3)), 0).r;
     }
+    return 0.0;
 }
 
 #endif

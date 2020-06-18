@@ -33,7 +33,7 @@ float facos(float x) {
 #define PI 3.1415926f
 
 vec3 project_uv2skybox(vec2 uv) {
-    vec2 rad = uv * 4.0 * PI;
+    vec2 rad = uv * 8.0 * PI;
     rad.y -= PI * 0.5;
     float cos_y = cos(rad.y);
     return vec3(cos(rad.x) * cos_y, sin(rad.y), sin(rad.x) * cos_y);
@@ -42,7 +42,7 @@ vec3 project_uv2skybox(vec2 uv) {
 vec2 project_skybox2uv(vec3 nwpos) {
     vec2 rad = vec2(atan(nwpos.z, nwpos.x), asin(nwpos.y));
     rad += vec2(step(0.0, -rad.x) * (PI * 2.0), PI * 0.5);
-    rad *= 0.25 / PI;
+    rad *= 0.125 / PI;
     return rad;
 }
 

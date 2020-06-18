@@ -4,6 +4,7 @@
 uniform sampler2D colortex0;
 uniform sampler2D colortex2;
 uniform sampler2D gaux3;
+uniform sampler2D gaux4;
 
 uniform sampler2D shadowtex0;
 
@@ -17,6 +18,7 @@ uniform float viewHeight;
 
 // #define DEBUG_SHADOWMAP
 // #define DEBUG_ADAPTIVE_EXPOSURE
+// #define DEBUG_DEPTH_LOD
 
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st * MC_RENDER_QUALITY);
@@ -45,6 +47,10 @@ void main() {
     if (iuv.x < viewWidth / 8 && iuv.y < viewHeight / 8) {
         color = vec4(L);
     }
+#endif
+
+#ifdef DEBUG_DEPTH_LOD
+    color.rgb = vec3(texelFetch(gaux3, iuv, 0).r);
 #endif
 
     gl_FragColor = clamp(color, 0.0, 1.0);
