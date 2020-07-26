@@ -133,6 +133,10 @@ float sampleDepthLOD(ivec2 iuv, int lod) {
         return texelFetch(gaux3, (iuv >> 3) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2)), 0).r;
     } else if (lod == 4) {
         return texelFetch(gaux3, (iuv >> 4) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2) + (int(viewHeight) >> 3)), 0).r;
+    } else if (lod == 5) {
+        return texelFetch(gaux3, (iuv >> 5) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2) + (int(viewHeight) >> 3) + (int(viewHeight) >> 4)), 0).r;
+    } else if (lod == 6) {
+        return texelFetch(gaux3, (iuv >> 6) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2) + (int(viewHeight) >> 3) + (int(viewHeight) >> 4) + (int(viewHeight) >> 5)), 0).r;
     }
     return 0.0;
 }

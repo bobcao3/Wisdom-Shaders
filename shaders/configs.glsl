@@ -2,12 +2,12 @@
 #define _INCLUDE_CONFIGS
 
 const int RGBA32UI = 0, RGBA16F = 1, R32F = 2, R11F_G11F_B10F = 3;
-const int colortex0Format = RGBA16F;
+const int colortex0Format = R11F_G11F_B10F;
 const int colortex1Format = RGBA16F;
 const int colortex2Format = RGBA16F;
 const int colortex3Format = R11F_G11F_B10F;
 const int colortex4Format = RGBA32UI;
-const int colortex5Format = RGBA16F;
+const int colortex5Format = R11F_G11F_B10F;
 const int colortex6Format = R32F;
 const int colortex7Format = R11F_G11F_B10F;
 

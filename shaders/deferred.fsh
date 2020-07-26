@@ -41,7 +41,7 @@ void main() {
     }
     ysize += viewSize.y >> 4;
     yoffset += viewSize.y >> 3;
-    if (iuv.y <= ysize && iuv.y >= yoffset && iuv.x <= (viewSize.x >> 3)) {
+    if (iuv.y <= ysize && iuv.y >= yoffset && iuv.x <= (viewSize.x >> 4)) {
         depth_lod = texelFetch(depthtex0, ((iuv - ivec2(0, yoffset)) << 4) + ivec2(round(16 * jitter)), 0).r;
     }
 

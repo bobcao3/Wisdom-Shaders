@@ -58,7 +58,7 @@ void main() {
         Ld /= total_weights;
         
         composite += color.rgb * Ld.rgb + Ls.rgb;
-        composite = Ld.rgb;
+        // composite = Ld.rgb;
         // composite = Ls.rgb;
     }
 

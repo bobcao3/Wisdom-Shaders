@@ -103,16 +103,18 @@ void main() {
 
             int lod = 4;
             float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
-            ivec2 reflected = raytrace(view_pos + ray_trace_dir * start_bias, vec2(iuv), ray_trace_dir, false, stride, 1.5, 0.5, i, lod);
+            ivec2 reflected = raytrace(view_pos + ray_trace_dir * start_bias, vec2(iuv), ray_trace_dir, false, stride, 1.48, 0.5, i, lod);
             if (reflected != ivec2(-1)) {
                 lod = min(3, lod);
                 vec3 radiance = texelFetch(colortex0, reflected >> lod, lod).rgb;
+                vec3 prevRadiance = texelFetch(colortex3, reflected, 0).rgb;
+                prevRadiance *= unpackUnorm4x8(texelFetch(colortex4, reflected, 0).g).rgb;
 
                 radiance *= 1.0 / object_space_sample.z;
                 vec3 kD;
                 vec3 brdf = pbr_brdf(V, ray_trace_dir, normal, color.rgb, specular.r, specular.g, kD);
                 float oren = oren_nayer(V, ray_trace_dir, normal, specular.r, object_space_sample.z, abs(dot(normal, V)));
-                Ld += radiance * kD * oren;
+                Ld += (prevRadiance + radiance) * kD * oren;
                 Ls += radiance * brdf * oren;
             } else {
                 vec3 world_dir = mat3(gbufferModelViewInverse) * ray_trace_dir;
