@@ -135,7 +135,7 @@ void main() {
         vec4 history_d = texture(colortex3, prev_uv);
         vec4 history_s = texture(colortex1, prev_uv);
         
-        float mix_weight = 0.05;
+        float mix_weight = 0.1;
         if (prev_uv.x < 0.0 || prev_uv.x > 1.0 || prev_uv.y < 0.0 || prev_uv.y > 1.0) {
             mix_weight = 1.0;
         }
