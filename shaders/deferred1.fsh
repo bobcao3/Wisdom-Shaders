@@ -81,10 +81,12 @@ void main() {
             vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));
             float subsurface_depth = 1.0 - smoothstep(0.0, subsurface + pow(max(0.0, dot(normalize(view_pos), sun_vec)), 8.0), sposLinear(spos_diff) * 32.0);
 
+            float G = oren_nayer(V, sun_vec, normal, specular.r, dot(normal, sun_vec), dot(normal, V));
+
             if (subsurface > 0.0) {
-                shadow = min(subsurface_depth, 1.0);
+                shadow = mix(min(subsurface_depth, 1.0), shadow * G, min(1.0, subsurface));
             } else {
-                shadow = step(0.0, dot(normal, sun_vec)) * shadow * oren_nayer(V, sun_vec, normal, specular.r, dot(normal, sun_vec), dot(normal, V));
+                shadow = shadow * G;
             }
 
             L = max(vec3(0.0), sun_I * shadow);
