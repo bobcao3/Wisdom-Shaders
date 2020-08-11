@@ -146,4 +146,37 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 	return max(vec3(0.0), color);
 }
 
+float noisyStarField(vec3 dir)
+{
+	return max(0.0, hash(dir.xz * sqrt(dir.y)) - 0.995) * 20.0;
+}
+
+vec3 starField(vec3 dir)
+{
+	dir *= 1000.0;
+	vec3 uv = floor(dir);
+	vec3 t = dir - uv;
+
+	float s000 = noisyStarField(uv);
+	float s001 = noisyStarField(uv + vec3(0.0, 0.0, 1.0));
+	float s010 = noisyStarField(uv + vec3(0.0, 1.0, 0.0));
+	float s011 = noisyStarField(uv + vec3(0.0, 1.0, 1.0));
+	float s100 = noisyStarField(uv + vec3(1.0, 0.0, 0.0));
+	float s101 = noisyStarField(uv + vec3(1.0, 0.0, 1.0));
+	float s110 = noisyStarField(uv + vec3(1.0, 1.0, 0.0));
+	float s111 = noisyStarField(uv + vec3(1.0, 1.0, 1.0));
+
+	float s00 = mix(s000, s001, t.z);
+	float s01 = mix(s010, s011, t.z);
+	float s10 = mix(s100, s101, t.z);
+	float s11 = mix(s110, s111, t.z);
+
+	float s0 = mix(s00, s01, t.y);
+	float s1 = mix(s10, s11, t.y);
+
+	float star = pow(mix(s0, s1, t.x), 1.5);
+
+	return star * smoothstep(0.0, 100.0, dir.y) * vec3(1.0 - star * 0.8, 1.0, 1.0 + star * 0.8);
+}
+
 #endif

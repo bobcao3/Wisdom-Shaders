@@ -14,11 +14,11 @@
 #define CLIPPING_PLANE
 #include "libs/uniforms.glsl"
 
-uniform float rainStrength;
-
 flat in vec3 sun_I;
+flat in vec3 moon_I;
 
 #include "libs/raytrace.glsl"
+#include "libs/atmosphere.glsl"
 
 #define PCSS
 
@@ -90,7 +90,7 @@ void main() {
                 shadow = shadow * G;
             }
 
-            L = max(vec3(0.0), sun_I * shadow);
+            L = max(vec3(0.0), (sun_I + moon_I) * shadow);
 
             color.a = shadow;
         }
@@ -116,23 +116,19 @@ void main() {
             color.rgb = clamp(diffuse_specular_brdf(V, sun_vec, normal, color.rgb, specular.r, specular.g) * L + color.rgb * block_L, vec3(0.0), vec3(100.0));
         }
     } else {
-        if (biomeCategory != 16) {
-            color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 3.14;
-            color.rgb += sun_I * smoothstep(0.9999, 0.99991, dot(normalize(view_pos), shadowLightPosition * 0.01));
-
-            // Stars
-            /*
-            vec3 noiseCoord = dir * 50.0;
-            float noise = noise(noiseCoord);
-            vec3 stars = vec3(noise);
-
-            color.rgb += stars;
-            */
-        }
-
         vec3 dir = normalize(world_pos);
         vec2 polarCoord = project_skybox2uv(dir);
-        color.rgb += texture(gaux4, polarCoord).rgb;
+
+        if (biomeCategory != 16) {
+            color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 3.14;
+            color.rgb += sun_I * smoothstep(0.9999, 0.99991, dot(normalize(view_pos), sunPosition * 0.01));
+
+            color.rgb += starField(dir);
+
+            color.rgb = mix(color.rgb, moon_I * 8.0, smoothstep(0.9996, 0.99961, dot(normalize(view_pos), moonPosition * 0.01)));
+        }
+
+        color.rgb += texture(gaux4, polarCoord).rgb + bayer64(iuv) * 0.0001;
     }
 
 /* DRAWBUFFERS:0 */
