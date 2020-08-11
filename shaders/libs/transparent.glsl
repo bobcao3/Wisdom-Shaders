@@ -142,9 +142,9 @@ void fragment() {
         vec3 reflect_dir = reflect(nvpos, normal);
         vec3 dir = mat3(gbufferModelViewInverse) * reflect_dir;
         vec3 sky = texture(gaux4, project_skybox2uv(dir)).rgb;
-        c.rgb += fresnel * sky * lmcoord.y;
+        c.rgb *= sky * lmcoord.y;
 
-        c.a = clamp(fresnel * 0.8 + 0.2, 0.0, 1.0);
+        c.a = clamp(fresnel * 0.4 + 0.6, 0.0, 1.0);
     }
 
     gl_FragData[0] = c;
