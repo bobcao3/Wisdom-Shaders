@@ -1,3 +1,6 @@
+#ifndef _INCLUDE_ATMOS
+#define _INCLUDE_ATMOS
+
 #define VECTORS
 #define TIME
 
@@ -21,8 +24,13 @@ const float Hm = 3.6e3;
 const vec3 I0 = vec3(10.0) / vec3(1.0, 0.8832, 0.7817); // Adjust for D65
 const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
 
+#ifdef LQ_ATMOS
+const int steps = 6;
+const int stepss = 3;
+#else
 const int steps = 6;
 const int stepss = 10;
+#endif
 
 vec3 I = I0; // * (1.0 - cloud_coverage * 0.7);
 
@@ -57,24 +65,35 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 	if (d.y < 0.0) d.y = 0.0016 / (-d.y + 0.04) - 0.04;
 
 	float L = min(l, escape(o, d, Ra));
-	float mu = dot(d, Ds);
-	float opmu2 = 1. + mu*mu;
-	float phaseR = .0596831 * opmu2;
-	float phaseM = .1193662 * (1. - g2) * opmu2;
-	float phaseM_moon = phaseM / ((2. + g2) * pow(1. + g2 + 2.*g*mu, 1.5));
-	phaseM /= ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
-	phaseM_moon *= max(0.5, l / 200e3);
+
+	float phaseM, phaseR;
+	float phaseM_moon, phaseR_moon;
+
+	{
+		float mu = dot(d, Ds);
+		float opmu2 = 1. + mu*mu;
+		phaseR = .0596831 * opmu2;
+		phaseM = .1193662 * (1. - g2) * opmu2;
+		phaseM /= ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));		
+	}
+
+	{
+		float mu = dot(d, -Ds);
+		float opmu2 = 1. + mu*mu;
+		phaseR_moon = .0596831 * opmu2;
+		phaseM_moon = .1193662 * (1. - g2) * opmu2;
+		phaseM_moon /= ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));	
+	}
 
 	vec2 depth = vec2(0.0);
 	vec3 R = vec3(0.), M = vec3(0.);
+	vec3 R_moon = vec3(0.), M_moon = vec3(0.);
 
 	float u0 = - (L - 100.0) / (1.0 - exp2(steps));
 
-	float dither = fma(noise(d.xy + d.zz), 0.5, 0.5);
-
 	for (int i = 0; i < steps; ++i) {
-		float dl = u0 * exp2(i - dither);
-		float l = - u0 * (1.0 - exp2(i - dither + 1));
+		float dl = u0 * exp2(i);
+		float l = - u0 * (1.0 - exp2(i + 1));
 		vec3 p = o + d * l;
 
 		vec2 des;
@@ -100,11 +119,31 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 
 			R += A * des.x;
 			M += A * des.y;
-		} else {
-			return vec3(0.);
+		}
+		
+		Ls = escape(p, -Ds, Ra);
+		if (Ls > 0.) {
+			vec2 depth_in = vec2(0.0);
+			for (int j = 0; j < stepss; ++j) {
+				float ls = float(j) / float(stepss) * Ls;
+				vec3 ps = p + -Ds * ls;
+				vec2 des_in;
+				densities(ps, des_in);
+				depth_in += des_in;
+			}
+			depth_in *= vec2(Ls) / float(stepss);
+			depth_in += depth;
+
+			vec3 A = exp(-(bR * depth_in.x + bM * depth_in.y));
+
+			R_moon += A * des.x;
+			M_moon += A * des.y;
 		}
 	}
 
-	vec3 color = I * (R * bR * phaseR + M * bM * phaseM + vec3(0.0001, 0.00017, 0.0003) + (0.02 * vec3(0.005, 0.0055, 0.01)) * phaseM_moon * smoothstep(0.05, 0.2, d.y));
+	vec3 color = I * (max(vec3(0.0), R) * bR * phaseR + max(vec3(0.0), M) * bM * phaseM);
+	color += (0.002 * I) * (max(vec3(0.0), R_moon) * bR * phaseR_moon + max(vec3(0.0), M_moon) * bM * phaseM_moon);
 	return max(vec3(0.0), color);
 }
+
+#endif

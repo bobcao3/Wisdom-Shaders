@@ -75,6 +75,11 @@ vec3 proj2view(in vec3 proj_pos) {
     return view_pos.xyz / view_pos.w;
 }
 
+vec3 view2proj(in vec3 view_pos) {
+    vec4 proj_pos = gbufferProjection * vec4(view_pos, 1.0);
+    return proj_pos.xyz / proj_pos.w;
+}
+
 vec3 view2world(in vec3 view_pos) {
     return (gbufferModelViewInverse * vec4(view_pos.xyz, 1.0)).xyz;
 }

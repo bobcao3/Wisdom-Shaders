@@ -13,6 +13,8 @@ uniform sampler2D shadowtex0;
 uniform float viewWidth;
 uniform float viewHeight;
 
+uniform vec2 invWidthHeight;
+
 #include "libs/color.glsl"
 #include "libs/taa.glsl"
 
@@ -28,7 +30,7 @@ void main() {
     float L = 0.0;
 
     for (int i = 0; i < 4; i++) {
-        vec2 loc = WeylNth(i);
+        vec2 loc = WeylNth(i) * 32 * invWidthHeight;
         L += texture(colortex2, loc).a;
     }
 

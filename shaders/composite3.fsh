@@ -23,16 +23,19 @@ void main() {
     vec4 color = texelFetch(colortex0, iuv, 0);
     float L = 0.0;
 
-    for (int i = 0; i < 4; i++) {
-        vec2 loc = WeylNth(int((frameCounter & 0xFF) * 4 + i + iuv.x ^ iuv.y)) * 0.5 + 0.25;
-        L += luma(textureLod(colortex0, loc, 3).rgb);
+    if (iuv.x < 32 && iuv.y < 32)
+    {
+        for (int i = 0; i < 4; i++) {
+            vec2 loc = WeylNth(int((frameCounter & 0xFF) * 4 + i + iuv.x ^ iuv.y)) * 0.5 + 0.25;
+            L += luma(textureLod(colortex0, loc, 3).rgb);
+        }
+
+        float decay = 0.995;
+        const float std_fps = 60.0;
+        decay = pow(decay, frameTime * std_fps);
+
+        L = mix(texelFetch(colortex2, iuv, 0).a, L, 1.0 - decay);
     }
-
-    float decay = 0.995;
-    const float std_fps = 60.0;
-    decay = pow(decay, frameTime * std_fps);
-
-    L = mix(texelFetch(colortex2, iuv, 0).a, L, 1.0 - decay);
 
 /* DRAWBUFFERS:2 */
     gl_FragData[0] = vec4(color.rgb, L);

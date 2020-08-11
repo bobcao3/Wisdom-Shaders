@@ -44,6 +44,8 @@ mat3 make_coord_space(vec3 n) {
 const bool colortex1Clear = false;
 const bool colortex3Clear = false;
 
+uniform int biomeCategory;
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
     vec2 uv = vec2(iuv) * invWidthHeight;
@@ -75,16 +77,21 @@ void main() {
         float sunDotUp = dot(normalize(sunPosition), normalize(upPosition));
         float ambientIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01);
 
-        float skyLight = smoothstep(0.04, 1.0, lmcoord.y);
+        float skyLight = max(0.0, exp2(-(0.96875 - lmcoord.y) * 4.0) - 0.25);
         vec3 Ld = vec3(0.0);
         vec3 Ld_sky = vec3(0.0);
         vec3 Ls = vec3(0.0);
+
+        if (biomeCategory == 16)
+        {
+            skyLight = 0.3;
+        }
 
         const int num_sspt_rays = 4;
         const float weight_per_ray = 1.0 / float(num_sspt_rays);
         const float num_directions = 4096 * num_sspt_rays;
 
-        float stride = max(1.0, viewHeight / 1080.0);
+        float stride = max(2.0, viewHeight / 480.0);
         float noise_sample = fract(bayer64(iuv));
 
         int sky_lod = clamp(int((1.0 - specular.r + specular.g) * 3.0), 0, 3);
@@ -103,7 +110,12 @@ void main() {
 
             int lod = 4;
             float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
-            ivec2 reflected = raytrace(view_pos + ray_trace_dir * start_bias, vec2(iuv), ray_trace_dir, false, stride, 1.48, 0.5, i, lod);
+            ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false, stride, 1.44, 2.0, i, lod);
+            
+            vec3 kD;
+            vec3 brdf = clamp(pbr_brdf(V, ray_trace_dir, normal, color.rgb, specular.r, specular.g, kD), vec3(0.0), vec3(1.0));
+            float oren = oren_nayer(V, ray_trace_dir, normal, specular.r, object_space_sample.z, abs(dot(normal, V)));    
+            
             if (reflected != ivec2(-1)) {
                 lod = min(3, lod);
                 vec3 radiance = texelFetch(colortex0, reflected >> lod, lod).rgb;
@@ -111,15 +123,17 @@ void main() {
                 prevRadiance *= unpackUnorm4x8(texelFetch(colortex4, reflected, 0).g).rgb;
 
                 radiance *= 1.0 / object_space_sample.z;
-                vec3 kD;
-                vec3 brdf = pbr_brdf(V, ray_trace_dir, normal, color.rgb, specular.r, specular.g, kD);
-                float oren = oren_nayer(V, ray_trace_dir, normal, specular.r, object_space_sample.z, abs(dot(normal, V)));
+                
+                // Ld += distance(vec2(reflected), vec2(iuv));
                 Ld += (prevRadiance + radiance) * kD * oren;
                 Ls += radiance * brdf * oren;
             } else {
                 vec3 world_dir = mat3(gbufferModelViewInverse) * ray_trace_dir;
                 float sun_disc_occulusion = 1.0 - smoothstep(0.9, 0.999, abs(dot(ray_trace_dir, sunPosition * 0.01)));
-                Ld += skyLight * texture(gaux4, project_skybox2uv(world_dir), sky_lod).rgb * sun_disc_occulusion;
+                vec3 skyRadiance = skyLight * texture(gaux4, project_skybox2uv(world_dir), sky_lod).rgb * sun_disc_occulusion;
+
+                Ld += skyRadiance * kD * oren;
+                Ls += skyRadiance * brdf * oren;
             }
         }
         

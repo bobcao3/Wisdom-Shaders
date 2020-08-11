@@ -30,12 +30,16 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float 
         uv_dir = vec2(uv_dir.x * invdx, sign(uv_dir.y));
     }
 
+    iuv += uv_dir * 2.0;
+
     float dither = hash(iuv + vec2((noise_i ^ frameCounter & 0xF) * viewWidth, 0.0));
 
     uv_dir *= stride;
     dZW *= invdx * stride;
 
     ivec2 hit = ivec2(-1);
+
+    vec2 iuvStart = iuv;
 
     float last_z = 0.0;
 
@@ -44,8 +48,8 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float 
         iuv += uv_dir;
         ZW += dZW;
 
-        vec2 P1 = iuv + uv_dir * dither;
-        vec2 ZWd = ZW + dZW * dither;
+        vec2 P1 = iuv - uv_dir * dither;
+        vec2 ZWd = ZW - dZW * dither;
 
         if (P1.x < 0 || P1.y < 0 || P1.x > viewWidth || P1.y > viewHeight) return ivec2(-1);
 
@@ -59,7 +63,7 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float 
             zmax = z_prev;
         }
 
-        int dlod = clamp(int(floor(log2(length(uv_dir)))), 0, lod);
+        int dlod = clamp(int(floor(log2(length(uv_dir)) - 1.0)), 0, lod);
 
         float sampled_zbuffer = sampleDepthLOD(ivec2(P1), dlod);
         float sampled_zmax = proj2view(getProjPos(ivec2(P1), sampled_zbuffer)).z;

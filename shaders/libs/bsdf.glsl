@@ -61,8 +61,10 @@ vec3 diffuse_specular_brdf(vec3 v, vec3 l, vec3 n, vec3 albedo, float roughness,
 
 	if (match(metalic, 230.0 / 255.0)) {
 		F0 = vec3(3.0893, 2.9318, 2.7670);
-	} else if (match(metalic, 230.0 / 255.0)) {
+	} else if (match(metalic, 231.0 / 255.0)) {
 		F0 = vec3(0.18299, 0.42108, 1.3734);
+	} else if (match(metalic, 255.0 / 255.0)) {
+		F0 = vec3(0.02);
 	}
 
 	vec3 H = normalize(l + v);
@@ -85,6 +87,14 @@ vec3 pbr_brdf(vec3 v, vec3 l, vec3 n, vec3 albedo, float roughness, float metali
 
 	vec3 F0 = vec3(0.01);
 	F0 = mix(F0, albedo, metalic);
+
+	if (match(metalic, 230.0 / 255.0)) {
+		F0 = vec3(3.0893, 2.9318, 2.7670);
+	} else if (match(metalic, 230.0 / 255.0)) {
+		F0 = vec3(0.18299, 0.42108, 1.3734);
+	} else if (match(metalic, 255.0 / 255.0)) {
+		F0 = vec3(0.02);
+	}
 
 	vec3 H = normalize(l + v);
 	float NDF = DistributionGGX(n, H, roughness);

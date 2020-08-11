@@ -4,11 +4,11 @@
 #include "color.glsl"
 
 INOUT vec4 color;
-INOUT vec3 normal;
-INOUT float subsurface;
-INOUT float blockId;
-INOUT vec3 tangent;
-INOUT vec3 bitangent;
+INOUT flat vec3 normal;
+INOUT flat float subsurface;
+INOUT flat float blockId;
+INOUT flat vec3 tangent;
+INOUT flat vec3 bitangent;
 INOUT vec2 uv;
 INOUT vec2 lmcoord;
 
@@ -72,6 +72,8 @@ uniform sampler2D specular;
 
 uniform vec4 projParams;
 
+uniform float wetness;
+
 #include "noise.glsl"
 
 float getDirectional(float lm, vec3 normal2) {
@@ -100,13 +102,22 @@ void fragment() {
     normal_map = mat3(tangent, bitangent, normal) * normal_map;
     normal_map = normalize(mix(normal, normal_map, 0.0));
 
-    //lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
+    lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
 
     vec4 specular_map = textureLod(specular, uv, lod);
 
     if (blockId > 8001.5 && blockId < 8002.5) {
         specular_map.a = 0.95;
     }
+
+    // Wet terrain
+    float wetPBRMorph = wetness * smoothstep(0.9, 1.0, lmcoord_dithered.y);
+    //specular_map.rg = mix(specular_map.rg, vec2(1.0, 1.0), wetness);
+
+    #ifdef UNLIT
+    lmcoord_dithered = vec2(0.7);
+    specular_map.a = 0.95;
+    #endif
 
     vec4 c = color * fromGamma(textureLod(tex, uv, lod));
     if (c.a < threshold) discard;

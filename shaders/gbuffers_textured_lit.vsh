@@ -1,8 +1,5 @@
 #version 430 compatibility
 #pragma optimize(on)
 
-#define UNLIT
-
-#define UINT_BUFFER
-#include "libs/gbuffers.frag.glsl"
+#define VERTEX
 #include "libs/textured.glsl"

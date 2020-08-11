@@ -10,7 +10,6 @@ uniform vec2 invWidthHeight;
 out vec4 vcolor;
 out vec2 vuv;
 out vec4 shadow_view_pos;
-out vec3 vnormal;
 out float blockId;
 
 uniform vec3 shadowLightPosition;
@@ -23,7 +22,6 @@ void main() {
 
     vuv = mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st;
     vcolor = gl_Color;
-    vnormal = gl_NormalMatrix * gl_Normal;
 
     blockId = mc_Entity.x;
 
@@ -40,7 +38,6 @@ const int maxVerticesOut = 12;
 in vec4 vcolor[3];
 in vec2 vuv[3];
 in vec4 shadow_view_pos[3];
-in vec3 vnormal[3];
 in float blockId[3];
 
 #include "transform.glsl"
@@ -98,8 +95,6 @@ bool intersect(vec3 orig, vec3 D) {
 }
 
 void main() {
-    // if (vnormal[0].z + vnormal[1].z + vnormal[2].z <= 0) return;
-
     vec4 sview_center = (shadow_view_pos[0] + shadow_view_pos[1] + shadow_view_pos[2]) * (1.0 / 3.0);
 
     vec4 cam_view_pos = (shadowModelViewInverse * sview_center);

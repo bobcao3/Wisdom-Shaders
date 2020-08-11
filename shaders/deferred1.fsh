@@ -8,6 +8,7 @@
 #include "libs/bsdf.glsl"
 #include "libs/transform.glsl"
 #include "libs/color.glsl"
+#include "libs/noise.glsl"
 
 #define VECTORS
 #define CLIPPING_PLANE
@@ -96,12 +97,17 @@ void main() {
 
         vec3 kD = pbr_get_kD(color.rgb, specular.g);
 
-        const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2)) * 1.0;
-        const vec3 torch5500K = vec3(1.2311, 1.0, 0.8286) * 0.6;
-        const vec3 torch_warm = vec3(1.2311, 0.7, 0.4286) * 0.8;
+        const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2));
+        const vec3 torch3500K = pow(vec3(255.0, 196.0, 137.0) / 255.0, vec3(2.2));
+        const vec3 torch5500K = pow(vec3(255.0, 236.0, 224.0) / 255.0, vec3(2.2));
 
-        float blockLight = pow(lmcoord.x, 4.0);
-        vec3 block_L = torch1900K * blockLight * kD; // 10000 lux
+        float blockLight = pow(lmcoord.x, 6.0);
+        vec3 blockLightColor = torch1900K;
+        if (biomeCategory == 16)
+        {
+            blockLightColor = torch3500K;
+        }
+        vec3 block_L = blockLightColor * blockLight * kD; // 10000 lux
 
         float emmisive = decoded_b.a;
         if (emmisive <= (254.5 / 255.0) && emmisive > 0.05) {
@@ -112,10 +118,21 @@ void main() {
     } else {
         if (biomeCategory != 16) {
             color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 3.14;
+            color.rgb += sun_I * smoothstep(0.9999, 0.99991, dot(normalize(view_pos), shadowLightPosition * 0.01));
+
+            // Stars
+            /*
+            vec3 noiseCoord = dir * 50.0;
+            float noise = noise(noiseCoord);
+            vec3 stars = vec3(noise);
+
+            color.rgb += stars;
+            */
         }
 
         vec3 dir = normalize(world_pos);
-        color.rgb += texture(gaux4, project_skybox2uv(dir)).rgb;
+        vec2 polarCoord = project_skybox2uv(dir);
+        color.rgb += texture(gaux4, polarCoord).rgb;
     }
 
 /* DRAWBUFFERS:0 */
