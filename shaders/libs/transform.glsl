@@ -84,6 +84,10 @@ vec3 view2world(in vec3 view_pos) {
     return (gbufferModelViewInverse * vec4(view_pos.xyz, 1.0)).xyz;
 }
 
+vec3 world2view(in vec3 wpos) {
+    return (gbufferModelView * vec4(wpos, 1.0)).xyz;
+}
+
 vec3 world2shadowView(in vec3 world_pos) {
     return (shadowModelView * vec4(world_pos, 1.0)).xyz;
 }

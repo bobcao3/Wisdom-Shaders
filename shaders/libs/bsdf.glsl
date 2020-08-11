@@ -102,7 +102,7 @@ vec3 pbr_brdf(vec3 v, vec3 l, vec3 n, vec3 albedo, float roughness, float metali
 	vec3 F = light_PBR_fresnelSchlickRoughness(dot(H, v), F0, roughness);
 
 	vec3 nominator = NDF * G * F;
-	float denominator = abs(4 * NdotV * NdotL) + 0.01;
+	float denominator = abs(4 * NdotV * NdotL) + 0.001;
 	vec3 specular = nominator / denominator;
 
 	kD = max(vec3(0.0), vec3(1.0) - F) * (1.0 - metalic);

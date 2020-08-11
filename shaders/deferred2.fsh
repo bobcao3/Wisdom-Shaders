@@ -120,13 +120,14 @@ void main() {
                 lod = min(3, lod);
                 vec3 radiance = texelFetch(colortex0, reflected >> lod, lod).rgb;
                 vec3 prevRadiance = texelFetch(colortex3, reflected, 0).rgb;
+                vec3 prevComposite = texelFetch(colortex2, reflected, 0).rgb;
                 prevRadiance *= unpackUnorm4x8(texelFetch(colortex4, reflected, 0).g).rgb;
 
                 radiance *= 1.0 / object_space_sample.z;
                 
                 // Ld += distance(vec2(reflected), vec2(iuv));
                 Ld += (prevRadiance + radiance) * kD * oren;
-                Ls += radiance * brdf * oren;
+                Ls += prevComposite * brdf * oren;
             } else {
                 vec3 world_dir = mat3(gbufferModelViewInverse) * ray_trace_dir;
                 float sun_disc_occulusion = 1.0 - smoothstep(0.9, 0.999, abs(dot(ray_trace_dir, sunPosition * 0.01)));

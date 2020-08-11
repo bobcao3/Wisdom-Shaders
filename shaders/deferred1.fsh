@@ -71,13 +71,13 @@ void main() {
             vec3 b = normalize(cross(sun_vec, normal));
             vec3 t = cross(normal, b);
 
-            if (depth > 0.7) {
-                int lod = 0;
-                float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 4.0, 1.0, 0.04, 0, lod) != ivec2(-1));
-                rt_contact_shadow *= smoothstep(0.20, 0.35, abs(dot(sun_vec, normal)));
+            // if (depth > 0.7) {
+            //     int lod = 0;
+            //     float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 4.0, 1.0, 0.04, 0, lod) != ivec2(-1));
+            //     rt_contact_shadow *= smoothstep(0.20, 0.35, abs(dot(sun_vec, normal)));
 
-                shadow = min(shadow, 1.0 - rt_contact_shadow);
-            }
+            //     shadow = min(shadow, 1.0 - rt_contact_shadow);
+            // }
             
             vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));
             float subsurface_depth = 1.0 - smoothstep(0.0, subsurface + pow(max(0.0, dot(normalize(view_pos), sun_vec)), 8.0), sposLinear(spos_diff) * 32.0);
