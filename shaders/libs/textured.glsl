@@ -110,10 +110,6 @@ void fragment() {
         specular_map.a = 0.95;
     }
 
-    // Wet terrain
-    float wetPBRMorph = wetness * smoothstep(0.9, 1.0, lmcoord_dithered.y);
-    //specular_map.rg = mix(specular_map.rg, vec2(1.0, 1.0), wetness);
-
     #ifdef UNLIT
     lmcoord_dithered = vec2(0.7);
     specular_map.a = 0.95;

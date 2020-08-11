@@ -46,7 +46,7 @@ vec4 bicubicSample(sampler2D tex, vec2 coord) {
     return mix(mix(sample3, sample2, sx), mix(sample1, sample0, sx), sy);
 }
 
-float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth) {
+float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth, float bias) {
     const vec2 resolution = vec2(shadowMapResolution);
     const vec2 invresolution = 1.0 / resolution;
 
@@ -55,7 +55,7 @@ float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth) {
     vec2 f = fract(spos.xy * resolution);
 
     vec4 dsamples = textureGather(tex, spos.xy + invresolution * 0.5);
-    vec4 samples = step(spos.z, dsamples + 0.00015);
+    vec4 samples = step(spos.z, dsamples + bias);
 
     depth = dot(dsamples, vec4(0.25));
     
@@ -101,7 +101,7 @@ float shadowFiltered(in sampler2D tex, in vec3 spos, out float depth, in float r
         vec2 grid_sample = fract(WeylNth(i + (frameCounter & 0x7) * 8) + bayer8(iuv));
         vec2 direction = vec2(cos(grid_sample.x * 3.1415926 * 2.0), sin(grid_sample.x * 3.1415926 * 2.0)) * grid_sample.y;
 
-        shadow += shadowTexSmooth(tex, shadowProjCascaded(spos + vec3(direction * radius, 0.0), s, ds), d);
+        shadow += shadowTexSmooth(tex, shadowProjCascaded(spos + vec3(direction * radius, 0.0), s, ds), d, 0.0002);
         depth += (d * 2.0 - 1.0) * ds;
     }
 

@@ -2,4 +2,4 @@
 #pragma optimize(on)
 
 #define VERTEX
-#include "libs/textured.glsl"
+#include "libs/particles_lit.glsl"

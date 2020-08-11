@@ -43,7 +43,7 @@ float getwave(vec3 p, in float lod, int iterations) {
         }
 
 		h += d * amp;
-		fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= 0.5;
+		fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; //wave_speed *= 0.5;
 		choppy = mix(choppy,1.0,0.2);
 
         total_height += amp;
@@ -75,7 +75,7 @@ float getpeaks(vec3 p, in float lod, int min_iter, int iterations) {
     		h += smoothstep(0.95, 1.0, d) * amp;
         }
 	
-    	fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= 0.5;
+    	fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; //wave_speed *= 0.5;
 		choppy = mix(choppy,1.0,0.2);
 
         total_height += amp;

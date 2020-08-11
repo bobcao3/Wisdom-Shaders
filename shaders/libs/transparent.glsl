@@ -6,7 +6,7 @@
 INOUT vec4 color;
 INOUT vec3 normal;
 INOUT vec3 tangent;
-INOUT vec4 viewPos;
+INOUT vec3 viewPos;
 INOUT vec2 uv;
 INOUT vec2 lmcoord;
 INOUT flat float layer;
@@ -34,10 +34,10 @@ void main() {
     tangent = normalize(gl_NormalMatrix * (at_tangent.xyz / at_tangent.w));
     lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
-    viewPos = model_view_mat * input_pos;
-    gl_Position = proj_mat * viewPos;
+    vec4 vpos = model_view_mat * input_pos;
+    gl_Position = proj_mat * vpos;
 
-    gl_FogFragCoord = length(viewPos.xyz);
+    viewPos = vpos.xyz;
 
     layer = mc_Entity.x;
     isWater = mc_Entity.y;
@@ -62,6 +62,8 @@ uniform sampler2D tex;
 #include "raytrace.glsl"
 #include "water.glsl"
 
+uniform int isEyeInWater;
+
 void fragment() {
 /* DRAWBUFFERS:0 */
     vec4 c = vec4(0.0);
@@ -69,6 +71,12 @@ void fragment() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
 
     float skyLight = max(0.0, exp2(-(0.96875 - lmcoord.y) * 4.0) - 0.25);
+
+    vec3 V;
+    vec3 surfaceNormal = normal;
+    vec3 surfaceVPos = viewPos;
+
+    vec3 albedo = vec3(1.0);
 
     if (isWater == 0)
     {
@@ -84,20 +92,45 @@ void fragment() {
 
         vec3 wwpos = wpos + cameraPosition;
         WaterParallax(wwpos, waterLod * 0.8, normalize(viewPos.xyz * mat3(tangent, bitangent, normal)));
-        vec3 waterVPos = world2view(wwpos - cameraPosition);
+        surfaceVPos = world2view(wwpos - cameraPosition);
 
-        if (land_vpos.z > waterVPos.z) discard;
+        if (land_vpos.z > surfaceVPos.z) discard;
 
         vec3 waterWNormal = get_water_normal(wwpos, waterLod, mat3(gbufferModelViewInverse) * normal, mat3(gbufferModelViewInverse) * tangent, mat3(gbufferModelViewInverse) * bitangent);
-        vec3 waterNormal = mat3(gbufferModelView) * waterWNormal;
+        if (isEyeInWater == 1) waterWNormal = -waterWNormal;
+        surfaceNormal = mat3(gbufferModelView) * waterWNormal;
 
-        float waterDepth = abs(land_vpos.z - waterVPos.z);
+        vec3 refractDir = refract(V, surfaceNormal, 1.0 / 1.2);
+
+        float waterDepth = abs(land_vpos.z - surfaceVPos.z);
 
         float foam = getpeaks(wwpos, 1.0, 2, 6);
-        foam = max(foam, (1.0 - smoothstep(0.1, 0.7, waterDepth)) * (1.0 + getwave(wwpos * 10.0, 1.0, 2) / SEA_HEIGHT));
-        foam *= max(0.0, dot(waterNormal, shadowLightPosition * 0.01));
+        foam = max(foam, 0.5 * (1.0 - smoothstep(0.1, 0.7, waterDepth)) * (1.0 + getwave(wwpos * 10.0, 1.0, 2) / SEA_HEIGHT * 0.7));
+        foam *= max(0.0, dot(surfaceNormal, shadowLightPosition * 0.01));
 
-        c.rgb = texelFetch(gaux2, iuv, 0).rgb;
+        if (refractDir == vec3(0.0))
+        {
+            c.rgb = vec3(0.0);
+        }
+        else
+        {
+            vec3 refractedVpos = surfaceVPos + refractDir * clamp(waterDepth, 0.0, 1.0);
+            vec3 projPos = view2proj(refractedVpos);
+            vec2 projUV = projPos.st * 0.5 + 0.5;
+
+            vec3 new_land_vpos = proj2view(getProjPos(projUV, texture(depthtex1, projUV).r));
+            waterDepth = abs(land_vpos.z - surfaceVPos.z);
+
+            if (new_land_vpos.z < surfaceVPos.z)
+            {
+                c.rgb = texture(gaux2, projUV, 3).rgb;
+                land_vpos = new_land_vpos;
+            }
+            else
+            {
+                c.rgb = texelFetch(gaux2, iuv, 0).rgb;
+            }
+        }
 
         float absorption = min(1.0, waterDepth * 0.03125);
         absorption = 2.0 / (absorption + 1.0) - 1.0;
@@ -108,44 +141,47 @@ void fragment() {
         vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (shadowLightPosition * 0.01);
         vec3 sun_I = texture(gaux4, project_skybox2uv(world_sun_dir)).rgb;
 
-        vec3 V = -normalize(waterVPos.xyz);
+        V = -normalize(surfaceVPos.xyz);
+
+        float s, ds;
+        vec3 spos_cascaded = shadowProjCascaded(world2shadowProj(wpos), s, ds);
+        float shadows = shadowTexSmooth(shadowtex1, spos_cascaded, ds, 0.0);
 
         vec3 kD;
-        c.rgb += sun_I * pbr_brdf(V, shadowLightPosition * 0.01, waterNormal, vec3(1.0), 0.2, 1.0, kD);
+        c.rgb += sun_I * shadows * pbr_brdf(V, shadowLightPosition * 0.01, surfaceNormal, vec3(1.0), 0.2, 1.0, kD);
 
-        vec3 mirrorDir = reflect(-V, waterNormal);
-
-        vec3 dir = mat3(gbufferModelViewInverse) * mirrorDir;
-        vec3 sky = texture(gaux4, project_skybox2uv(dir)).rgb * skyLight;
-
-        float stride = max(2.0, viewHeight / 480.0);
-        int lod = 0;
-        ivec2 reflected = raytrace(waterVPos.xyz, vec2(iuv), mirrorDir, false, stride, 1.3, -waterVPos.z * 0.3, 0, lod);
-
-        if (reflected != ivec2(-1))
-        {
-            sky = texelFetch(gaux2, reflected, 0).rgb;
-        }
-
-        c.rgb += fresnelSchlick(dot(mirrorDir, waterNormal), vec3(0.02)) * sky;
-
-        c.rgb += sun_I * vec3(foam) * 0.2;
+        c.rgb += sun_I * (0.2 + shadows * 0.8) * lmcoord.y * vec3(foam) * 0.2;
     }
     else
     {
-        c = color * texture(tex, uv);
-        c.rgb = fromGamma(c.rgb);
+        albedo = fromGamma(color.rgb * texture(tex, uv).rgb);
 
-        vec3 nvpos = normalize(viewPos.xyz);
-        float fresnel = pow(1.0 - max(dot(normal, -nvpos), 0.0), 5.0);
-        
-        vec3 reflect_dir = reflect(nvpos, normal);
-        vec3 dir = mat3(gbufferModelViewInverse) * reflect_dir;
-        vec3 sky = texture(gaux4, project_skybox2uv(dir)).rgb;
-        c.rgb *= sky * lmcoord.y;
+        V = -normalize(viewPos.xyz);
+        float fresnel = pow(1.0 - max(dot(normal, V), 0.0), 5.0);
 
-        c.a = clamp(fresnel * 0.4 + 0.6, 0.0, 1.0);
+        c.a = clamp(fresnel * 0.5 + 0.5, 0.0, 1.0);
     }
+
+    vec3 mirrorDir = reflect(-V, surfaceNormal);
+
+    vec3 dir = mat3(gbufferModelViewInverse) * mirrorDir;
+    vec3 sky = texture(gaux4, project_skybox2uv(dir)).rgb * skyLight;
+
+    float stride = max(2.0, viewHeight / 480.0);
+    int lod = 0;
+    ivec2 reflected = raytrace(surfaceVPos.xyz, vec2(iuv), mirrorDir, false, stride, 1.3, -surfaceVPos.z * 0.3, 0, lod);
+
+    if (reflected != ivec2(-1))
+    {
+        sky = texelFetch(gaux2, reflected, 0).rgb * lmcoord.y;
+    }
+
+    if (isWater == 0)
+    {
+        sky *= fresnelSchlick(dot(mirrorDir, surfaceNormal), vec3(0.02));
+    }
+
+    c.rgb += sky * albedo;
 
     gl_FragData[0] = c;
 }

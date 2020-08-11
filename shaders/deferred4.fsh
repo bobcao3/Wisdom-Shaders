@@ -18,6 +18,8 @@ float gaussian_weights[] = {
     0.071303, 0.131514, 0.189879, 0.214607, 0.189879, 0.131514, 0.071303
 };
 
+uniform float wetness;
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
     vec2 uv = vec2(iuv) * invWidthHeight;
@@ -37,8 +39,11 @@ void main() {
 
     vec4 decoded_b = unpackUnorm4x8(gbuffers.b);
     vec2 lmcoord = decoded_b.st;
+    vec4 specular = unpackUnorm4x8(gbuffers.a);
 
     if (proj_pos.z < 0.99999) {
+        vec3 view_pos = proj2view(proj_pos);
+        vec3 world_pos = view2world(view_pos);
 
         const float bilateral_weight = 16.0;
         float total_weights = 0.214607;
@@ -56,6 +61,16 @@ void main() {
         }
 
         Ld /= total_weights;
+
+        float wetnessMorph = 0.5 * noise(world_pos.xz + cameraPosition.xz);
+        wetnessMorph += 1.5 * noise(world_pos.xz * 0.5 + cameraPosition.xz * 0.5);
+        wetnessMorph += 2.0 * noise(world_pos.xz * 0.2 + cameraPosition.xz * 0.2);
+        wetnessMorph = clamp(wetnessMorph + 1.0, 0.3, 1.0) * wetness * smoothstep(0.9, 0.95, lmcoord.y);
+
+        if (specular.b < 0.25)
+        {
+            color.rgb *= 1.0 - wetnessMorph * specular.b * 4.0;
+        }
         
         composite += color.rgb * Ld.rgb + Ls.rgb;
         // composite = Ld.rgb;

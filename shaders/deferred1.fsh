@@ -58,7 +58,7 @@ void main() {
         if (biomeCategory != 16) {
             //int cascade = int(clamp(floor(log2(max(abs(world_pos.x), abs(world_pos.z)) / 8.0)), 0.0, 4.0));
             float scale;
-            vec3 shadow_proj_pos = world2shadowProj(world_pos + world_normal * 0.05);
+            vec3 shadow_proj_pos = world2shadowProj(world_pos + world_normal * 0.007 * abs(view_pos.z));
 
             float shadow_sampled_depth;
 #ifdef PCSS
@@ -123,7 +123,9 @@ void main() {
             color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 3.14;
             color.rgb += sun_I * 6.283 * smoothstep(0.9999, 0.99991, dot(normalize(view_pos), sunPosition * 0.01));
 
-            color.rgb += starField(dir);
+            color.rgb += starField(dir * 2.0) * vec3(1.0, 0.6, 0.4);
+            color.rgb += starField(dir) * vec3(0.7, 0.8, 1.3);
+            color.rgb += starField(dir * 0.5);
 
             color.rgb = mix(color.rgb, moon_I * 8.0, smoothstep(0.9996, 0.99961, dot(normalize(view_pos), moonPosition * 0.01)));
         }

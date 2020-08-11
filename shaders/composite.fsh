@@ -21,11 +21,20 @@ uniform int biomeCategory;
 
 float densities(float h)
 {
-    float d = clamp(2.0 * exp2(-h / 128.0f), 0.0, 2.0);
+    if (biomeCategory != 16)
+    {
+        float d = clamp(2.0 * exp2(-h / 128.0f), 0.0, 2.0);
 
-    d += rainStrength * 8.0;
+        d += rainStrength * 8.0;
 
-    return d;
+        return d;
+    }
+    else
+    {
+        float d = 3.0 * clamp(exp2(-h / 32.0f), 0.0, 2.0);
+
+        return d;
+    }
 }
 
 void main() {
@@ -63,47 +72,44 @@ void main() {
     float distinction = clamp(length(view_pos) / distinction_distance, 0.0, 1.0);
     float actualDistinction = 0.0;
 
+    float dither = fract(hash(frameCounter & 0xFFFF) + bayer16(iuv));
+
+    vec3 spos_start = world2shadowProj(vec3(0.0));
+    vec3 spos_end = world2shadowProj(world_pos);
+
+    float accumulation = 0.0;
+
+    vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
+    vec3 fog;
+    
     if (biomeCategory != 16)
+        fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, 64.0 * distinction_distance * distinction);
+    else
+        fog = fromGamma(fogColor);
+
+    for (int i = 0; i < 3; i++)
     {
-        float dither = fract(hash(frameCounter & 0xFFFF) + bayer16(iuv));
+        float t = (float(i) + dither) * 0.3333;
+        vec3 spos = t * (spos_end - spos_start) + spos_start;
+        vec3 wpos = t * world_pos;
 
-        vec3 spos_start = world2shadowProj(vec3(0.0));
-        vec3 spos_end = world2shadowProj(world_pos);
+        float s, ds;
+        vec3 spos_cascaded = shadowProjCascaded(spos, s, ds);
 
-        float accumulation = 0.0;
-
-        vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
-        vec3 fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, 64.0 * distinction_distance * distinction);
-
-        for (int i = 0; i < 3; i++)
+        float shadow = 1.0;
+        
+        if (biomeCategory != 16 && spos_cascaded != vec3(-1))
         {
-            float t = (float(i) + dither) * 0.3333;
-            vec3 spos = t * (spos_end - spos_start) + spos_start;
-            vec3 wpos = t * world_pos;
-
-            float s, ds;
-            vec3 spos_cascaded = shadowProjCascaded(spos, s, ds);
-
-            float shadow = 1.0;
-            
-            if (spos_cascaded != vec3(-1))
-            {
-                shadow = shadowTexSmooth(shadowtex1, spos_cascaded, ds);
-            }
-
-            float density = distinction * densities(wpos.y + cameraPosition.y);
-            actualDistinction += density;
-            accumulation += density * shadow * exp2(-(1.0 - t) * distinction);
+            shadow = shadowTexSmooth(shadowtex1, spos_cascaded, ds, 0.0);
         }
 
-        color *= exp2(-actualDistinction);
-        color += accumulation * fog;
+        float density = distinction * densities(wpos.y + cameraPosition.y);
+        actualDistinction += density;
+        accumulation += density * shadow * exp2(-(1.0 - t) * distinction);
     }
-    else
-    {
-        color *= exp2(-distinction);
-        color += distinction * fromGamma(fogColor);
-    }
+
+    color *= exp2(-actualDistinction);
+    color += accumulation * fog;
 
 /* DRAWBUFFERS:0 */
     gl_FragData[0] = vec4(color, 1.0);
