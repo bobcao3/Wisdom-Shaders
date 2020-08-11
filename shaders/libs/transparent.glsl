@@ -144,7 +144,7 @@ void fragment() {
         vec3 sky = texture(gaux4, project_skybox2uv(dir)).rgb;
         c.rgb += fresnel * sky * lmcoord.y;
 
-        c.a = clamp(fresnel * 0.3 + 0.7, 0.0, 1.0);
+        c.a = clamp(fresnel * 0.8 + 0.2, 0.0, 1.0);
     }
 
     gl_FragData[0] = c;
