@@ -16,13 +16,13 @@ float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.3, max(rainStrength, 
 const float g = .76;
 const float g2 = g * g;
 
-const float R0 = 6370e3;
-const float Ra = 6425e3;
-const float Hr = 16e3;
-const float Hm = 3.6e3;
+const float R0 = 6360e3;
+const float Ra = 6420e3;
+const float Hr = 7.994e3;
+const float Hm = 1.2e3;
 
-const vec3 I0 = vec3(10.0) / vec3(1.0, 0.8832, 0.7817); // Adjust for D65
-const vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6);
+const vec3 I0 = vec3(10.0); // Adjust for D65
+const vec3 bR = vec3(3.8e-6, 13.5e-6, 33.1e-6);
 
 #ifdef LQ_ATMOS
 const int steps = 6;
@@ -35,7 +35,7 @@ const int stepss = 10;
 vec3 I = I0; // * (1.0 - cloud_coverage * 0.7);
 
 const vec3 C = vec3(0., -R0, 0.);
-const vec3 bM = vec3(31e-6);
+const vec3 bM = vec3(21e-6);
 
 void densities(in vec3 pos, out vec2 des) {
 	// des.x = Rayleigh
@@ -44,7 +44,7 @@ void densities(in vec3 pos, out vec2 des) {
 	des.x = exp(-h/Hr);
 
 	// Add Ozone layer densities
-	des.x += exp(-abs(h - 35e3) /  15e3) * 0.1;
+	des.x += exp(-abs(h - 25e3) /  15e3) * 0.3;
 
 	des.y = exp(-h/Hm) * (1.0 + cloud_coverage);
 }
@@ -142,7 +142,7 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 	}
 
 	vec3 color = I * (max(vec3(0.0), R) * bR * phaseR + max(vec3(0.0), M) * bM * phaseM);
-	color += (0.002 * I) * (max(vec3(0.0), R_moon) * bR * phaseR_moon + max(vec3(0.0), M_moon) * bM * phaseM_moon);
+	color += (0.008 * I) * (max(vec3(0.0), R_moon) * bR * phaseR_moon + max(vec3(0.0), M_moon) * bM * phaseM_moon);
 	return max(vec3(0.0), color);
 }
 

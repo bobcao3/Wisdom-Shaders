@@ -49,7 +49,7 @@ void main() {
     vec3 V = normalize(-view_pos);
     vec3 world_pos = view2world(view_pos);
 
-    if (proj_pos.z < 0.9999) {
+    if (proj_pos.z < 0.99999) {
         
         vec3 sun_vec = shadowLightPosition * 0.01;
         float shadow;
@@ -121,7 +121,7 @@ void main() {
 
         if (biomeCategory != 16) {
             color.rgb = fromGamma(texelFetch(colortex0, iuv, 0).rgb) * 3.14;
-            color.rgb += sun_I * smoothstep(0.9999, 0.99991, dot(normalize(view_pos), sunPosition * 0.01));
+            color.rgb += sun_I * 6.283 * smoothstep(0.9999, 0.99991, dot(normalize(view_pos), sunPosition * 0.01));
 
             color.rgb += starField(dir);
 

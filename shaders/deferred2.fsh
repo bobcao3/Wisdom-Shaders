@@ -71,7 +71,7 @@ void main() {
     vec3 V = normalize(-view_pos);
     vec3 world_pos = view2world(view_pos);
     
-    if (proj_pos.z < 0.9999) {
+    if (proj_pos.z < 0.99999) {
         float ao = 0.0;
 
         float sunDotUp = dot(normalize(sunPosition), normalize(upPosition));
@@ -96,7 +96,7 @@ void main() {
 
         int sky_lod = clamp(int((1.0 - specular.r + specular.g) * 3.0), 0, 3);
 
-        vec3 mirror_dir = reflect(normalize(view_pos), normal);
+        vec3 mirror_dir = reflect(-V, normal);
         mat3 obj2view = make_coord_space(normal);
 
         for (int i = 0; i < num_sspt_rays; i++) {

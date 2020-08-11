@@ -38,7 +38,7 @@ void main() {
     vec4 decoded_b = unpackUnorm4x8(gbuffers.b);
     vec2 lmcoord = decoded_b.st;
 
-    if (proj_pos.z < 0.9999) {
+    if (proj_pos.z < 0.99999) {
 
         const float bilateral_weight = 16.0;
         float total_weights = 0.214607;

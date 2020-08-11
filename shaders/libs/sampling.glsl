@@ -124,7 +124,7 @@ float sampleDepthLOD(ivec2 iuv, int lod) {
     // }
 
     if (lod == 0) {
-        return texelFetch(depthtex0, iuv, 0).r;
+        return texelFetch(depthtex1, iuv, 0).r;
     } else if (lod == 1) {
         return texelFetch(gaux3, iuv >> 1, 0).r;
     } else if (lod == 2) {

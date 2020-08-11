@@ -27,7 +27,7 @@ void main() {
     {
         for (int i = 0; i < 4; i++) {
             vec2 loc = WeylNth(int((frameCounter & 0xFF) * 4 + i + iuv.x ^ iuv.y)) * 0.5 + 0.25;
-            L += luma(textureLod(colortex0, loc, 3).rgb);
+            L += clamp(luma(textureLod(colortex0, loc, 3).rgb), 0.0, 5.0);
         }
 
         float decay = 0.995;

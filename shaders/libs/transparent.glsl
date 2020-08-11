@@ -96,16 +96,14 @@ void fragment() {
         vec3 dir = mat3(gbufferModelViewInverse) * mirrorDir;
         vec3 sky = texture(gaux4, project_skybox2uv(dir)).rgb * skyLight;
 
-        /*
         float stride = max(2.0, viewHeight / 480.0);
-        int lod = 2;
-        ivec2 reflected = raytrace(viewPos.xyz, vec2(iuv), dir, false, stride, 1.44, 2.0, 0, lod);
+        int lod = 0;
+        ivec2 reflected = raytrace(viewPos.xyz, vec2(iuv), mirrorDir, false, stride, 1.3, -viewPos.z * 0.3, 0, lod);
 
         if (reflected != ivec2(-1))
         {
             sky = texelFetch(gaux2, reflected, 0).rgb;
         }
-        */
 
         c.rgb += fresnelSchlick(dot(mirrorDir, normal), vec3(0.02)) * sky;
     }

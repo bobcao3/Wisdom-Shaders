@@ -37,14 +37,27 @@ void main() {
     vec3 view_pos = proj2view(proj_pos);
     vec3 V = normalize(-view_pos);
     vec3 world_pos = view2world(view_pos);
+    vec3 nwpos = normalize(world_pos);
 
     vec3 color = texelFetch(colortex0, iuv, 0).rgb;
 
-    float distinction_distance = 2048.0;
+    float distinction_distance = 4096.0;
+
+    /*
+    if (proj_pos.z > 0.99999 && world_pos.y < -0.01)
+    {
+        float multiplier = 1.0 / world_pos.y * (cameraPosition.y - 61.0);
+        world_pos *= multiplier;
+        view_pos *= multiplier;
+
+        vec3 reflectDir = vec3(nwpos.x, -nwpos.y, nwpos.z);
+        color = fresnelSchlick(-nwpos.y, vec3(0.02)) * texture(gaux4, project_skybox2uv(reflectDir)).rgb;
+    }
+    */
 
     if (biomeCategory == 16.0)
     {
-        distinction_distance = 256.0;
+        distinction_distance = 512.0;
     }
 
     float distinction = clamp(length(view_pos) / distinction_distance, 0.0, 1.0);
@@ -60,7 +73,7 @@ void main() {
         float accumulation = 0.0;
 
         vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
-        vec3 fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, Ra * 0.1 * distinction);
+        vec3 fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, 64.0 * distinction_distance * distinction);
 
         for (int i = 0; i < 3; i++)
         {
