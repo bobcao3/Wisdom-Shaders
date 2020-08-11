@@ -22,7 +22,6 @@ uniform vec2 invWidthHeight;
 attribute vec4 mc_Entity;
 attribute vec4 at_tangent;
 
-
 #ifdef ENTITY
 uniform vec4 entityColor;
 #endif
@@ -102,7 +101,7 @@ void fragment() {
     normal_map = mat3(tangent, bitangent, normal) * normal_map;
     normal_map = normalize(mix(normal, normal_map, 0.0));
 
-    lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
+    //lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
 
     vec4 specular_map = textureLod(specular, uv, lod);
 

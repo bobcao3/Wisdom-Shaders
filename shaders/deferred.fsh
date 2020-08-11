@@ -54,7 +54,7 @@ void main() {
 
             skybox = scatter(vec3(0.0, cameraPosition.y, 0.0), dir, world_sun_dir, Ra);
         } else {
-            skybox = fromGamma(fogColor);
+            skybox = fromGamma(fogColor) * 3.14;
         }
     }
 

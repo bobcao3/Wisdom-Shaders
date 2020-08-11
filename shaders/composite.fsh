@@ -31,7 +31,7 @@ float densities(float h)
     }
     else
     {
-        float d = 3.0 * clamp(exp2(-h / 32.0f), 0.0, 2.0);
+        float d = 2.0 * clamp(exp2(-h / 32.0f), 0.0, 2.0);
 
         return d;
     }

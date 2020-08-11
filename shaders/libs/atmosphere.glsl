@@ -176,7 +176,7 @@ vec3 starField(vec3 dir)
 
 	float star = pow(mix(s0, s1, t.x), 1.5);
 
-	return star * smoothstep(0.0, 100.0, dir.y) * vec3(1.0 - star * 0.8, 1.0, 1.0 + star * 0.8);
+	return star * smoothstep(0.0, 500.0, dir.y) * vec3(1.0 - star * 0.8, 1.0, 1.0 + star * 0.8);
 }
 
 #endif
