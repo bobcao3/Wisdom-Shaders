@@ -154,12 +154,13 @@ void fragment() {
     }
     else
     {
-        albedo = fromGamma(color.rgb * texture(tex, uv).rgb);
+        vec4 texCol = texture(tex, uv).rgba;
+        albedo = fromGamma(color.rgb * texCol.rgb);
 
         V = -normalize(viewPos.xyz);
         float fresnel = pow(1.0 - max(dot(normal, V), 0.0), 5.0);
 
-        c.a = clamp(fresnel * 0.5 + 0.5, 0.0, 1.0);
+        c.a = clamp(fresnel * (1.0 - texCol.a) + texCol.a, 0.0, 1.0);
     }
 
     vec3 mirrorDir = reflect(-V, surfaceNormal);
