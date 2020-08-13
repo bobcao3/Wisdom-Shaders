@@ -45,7 +45,11 @@ uniform vec3 fogColor;
 
 void fragment() {
 /* DRAWBUFFERS:0 */
-    vec4 c = fromGamma(color * texture(tex, uv)) * lmcoord.x;
+    vec4 c = fromGamma(color * texture(tex, uv));
+
+#ifndef UNLIT
+    c.rgb *= lmcoord.x;
+#endif
 
     gl_FragData[0] = c;
 }
