@@ -1,7 +1,6 @@
 #version 420 compatibility
 #pragma optimize(on)
 
-const bool colortex1Clear = false;
 const bool colortex3Clear = false;
 
 #define VECTORS
@@ -41,9 +40,6 @@ void main() {
     vec4 specular = unpackUnorm4x8(gbuffers.a);
 
     if ((specular.a <= 0.05 || specular.a >= 0.995) && proj_pos.z < 0.99999) {
-        vec3 view_pos = proj2view(proj_pos);
-        vec3 world_pos = view2world(view_pos);
-
         const float bilateral_weight = 16.0;
         float total_weights = 0.214607;
 
@@ -60,16 +56,6 @@ void main() {
         }
 
         Ld /= total_weights;
-
-        float wetnessMorph = 0.5 * noise(world_pos.xz + cameraPosition.xz);
-        wetnessMorph += 1.5 * noise(world_pos.xz * 0.5 + cameraPosition.xz * 0.5);
-        wetnessMorph += 2.0 * noise(world_pos.xz * 0.2 + cameraPosition.xz * 0.2);
-        wetnessMorph = clamp(wetnessMorph + 1.0, 0.3, 1.0) * wetness * smoothstep(0.9, 0.95, lmcoord.y);
-
-        if (specular.b < 0.25)
-        {
-            color.rgb *= 1.0 - wetnessMorph * specular.b * 4.0;
-        }
 
         if (specular.g > 229.5 / 255.0)
         {

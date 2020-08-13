@@ -23,10 +23,6 @@ void main() {
         bloom += texelFetchOffset(colortex0, iuv * 2, 0, ivec2( 2, -2)).rgb * 0.0625;
         bloom += texelFetch(colortex0, iuv * 2, 0).rgb * 0.25;
     }
-    else
-    {
-        discard;
-    }
 
 /* DRAWBUFFERS:1 */
     gl_FragData[0] = vec4(bloom, 1.0);

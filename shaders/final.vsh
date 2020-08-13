@@ -16,7 +16,7 @@ void main() {
         L += texture(colortex2, loc).a;
     }
 
-    exposure = clamp(6.0 / L, 0.1, 15.0);
+    exposure = clamp(6.0 / L, 0.1, 10.0);
 
     gl_Position = ftransform();
 }

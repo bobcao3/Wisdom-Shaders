@@ -39,7 +39,7 @@ void main() {
     }
     else
     {
-        discard;
+        bloom = texelFetch(colortex1, iuv, 0).rgb;
     }
 
 /* DRAWBUFFERS:1 */
