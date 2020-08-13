@@ -104,7 +104,7 @@ void fragment() {
 
         float waterDepth = abs(land_vpos.z - surfaceVPos.z);
 
-        float foam = getpeaks(wwpos, 1.0, 2, 6);
+        float foam = getpeaks(wwpos, 1.0, 2, 6) * (getpeaks(wwpos, 1.0, 0, 2) * 0.7 + 0.3);
         foam = max(foam, 0.5 * (1.0 - smoothstep(0.1, 0.7, waterDepth)) * (1.0 + getwave(wwpos * 10.0, 1.0, 2) / SEA_HEIGHT * 0.7));
         foam *= max(0.0, dot(surfaceNormal, shadowLightPosition * 0.01));
 
