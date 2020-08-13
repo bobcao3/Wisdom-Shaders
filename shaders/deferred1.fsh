@@ -131,7 +131,7 @@ void main() {
 
             if (biomeCategory == 16)
             {
-                skyLight = 0.3;
+                skyLight = 0.5;
             }
 
             const int num_sspt_rays = 4;
@@ -153,7 +153,7 @@ void main() {
                 float pdf = 1.0;
                 vec3 ray_trace_dir = ImportanceSampleGGX(grid_sample, normal, -V, specular.r, pdf);
 
-                if (dot(ray_trace_dir, normal) < 0.1) continue;
+                if (dot(ray_trace_dir, normal) < 0.05) continue;
 
                 int lod = 4;
                 float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);

@@ -22,11 +22,11 @@ void main() {
 
     vec3 bloom = vec3(0.0);
 
-    if (iuv.x <= viewWidth * 0.75 && iuv.x >= viewWidth * 0.625 && iuv.y <= viewHeight * 0.5 && iuv.y >= viewHeight * 0.375)
+    if (iuv.x <= viewWidth * 0.875 && iuv.x >= viewWidth * 0.8125 && iuv.y <= viewHeight * 0.4375 && iuv.y >= viewHeight * 0.375)
     {
-        ivec2 uv = iuv - ivec2(viewWidth * 0.625, viewHeight * 0.375);
+        ivec2 uv = iuv - ivec2(viewWidth * 0.8125, viewHeight * 0.375);
         uv *= 2;
-        uv += ivec2(viewWidth * 0.625, 0);
+        uv += ivec2(viewWidth * 0.625, viewHeight * 0.375);
 
         bloom += texelFetchOffset(colortex1, uv, 0, ivec2(-2,  0)).rgb * 0.125;
         bloom += texelFetchOffset(colortex1, uv, 0, ivec2( 2,  0)).rgb * 0.125;

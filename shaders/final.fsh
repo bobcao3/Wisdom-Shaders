@@ -25,6 +25,8 @@ uniform vec2 invWidthHeight;
 
 #include "libs/bicubic.glsl"
 
+in flat float exposure;
+
 vec3 getBloom(ivec2 iuv)
 {
     vec2 uv = vec2(iuv) * invWidthHeight;
@@ -52,15 +54,6 @@ void main() {
     // color.rgb = texelFetch(colortex1, iuv, 0).rgb;
 
     color.rgb += getBloom(iuv);
-
-    float L = 0.0;
-
-    for (int i = 0; i < 4; i++) {
-        vec2 loc = WeylNth(i) * 32 * invWidthHeight;
-        L += texture(colortex2, loc).a;
-    }
-
-    float exposure = clamp(3.0 / L, 0.1, 10.0);
 
     color = toGamma(color * exposure);
     color.rgb = ACESFitted(color.rgb) * 1.4;
