@@ -75,8 +75,16 @@ void fragment() {
     vec3 V;
     vec3 surfaceNormal = normal;
     vec3 surfaceVPos = viewPos;
+    vec3 wpos = view2world(viewPos.xyz);
 
     vec3 albedo = vec3(1.0);
+
+    vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (shadowLightPosition * 0.01);
+    vec3 sun_I = texture(gaux4, project_skybox2uv(world_sun_dir)).rgb;
+
+    float s, ds;
+    vec3 spos_cascaded = shadowProjCascaded(world2shadowProj(wpos), s, ds);
+    float shadows = shadowTexSmooth(shadowtex1, spos_cascaded, ds, 0.0);
 
     if (isWater == 0)
     {
@@ -85,7 +93,6 @@ void fragment() {
         float land_depth = texelFetch(depthtex1, iuv, 0).r;
         vec3 land_vpos = proj2view(getProjPos(iuv, land_depth));
 
-        vec3 wpos = view2world(viewPos.xyz);
         vec3 bitangent = cross(tangent, normal);
 
         float waterLod = clamp(1.0 - (log2(abs(viewPos.z)) - 3.0) * 0.16666, 0.2, 1.0);
@@ -100,12 +107,12 @@ void fragment() {
         if (isEyeInWater == 1) waterWNormal = -waterWNormal;
         surfaceNormal = mat3(gbufferModelView) * waterWNormal;
 
-        vec3 refractDir = refract(V, surfaceNormal, 1.0 / 1.2);
+        vec3 refractDir = refract(V, surfaceNormal, isEyeInWater == 1 ? 1.2 : 1.0 / 1.2);
 
         float waterDepth = abs(land_vpos.z - surfaceVPos.z);
 
         float foam = getpeaks(wwpos, 1.0, 2, 6) * (getpeaks(wwpos, 1.0, 0, 2) * 0.7 + 0.3);
-        foam = max(foam, 0.5 * (1.0 - smoothstep(0.1, 0.7, waterDepth)) * (1.0 + getwave(wwpos * 10.0, 1.0, 2) / SEA_HEIGHT * 0.7));
+        foam = max(foam, 0.3 * (1.0 - smoothstep(0.1, 0.7, waterDepth)) * (1.0 + getwave(wwpos * 10.0, 1.0, 2) / SEA_HEIGHT * 0.8));
         foam *= max(0.0, dot(surfaceNormal, shadowLightPosition * 0.01));
 
         if (refractDir == vec3(0.0))
@@ -132,23 +139,16 @@ void fragment() {
             }
         }
 
-        float absorption = min(1.0, waterDepth * 0.03125);
-        absorption = 2.0 / (absorption + 1.0) - 1.0;
-        absorption *= absorption;
-        vec3 transmitance = pow(vec3(absorption), vec3(3.0, 0.8, 1.0));
-        c.rgb *= transmitance;
-
-        vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (shadowLightPosition * 0.01);
-        vec3 sun_I = texture(gaux4, project_skybox2uv(world_sun_dir)).rgb;
+        if (isEyeInWater != 1)
+        {
+            float absorption = min(1.0, waterDepth * 0.03125);
+            absorption = 2.0 / (absorption + 1.0) - 1.0;
+            absorption *= absorption;
+            vec3 transmitance = pow(vec3(absorption), vec3(3.0, 0.8, 1.0));
+            c.rgb *= transmitance;
+        }
 
         V = -normalize(surfaceVPos.xyz);
-
-        float s, ds;
-        vec3 spos_cascaded = shadowProjCascaded(world2shadowProj(wpos), s, ds);
-        float shadows = shadowTexSmooth(shadowtex1, spos_cascaded, ds, 0.0);
-
-        vec3 kD;
-        c.rgb += specular_brdf_ggx_oren_schlick(sun_I * shadows, 0.05, vec3(0.02), shadowLightPosition * 0.01, surfaceNormal, V);
 
         c.rgb += sun_I * (0.2 + shadows * 0.8) * lmcoord.y * vec3(foam) * 0.2;
     }
@@ -166,7 +166,7 @@ void fragment() {
     vec3 mirrorDir = reflect(-V, surfaceNormal);
 
     vec3 dir = mat3(gbufferModelViewInverse) * mirrorDir;
-    vec3 sky = texture(gaux4, project_skybox2uv(dir)).rgb * skyLight;
+    vec3 sky = isEyeInWater == 1 ? vec3(0.0) : texture(gaux4, project_skybox2uv(dir)).rgb * skyLight;
 
     float stride = max(2.0, viewHeight / 480.0);
     int lod = 0;
@@ -181,6 +181,8 @@ void fragment() {
     {
         sky *= fresnelSchlick(dot(mirrorDir, surfaceNormal), vec3(0.02));
     }
+
+    c.rgb += specular_brdf_ggx_oren_schlick(sun_I * shadows, 0.1, vec3(0.02), shadowLightPosition * 0.01, surfaceNormal, V);
 
     c.rgb += sky * albedo;
 

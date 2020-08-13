@@ -80,13 +80,6 @@ void main() {
         vec3 mirror_dir = reflect(-V, normal);
         mat3 obj2view = make_coord_space(normal);
 
-        float wetnessMorph = 0.5 * noise(world_pos.xz + cameraPosition.xz);
-        wetnessMorph += 1.5 * noise(world_pos.xz * 0.5 + cameraPosition.xz * 0.5);
-        wetnessMorph += 2.0 * noise(world_pos.xz * 0.2 + cameraPosition.xz * 0.2);
-        wetnessMorph = clamp(wetnessMorph + 1.0, 0.3, 1.0) * wetness * smoothstep(0.9, 0.95, lmcoord.y);
-
-        specular.r = mix(specular.r, 0.3, wetnessMorph);
-
         for (int i = 0; i < num_sspt_rays; i++) {
             float noiseSeed = noise(vec3(noise_sample, i * 0.1, (frameCounter & 0xFFF) * 0.01));
             vec2 grid_sample = WeylNth(int(noiseSeed * 65536));

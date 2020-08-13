@@ -9,8 +9,12 @@ INOUT flat float subsurface;
 INOUT flat float blockId;
 INOUT flat vec3 tangent;
 INOUT flat vec3 bitangent;
+INOUT vec3 worldPos;
+INOUT vec3 viewPos;
 INOUT vec2 uv;
 INOUT vec2 lmcoord;
+
+uniform vec3 cameraPosition;
 
 uniform int frameCounter;
 
@@ -25,6 +29,8 @@ attribute vec4 at_tangent;
 #ifdef ENTITY
 uniform vec4 entityColor;
 #endif
+
+uniform mat4 gbufferModelViewInverse;
 
 void main() {
     vec4 input_pos = gl_Vertex;
@@ -56,7 +62,11 @@ void main() {
         subsurface = 0.5;
     }
 
-    gl_Position = mvp_mat * input_pos;
+    vec4 vpos = model_view_mat * input_pos;
+    viewPos = vpos.xyz;
+    worldPos = (gbufferModelViewInverse * vpos).xyz;
+
+    gl_Position = proj_mat * vpos;
 
 #ifndef NO_TAA
     gl_Position.st += JitterSampleOffset(frameCounter) * invWidthHeight * gl_Position.w;
@@ -87,7 +97,7 @@ float getDirectional(float lm, vec3 normal2) {
 
 void fragment() {
 /* DRAWBUFFERS:4 */
-    float threshold = bayer8(vec2(gl_FragCoord.st) + frameCounter) * 0.95 + 0.05;
+    float threshold = fract(bayer16(gl_FragCoord.st) + hash(frameCounter & 0xFFFF)) * 0.95 + 0.05;
 
     vec2 ddx = dFdx(uv);
     vec2 ddy = dFdy(uv);
@@ -118,6 +128,22 @@ void fragment() {
     #endif
 
     vec4 c = color * fromGamma(textureLod(tex, uv, lod));
+
+    #ifndef ENTITY
+    float wetnessMorph = 0.5 * noise(worldPos.xz + cameraPosition.xz);
+    wetnessMorph += 1.5 * noise(worldPos.xz * 0.5 + cameraPosition.xz * 0.5);
+    wetnessMorph += 2.0 * noise(worldPos.xz * 0.2 + cameraPosition.xz * 0.2);
+    wetnessMorph = clamp(wetnessMorph + 1.0, 0.0, 1.0) * wetness * smoothstep(0.9, 0.95, lmcoord.y);
+
+    if (threshold < wetnessMorph * pow(1.0 - abs(dot(normalize(viewPos), normal)), 3.0))
+    {
+        specular_map.rg = vec2(0.99, 1.0);
+        normal_map = normal;
+    }
+
+    if (specular_map.b < 0.25) c.rgb *= 1.0 - specular_map.b * 2.0;
+    #endif
+
     if (c.a < threshold) discard;
     fragData[0] = uvec4(normalEncode(normal_map), packUnorm4x8(c), packUnorm4x8(vec4(lmcoord_dithered, subsurface / 16.0, specular_map.a)), packUnorm4x8(specular_map));
 }

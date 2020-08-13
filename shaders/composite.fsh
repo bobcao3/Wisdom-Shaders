@@ -37,6 +37,8 @@ float densities(float h)
     }
 }
 
+uniform int isEyeInWater;
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
     vec2 uv = vec2(iuv) * invWidthHeight;
@@ -50,23 +52,32 @@ void main() {
 
     vec3 color = texelFetch(colortex0, iuv, 0).rgb;
 
-    float distinction_distance = 4096.0;
-
-    /*
-    if (proj_pos.z > 0.99999 && world_pos.y < -0.01)
+    if (isEyeInWater == 1)
     {
-        float multiplier = 1.0 / world_pos.y * (cameraPosition.y - 61.0);
-        world_pos *= multiplier;
-        view_pos *= multiplier;
+        // Underwater FX
+        vec2 lmcoord = unpackUnorm4x8(texelFetch(colortex4, iuv, 0).b).st;
 
-        vec3 reflectDir = vec3(nwpos.x, -nwpos.y, nwpos.z);
-        color = fresnelSchlick(-nwpos.y, vec3(0.02)) * texture(gaux4, project_skybox2uv(reflectDir)).rgb;
+        float waterDepth = (0.96 - lmcoord.y) * 16.0;
+
+        float absorption = min(1.0, waterDepth * 0.03125);
+        absorption = 2.0 / (absorption + 1.0) - 1.0;
+        absorption *= absorption;
+        vec3 transmittance = pow(vec3(absorption), vec3(3.0, 0.8, 1.0));
+        color.rgb *= transmittance;
     }
-    */
+
+    // Atmosphere
+
+    float distinction_distance = 4096.0;
 
     if (biomeCategory == 16.0)
     {
         distinction_distance = 512.0;
+    }
+
+    if (isEyeInWater == 1)
+    {
+        distinction_distance = 50.0;
     }
 
     float distinction = clamp(length(view_pos) / distinction_distance, 0.0, 1.0);

@@ -48,3 +48,9 @@ else if (match(metalic, 237.0 / 255.0))
     N = vec3(0.15943, 0.14512, 0.13547);
     K = vec3(3.9291, 3.1900, 2.3808);
 }
+else if (match(metalic, 1.0))
+{
+    // Water
+    N = vec3(1.2);
+    K = vec3(1.0);
+}
