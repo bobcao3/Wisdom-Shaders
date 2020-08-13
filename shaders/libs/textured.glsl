@@ -103,7 +103,7 @@ void fragment() {
     vec2 ddy = dFdy(uv);
 
     float dL = min(length(ddx), length(ddy.x));
-    int lod = clamp(int(round(log2(dL * textureSize(tex, 0).x))), 0, 3);
+    float lod = clamp(round(log2(dL * textureSize(tex, 0).x) - 1.0), 0, 3);
 
     vec2 lmcoord_dithered = lmcoord + bayer8(gl_FragCoord.st) * 0.004;
 

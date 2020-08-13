@@ -15,8 +15,8 @@ flat out vec3 moon_I;
 void main() {
     vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
     float fade = smoothstep(0.0, 0.05, abs(world_sun_dir.y));
-    sun_I = texture(gaux4, project_skybox2uv(world_sun_dir)).rgb * (1.0 - cloud_coverage * 0.97) * fade;
-    moon_I = texture(gaux4, project_skybox2uv(-world_sun_dir)).rgb * (1.0 - cloud_coverage * 0.97) * fade;
+    sun_I = texture(gaux4, project_skybox2uv(world_sun_dir)).rgb * (1.0 - cloud_coverage * 0.9) * fade;
+    moon_I = texture(gaux4, project_skybox2uv(-world_sun_dir)).rgb * (1.0 - cloud_coverage * 0.9) * fade;
 
     gl_Position = ftransform();
 }

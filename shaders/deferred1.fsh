@@ -12,6 +12,7 @@
 
 #define VECTORS
 #define CLIPPING_PLANE
+#define TRANSFORMATIONS_RESIDUAL
 #include "libs/uniforms.glsl"
 
 flat in vec3 sun_I;
@@ -23,6 +24,9 @@ flat in vec3 moon_I;
 #define PCSS
 
 uniform int biomeCategory;
+
+const bool colortex2MipmapEnabled = true;
+const bool colortex3Clear = false;
 
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
@@ -49,8 +53,10 @@ void main() {
     vec3 V = normalize(-view_pos);
     vec3 world_pos = view2world(view_pos);
 
+    vec3 composite_diffuse = vec3(0.0);
+
     if (proj_pos.z < 0.99999) {
-        
+        // Direct Lighting
         vec3 sun_vec = shadowLightPosition * 0.01;
         float shadow;
         vec3 L = vec3(0.0);
@@ -112,6 +118,93 @@ void main() {
         } else {
             color.rgb = L + diffuse_brdf_ggx_oren_schlick(color.rgb, block_L, specular.r, specular.g, getF0(color.rgb, specular.g), normal, V);
         }
+
+        // SSPT
+        if (specular.a <= 0.05 || specular.a >= 0.995)
+        {
+            float sunDotUp = dot(normalize(sunPosition), normalize(upPosition));
+            float ambientIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01);
+
+            float skyLight = pow2(lmcoord.y);
+            vec3 Ld = vec3(0.0);
+
+            if (biomeCategory == 16)
+            {
+                skyLight = 0.3;
+            }
+
+            const int num_sspt_rays = 4;
+            const float weight_per_ray = 1.0 / float(num_sspt_rays);
+            const float num_directions = 4096 * num_sspt_rays;
+
+            float stride = max(2.0, viewHeight / 480.0);
+            float noise_sample = fract(bayer64(iuv));
+
+            int sky_lod = clamp(int((1.0 - specular.r + specular.g) * 3.0), 0, 3);
+
+            vec3 mirror_dir = reflect(-V, normal);
+            mat3 obj2view = make_coord_space(normal);
+
+            for (int i = 0; i < num_sspt_rays; i++) {
+                float noiseSeed = noise(vec3(noise_sample, i * 0.1, (frameCounter & 0xFFF) * 0.01));
+                vec2 grid_sample = WeylNth(int(noiseSeed * 65536));
+
+                float pdf = 1.0;
+                vec3 ray_trace_dir = ImportanceSampleGGX(grid_sample, normal, -V, specular.r, pdf);
+
+                if (dot(ray_trace_dir, normal) < 0.1) continue;
+
+                int lod = 4;
+                float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
+                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false, stride, 1.44, 2.0, i, lod);
+                
+                vec3 diffuse = vec3(0.0);
+                // vec3 specular = vec3(0.0);
+                
+                if (reflected != ivec2(-1)) {
+                    lod = min(3, lod);
+                    vec3 radiance = texelFetch(colortex0, reflected >> lod, lod).rgb;
+                    vec3 prevComposite = texelFetch(colortex2, reflected >> lod, lod).rgb;
+
+                    diffuse = prevComposite; //(prevComposite + radiance) * 0.5;
+                } else {
+                    vec3 world_dir = mat3(gbufferModelViewInverse) * ray_trace_dir;
+                    float sun_disc_occulusion = 1.0 - smoothstep(0.9, 0.999, abs(dot(ray_trace_dir, sunPosition * 0.01)));
+                    vec3 skyRadiance = skyLight * texture(gaux4, project_skybox2uv(world_dir), sky_lod).rgb * sun_disc_occulusion;
+
+                    diffuse = skyRadiance;
+                }
+
+                Ld += diffuse * getF(specular.g, dot(V, normal));
+            }
+            
+            Ld *= weight_per_ray;
+
+            vec4 world_pos_prev = vec4(world_pos - previousCameraPosition + cameraPosition, 1.0);
+            vec4 proj_pos_prev = gbufferPreviousProjection * (gbufferPreviousModelView * world_pos_prev);
+            proj_pos_prev.xyz /= proj_pos_prev.w;
+
+            vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5) + 0.5 * invWidthHeight;
+            vec4 history_d = texture(colortex3, prev_uv);
+            
+            if (isnan(Ld.r) || isnan(Ld.g) || isnan(Ld.b)) Ld = vec3(0.0);
+            
+            if (prev_uv.x <= 0.0 || prev_uv.x >= 1.0 || prev_uv.y <= 0.0 || prev_uv.y >= 1.0)
+            {
+                composite_diffuse = Ld;
+            }
+            else
+            {
+                float mix_weight = 0.1;
+                float history_depth = proj_pos_prev.z * 0.5 + 0.5;
+                float depth_difference = abs(history_d.a - history_depth) / history_depth;
+                if (depth_difference > 0.001) {
+                    mix_weight = 1.0;
+                }
+
+                composite_diffuse = mix(history_d.rgb, Ld, mix_weight);
+            }
+        }
     } else {
         vec3 dir = normalize(world_pos);
         vec2 polarCoord = project_skybox2uv(dir);
@@ -128,8 +221,11 @@ void main() {
         }
 
         color.rgb += texture(gaux4, polarCoord).rgb + bayer64(iuv) * 0.0001;
+
+        composite_diffuse = color.rgb;
     }
 
-/* DRAWBUFFERS:0 */
+/* DRAWBUFFERS:03 */
     gl_FragData[0] = color;
+    gl_FragData[1] = vec4(composite_diffuse, depth);
 }
