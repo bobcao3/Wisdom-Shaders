@@ -43,7 +43,7 @@ void main() {
     vec3 world_normal = mat3(gbufferModelViewInverse) * normal;
 
     vec4 specular = unpackUnorm4x8(gbuffers.a);
-    specular.r = 1.0 - specular.r;
+    specular.r = (1.0 - specular.r * specular.r);
 
     vec3 view_pos = proj2view(proj_pos);
     vec3 V = normalize(-view_pos);
@@ -82,20 +82,17 @@ void main() {
             vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));
             float subsurface_depth = 1.0 - smoothstep(0.0, subsurface + pow(max(0.0, dot(normalize(view_pos), sun_vec)), 8.0), sposLinear(spos_diff) * 32.0);
 
-            float G = oren_nayer(V, sun_vec, normal, specular.r, dot(normal, sun_vec), dot(normal, V));
-
             if (subsurface > 0.0) {
-                shadow = mix(min(subsurface_depth, 1.0), shadow * G, min(1.0, subsurface));
+                shadow = mix(min(subsurface_depth, 1.0), shadow, min(1.0, subsurface));
             } else {
-                shadow = shadow * G;
+                shadow = shadow;
             }
 
             L = max(vec3(0.0), (sun_I + moon_I) * shadow);
+            L = brdf_ggx_oren_schlick(color.rgb, L, specular.r, specular.g, getF0(color.rgb, specular.g), sun_vec, normal, V);
 
             color.a = shadow;
         }
-
-        vec3 kD = pbr_get_kD(color.rgb, specular.g);
 
         const vec3 torch1900K = pow(vec3(255.0, 147.0, 41.0) / 255.0, vec3(2.2));
         const vec3 torch3500K = pow(vec3(255.0, 196.0, 137.0) / 255.0, vec3(2.2));
@@ -107,13 +104,13 @@ void main() {
         {
             blockLightColor = torch3500K;
         }
-        vec3 block_L = blockLightColor * blockLight * kD; // 10000 lux
+        vec3 block_L = blockLightColor * blockLight; // 10000 lux
 
         float emmisive = decoded_b.a;
         if (emmisive <= (254.5 / 255.0) && emmisive > 0.05) {
-            color.rgb *= emmisive * 3.0; // Max at 30000 lux
+            color.rgb *= emmisive; // Max at 10000 lux
         } else {
-            color.rgb = clamp(diffuse_specular_brdf(V, sun_vec, normal, color.rgb, specular.r, specular.g) * L + color.rgb * block_L, vec3(0.0), vec3(100.0));
+            color.rgb = L + diffuse_brdf_ggx_oren_schlick(color.rgb, block_L, specular.r, specular.g, getF0(color.rgb, specular.g), normal, V);
         }
     } else {
         vec3 dir = normalize(world_pos);

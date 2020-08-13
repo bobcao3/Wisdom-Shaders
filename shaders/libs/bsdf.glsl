@@ -2,7 +2,10 @@ vec3 diffuse_bsdf(in vec3 albedo) {
     return albedo;
 }
 
-float oren_nayer(in vec3 v, in vec3 l, in vec3 n, in float r, in float NdotL, in float NdotV) {
+float oren_nayer(in vec3 v, in vec3 l, in vec3 n, in float r) {
+	float NdotL = max(0.0001, dot(n, l));
+	float NdotV = max(0.0001, dot(n, v));
+
 	float t = max(NdotL,NdotV);
 	float g = max(.0, dot(v - n * NdotV, l - n * NdotL));
 	float c = g/t - g*t;
@@ -13,7 +16,7 @@ float oren_nayer(in vec3 v, in vec3 l, in vec3 n, in float r, in float NdotL, in
 	return NdotL * (b * c + a);
 }
 
-vec3 light_PBR_fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
@@ -33,79 +36,137 @@ float GeometrySmith(float NdotV, float NdotL, float k) {
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
 	float a      = roughness*roughness;
 	float a2     = a*a;
-	float NdotH  = max(0.0001, dot(N, H));
+	float NdotH  = abs(dot(N, H));
 
 	float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
-	denom = PI * denom * denom + 0.0001;
+	denom = PI * denom * denom;
 
 	return a2 / denom;
 }
 
-vec3 pbr_get_kD(vec3 albedo, float metalic) {
-	vec3 F0 = vec3(0.01);
-	F0 = mix(F0, albedo, metalic);
+mat3 make_coord_space(vec3 n) {
+    vec3 h = n;
+    if (abs(h.x) <= abs(h.y) && abs(h.x) <= abs(h.z))
+        h.x = 1.0;
+    else if (abs(h.y) <= abs(h.x) && abs(h.y) <= abs(h.z))
+        h.y = 1.0;
+    else
+        h.z = 1.0;
 
-	return max(vec3(0.0), vec3(1.0) - F0) * (1.0 - metalic);
+    vec3 y = normalize(cross(h, n));
+    vec3 x = normalize(cross(n, y));
+
+    return mat3(x, y, n);
 }
 
-bool match(float i, float c) {
-	return (i > c - 0.001) && (i < c + 0.001);
+float pow2(float c)
+{
+	return c * c;
 }
 
-vec3 diffuse_specular_brdf(vec3 v, vec3 l, vec3 n, vec3 albedo, float roughness, float metalic) {
-	float NdotV = max(0.0001, dot(n, v));
-	float NdotL = max(0.0001, dot(n, l));
+vec3 ImportanceSampleGGX(vec2 rand, vec3 N, vec3 wo, float roughness, out float pdf)
+{
+	rand = clamp(rand, vec2(0.0001), vec2(0.9999));
 
-	vec3 F0 = vec3(0.01);
-	F0 = mix(F0, albedo, metalic);
+	roughness = clamp(roughness, 0.00001, 0.999999);
 
-	if (match(metalic, 230.0 / 255.0)) {
-		F0 = vec3(3.0893, 2.9318, 2.7670);
-	} else if (match(metalic, 231.0 / 255.0)) {
-		F0 = vec3(0.18299, 0.42108, 1.3734);
-	} else if (match(metalic, 255.0 / 255.0)) {
-		F0 = vec3(0.02);
-	}
+	float tanTheta = roughness * sqrt(rand.x / (1.0 - rand.x));
+	float theta = clamp(atan(tanTheta), 0.0, 3.1415926 * 0.5 - 0.2);
+	float phi = 2.0 * 3.1415926 * rand.y;
 
-	vec3 H = normalize(l + v);
-	float NDF = DistributionGGX(n, H, roughness);
-	float G = GeometrySmith(NdotV, NdotL, roughness);
-	vec3 F = light_PBR_fresnelSchlickRoughness(max(0.0001, dot(H, v)), F0, roughness);
+	vec3 h = vec3(
+		sin(theta) * cos(phi),
+		sin(theta) * sin(phi),
+		cos(theta)
+	);
 
-	vec3 nominator = NDF * G * F;
-	float denominator = (4 * NdotV * NdotL) + 0.01;
-	vec3 specular = nominator / denominator;
+	h = make_coord_space(N) * h;
 
-	vec3 kD = max(vec3(0.0), vec3(1.0) - F) * (1.0 - metalic);
+	float sin_h = abs(sin(theta));
+	float cos_h = abs(cos(theta));
 
-	return kD * albedo + specular;
+	vec3 wi = reflect(wo, h);
+
+	pdf = (2.0 * roughness * roughness * cos_h * sin_h) / pow2((roughness * roughness - 1.0) * cos_h * cos_h + 1.0) / (4.0 * abs(dot(wo, h)));
+
+	return wi;
 }
 
-vec3 pbr_brdf(vec3 v, vec3 l, vec3 n, vec3 albedo, float roughness, float metalic, out vec3 kD) {
-	float NdotV = max(0.0001, dot(n, v));
-	float NdotL = max(0.0001, dot(n, l));
+vec3 brdf_ggx_oren_schlick(vec3 albedo, vec3 radiance, float roughness, float metallic, vec3 F0, vec3 L, vec3 N, vec3 V)
+{
+	vec3 H = normalize(L + V);
+	float NDF = DistributionGGX(N, H, roughness);
+	float G = oren_nayer(V, L, N, roughness);
+	vec3 F = fresnelSchlickRoughness(max(0.0, dot(H, V)), F0, roughness);
 
-	vec3 F0 = vec3(0.01);
-	F0 = mix(F0, albedo, metalic);
+	vec3 kS = F;
+	vec3 kD = vec3(1.0) - kS;
+	kD *= 1.0 - metallic;	  
+	
+	vec3 numerator    = NDF * G * F;
+	float denominator = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
+	vec3 specular     = numerator / denominator;  
+	
+	float NdotL = max(dot(N, L), 0.0);                
+	return max(vec3(0.0), (kD * albedo / 3.1415926 + specular) * radiance * NdotL); 
+}
 
-	if (match(metalic, 230.0 / 255.0)) {
-		F0 = vec3(3.0893, 2.9318, 2.7670);
-	} else if (match(metalic, 230.0 / 255.0)) {
-		F0 = vec3(0.18299, 0.42108, 1.3734);
-	} else if (match(metalic, 255.0 / 255.0)) {
-		F0 = vec3(0.02);
-	}
+vec3 diffuse_brdf_ggx_oren_schlick(vec3 albedo, vec3 radiance, float roughness, float metallic, vec3 F0, vec3 N, vec3 V)
+{
+	vec3 F = fresnelSchlickRoughness(max(0.0, dot(N, V)), F0, roughness);
 
-	vec3 H = normalize(l + v);
-	float NDF = DistributionGGX(n, H, roughness);
-	float G = GeometrySmith(NdotV, NdotL, roughness);
-	vec3 F = light_PBR_fresnelSchlickRoughness(dot(H, v), F0, roughness);
+	vec3 kS = F;
+	vec3 kD = vec3(1.0) - kS;
+	kD *= 1.0 - metallic;	  
+	
+	return kD * albedo / 3.1415926 * radiance;
+}
 
-	vec3 nominator = NDF * G * F;
-	float denominator = abs(4 * NdotV * NdotL) + 0.001;
-	vec3 specular = nominator / denominator;
+vec3 specular_brdf_ggx_oren_schlick(vec3 radiance, float roughness, vec3 F0, vec3 L, vec3 N, vec3 V)
+{
+	vec3 H = normalize(L + V);
+	float NDF = DistributionGGX(N, H, roughness);
+	float G = oren_nayer(V, L, N, roughness);
+	vec3 F = fresnelSchlickRoughness(max(0.0, dot(H, V)), F0, roughness);
+	
+	vec3 numerator    = NDF * G * F;
+	float denominator = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
+	vec3 specular     = numerator / denominator;  
+	
+	float NdotL = max(dot(N, L), 0.0);                
+	return max(vec3(0.0), specular * radiance * NdotL); 
+}
 
-	kD = max(vec3(0.0), vec3(1.0) - F) * (1.0 - metalic);
+bool match(float a, float b)
+{
+	return (a > b - 0.002 && a < b + 0.002);
+}
 
-	return specular;
+vec3 getF(float metalic, float cosTheta)
+{
+	if (metalic < 229.5 / 255.0)
+		return vec3(1.0);
+
+	#include "materials.glsl"
+
+	cosTheta = max(0.01, abs(cosTheta));
+
+	vec3 NcosTheta = 2.0 * N * cosTheta;
+	float cosTheta2 = cosTheta * cosTheta;
+	vec3 N2K2 = N * N + K * K;
+
+	vec3 Rs = (N2K2 - NcosTheta + cosTheta2) / (N2K2 + NcosTheta + cosTheta2);
+	vec3 Rp = (N2K2 * cosTheta2 - NcosTheta + 1.0) / (N2K2 * cosTheta2 + NcosTheta + 1.0);
+
+	return (Rs + Rp) * 0.5;
+}
+
+vec3 getF0(vec3 albedo, float metalic)
+{
+	if (metalic < 229.5 / 255.0)
+		return albedo * metalic;
+
+	#include "materials.glsl"
+
+	return max(vec3(0.0), (N - 1.0) / (N + 1.0));
 }

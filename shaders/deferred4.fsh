@@ -35,7 +35,7 @@ void main() {
     vec3 composite = texelFetch(colortex0, iuv, 0).rgb;
     vec3 Ld_center = texelFetch(gaux2, iuv, 0).rgb;
     vec3 Ld = Ld_center * 0.214607;
-    vec4 Ls = texelFetch(colortex1, iuv, 0);
+    // vec4 Ls = texelFetch(colortex1, iuv, 0);
 
     vec4 decoded_b = unpackUnorm4x8(gbuffers.b);
     vec2 lmcoord = decoded_b.st;
@@ -71,10 +71,19 @@ void main() {
         {
             color.rgb *= 1.0 - wetnessMorph * specular.b * 4.0;
         }
+
+        if (specular.g > 229.5 / 255.0)
+        {
+            color.rgb = vec3(1.0);
+        }
         
-        composite += color.rgb * Ld.rgb + Ls.rgb;
+        composite += color.rgb * Ld.rgb;
         // composite = Ld.rgb;
         // composite = Ls.rgb;
+
+        // composite = normal * 0.5 + 0.5;
+        // composite = vec3(specular.ggg);
+        // composite = getF(specular.g, dot(-normalize(view_pos), normal));
     }
 
 /* DRAWBUFFERS:05 */

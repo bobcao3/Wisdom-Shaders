@@ -148,7 +148,7 @@ void fragment() {
         float shadows = shadowTexSmooth(shadowtex1, spos_cascaded, ds, 0.0);
 
         vec3 kD;
-        c.rgb += sun_I * shadows * pbr_brdf(V, shadowLightPosition * 0.01, surfaceNormal, vec3(1.0), 0.3, 1.0, kD);
+        c.rgb += specular_brdf_ggx_oren_schlick(sun_I * shadows, 0.05, vec3(0.02), shadowLightPosition * 0.01, surfaceNormal, V);
 
         c.rgb += sun_I * (0.2 + shadows * 0.8) * lmcoord.y * vec3(foam) * 0.2;
     }

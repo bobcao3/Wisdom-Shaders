@@ -1,7 +1,6 @@
 #version 420 compatibility
 #pragma optimize(on)
 
-const bool colortex1Clear = false;
 const bool colortex3Clear = false;
 
 #define VECTORS

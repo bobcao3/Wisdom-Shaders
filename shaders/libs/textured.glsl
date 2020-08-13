@@ -97,9 +97,12 @@ void fragment() {
 
     vec2 lmcoord_dithered = lmcoord + bayer8(gl_FragCoord.st) * 0.004;
 
+    #ifdef ENTITY
+    vec3 normal_map = normal;
+    #else
     vec3 normal_map = textureLod(normals, uv, lod).rgb * 2.0 - 1.0;
     normal_map = mat3(tangent, bitangent, normal) * normal_map;
-    normal_map = normalize(mix(normal, normal_map, 0.0));
+    #endif
 
     //lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
 
