@@ -20,7 +20,7 @@ uniform float viewHeight;
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
 
-    vec3 bloom = texelFetch(colortex1, iuv, 0).rgb;
+    vec3 bloom = vec3(0.0);
 
     if (iuv.x <= viewWidth * 0.75 && iuv.x >= viewWidth * 0.625 && iuv.y <= viewHeight * 0.5 && iuv.y >= viewHeight * 0.375)
     {
@@ -37,6 +37,10 @@ void main() {
         bloom += texelFetchOffset(colortex1, uv, 0, ivec2(-2,  2)).rgb * 0.0625;
         bloom += texelFetchOffset(colortex1, uv, 0, ivec2( 2, -2)).rgb * 0.0625;
         bloom += texelFetch(colortex1, uv, 0).rgb * 0.25;
+    }
+    else
+    {
+        discard;
     }
 
 /* DRAWBUFFERS:1 */
