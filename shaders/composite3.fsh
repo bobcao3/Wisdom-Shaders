@@ -2,6 +2,7 @@
 #pragma optimize(on)
 
 uniform sampler2D colortex0;
+uniform sampler2D colortex1;
 uniform sampler2D colortex2;
 
 const bool colortex2Clear = false;
@@ -16,6 +17,9 @@ const bool colortex0MipmapEnabled = true;
 uniform vec2 invWidthHeight;
 
 uniform float frameTime;
+
+uniform float viewWidth;
+uniform float viewHeight;
 
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
@@ -37,6 +41,22 @@ void main() {
         L = mix(texelFetch(colortex2, iuv, 0).a, L, 1.0 - decay);
     }
 
-/* DRAWBUFFERS:2 */
-    gl_FragData[0] = vec4(color.rgb, L);
+    vec3 bloom = vec3(0.0);
+
+    if (iuv.x < viewWidth * 0.5 && iuv.y < viewHeight * 0.5)
+    {
+        bloom += texelFetchOffset(colortex0, iuv * 2, 0, ivec2(-2,  0)).rgb * 0.125;
+        bloom += texelFetchOffset(colortex0, iuv * 2, 0, ivec2( 2,  0)).rgb * 0.125;
+        bloom += texelFetchOffset(colortex0, iuv * 2, 0, ivec2( 0,  2)).rgb * 0.125;
+        bloom += texelFetchOffset(colortex0, iuv * 2, 0, ivec2( 0, -2)).rgb * 0.125;
+        bloom += texelFetchOffset(colortex0, iuv * 2, 0, ivec2(-2, -2)).rgb * 0.0625;
+        bloom += texelFetchOffset(colortex0, iuv * 2, 0, ivec2( 2,  2)).rgb * 0.0625;
+        bloom += texelFetchOffset(colortex0, iuv * 2, 0, ivec2(-2,  2)).rgb * 0.0625;
+        bloom += texelFetchOffset(colortex0, iuv * 2, 0, ivec2( 2, -2)).rgb * 0.0625;
+        bloom += texelFetch(colortex0, iuv * 2, 0).rgb * 0.25;
+    }
+
+/* DRAWBUFFERS:12 */
+    gl_FragData[0] = vec4(bloom, L);
+    gl_FragData[1] = vec4(color.rgb, L);
 }

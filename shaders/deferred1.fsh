@@ -60,6 +60,7 @@ void main() {
         vec3 sun_vec = shadowLightPosition * 0.01;
         float shadow;
         vec3 L = vec3(0.0);
+        vec3 F0 = getF0(color.rgb, specular.g);
 
         if (biomeCategory != 16) {
             //int cascade = int(clamp(floor(log2(max(abs(world_pos.x), abs(world_pos.z)) / 8.0)), 0.0, 4.0));
@@ -95,7 +96,7 @@ void main() {
             }
 
             L = max(vec3(0.0), (sun_I + moon_I) * shadow);
-            L = brdf_ggx_oren_schlick(color.rgb, L, specular.r, specular.g, getF0(color.rgb, specular.g), sun_vec, normal, V);
+            L = brdf_ggx_oren_schlick(color.rgb, L, specular.r, specular.g, F0, sun_vec, normal, V);
 
             color.a = shadow;
         }
@@ -116,7 +117,7 @@ void main() {
         if (emmisive <= (254.5 / 255.0) && emmisive > 0.05) {
             color.rgb *= emmisive; // Max at 10000 lux
         } else {
-            color.rgb = L + diffuse_brdf_ggx_oren_schlick(color.rgb, block_L, specular.r, specular.g, getF0(color.rgb, specular.g), normal, V);
+            color.rgb = L + diffuse_brdf_ggx_oren_schlick(color.rgb, block_L, specular.r, specular.g, F0, normal, V);
         }
 
         // SSPT
@@ -159,18 +160,15 @@ void main() {
                 ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false, stride, 1.44, 2.0, i, lod);
                 
                 vec3 diffuse = vec3(0.0);
-                // vec3 specular = vec3(0.0);
                 
                 if (reflected != ivec2(-1)) {
                     lod = min(3, lod);
-                    vec3 radiance = texelFetch(colortex0, reflected >> lod, lod).rgb;
                     vec3 prevComposite = texelFetch(colortex2, reflected >> lod, lod).rgb;
 
-                    diffuse = prevComposite; //(prevComposite + radiance) * 0.5;
+                    diffuse = prevComposite;
                 } else {
                     vec3 world_dir = mat3(gbufferModelViewInverse) * ray_trace_dir;
-                    float sun_disc_occulusion = 1.0 - smoothstep(0.9, 0.999, abs(dot(ray_trace_dir, sunPosition * 0.01)));
-                    vec3 skyRadiance = skyLight * texture(gaux4, project_skybox2uv(world_dir), sky_lod).rgb * sun_disc_occulusion;
+                    vec3 skyRadiance = skyLight * texture(gaux4, project_skybox2uv(world_dir), sky_lod).rgb;
 
                     diffuse = skyRadiance;
                 }
