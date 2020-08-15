@@ -90,6 +90,8 @@ void fragment() {
     {
         c.a = 1.0;
 
+        V = -normalize(viewPos);
+
         float land_depth = texelFetch(depthtex1, iuv, 0).r;
         vec3 land_vpos = proj2view(getProjPos(iuv, land_depth));
 
