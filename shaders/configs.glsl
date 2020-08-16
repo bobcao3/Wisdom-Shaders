@@ -12,7 +12,7 @@ const int colortex6Format = R32F;
 const int colortex7Format = R11F_G11F_B10F;
 
 const float sunPathRotation = -40.0;
-const int shadowMapResolution = 2048;
+const int shadowMapResolution = 2048; // [512 1024 2048 4096]
 const vec2 shadowPixSize = vec2(1.0 / shadowMapResolution);
 const float shadowDistance = 12.0; // [4.0 6.0 8.0 10.0 12.0 16.0 24.0 32.0 48.0 64.0]
 const float shadowDistanceRenderMul = 16.0;

@@ -28,6 +28,8 @@ uniform int biomeCategory;
 const bool colortex2MipmapEnabled = true;
 const bool colortex3Clear = false;
 
+#define NUM_SSPT_RAYS 4 // [1 2 4 8 16 32]
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
     vec2 uv = vec2(iuv) * invWidthHeight;
@@ -134,9 +136,8 @@ void main() {
                 skyLight = 0.5;
             }
 
-            const int num_sspt_rays = 4;
-            const float weight_per_ray = 1.0 / float(num_sspt_rays);
-            const float num_directions = 4096 * num_sspt_rays;
+            const float weight_per_ray = 1.0 / float(NUM_SSPT_RAYS);
+            const float num_directions = 4096 * NUM_SSPT_RAYS;
 
             float stride = max(2.0, viewHeight / 480.0);
             float noise_sample = fract(bayer64(iuv));
@@ -146,7 +147,7 @@ void main() {
             vec3 mirror_dir = reflect(-V, normal);
             mat3 obj2view = make_coord_space(normal);
 
-            for (int i = 0; i < num_sspt_rays; i++) {
+            for (int i = 0; i < NUM_SSPT_RAYS; i++) {
                 float noiseSeed = noise(vec3(noise_sample, i * 0.1, (frameCounter & 0xFFF) * 0.01));
                 vec2 grid_sample = WeylNth(int(noiseSeed * 65536));
 

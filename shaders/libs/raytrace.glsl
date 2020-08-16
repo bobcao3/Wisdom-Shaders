@@ -1,5 +1,7 @@
 // const bool gaux3MipmapEnabled = true;
 
+#define SSPT_SAMPLES 16 // [4 8 12 16 20]
+
 ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float stride, float stride_multiplier, float zThickness, int noise_i, inout int lod) {
     float rayLength = clamp(-vpos.z, 0.1, 16.0);
 
@@ -44,7 +46,7 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float 
     float last_z = 0.0;
 
     float z_prev = (ZW.x + dZW.x * (dither + 0.5)) / (ZW.y + dZW.y * (dither + 0.5));
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < SSPT_SAMPLES; i++) {
         iuv += uv_dir;
         ZW += dZW;
 
