@@ -1,7 +1,7 @@
-#include "compat.glsl"
-#include "encoding.glsl"
+#include "../libs/compat.glsl"
+#include "../libs/encoding.glsl"
 
-#include "color.glsl"
+#include "../libs/color.glsl"
 
 INOUT vec4 color;
 INOUT vec3 normal;
@@ -16,7 +16,7 @@ INOUT flat float isWater;
 
 uniform int frameCounter;
 
-#include "taa.glsl"
+#include "../libs/taa.glsl"
 uniform vec2 invWidthHeight;
 
 attribute vec4 mc_Entity;
@@ -52,15 +52,15 @@ uniform sampler2D tex;
 #define VECTORS
 #define BUFFERS
 #define CLIPPING_PLANE
-#include "uniforms.glsl"
-#include "transform.glsl"
+#include "../libs/uniforms.glsl"
+#include "../libs/transform.glsl"
 
-#include "noise.glsl"
-#include "bsdf.glsl"
+#include "../libs/noise.glsl"
+#include "../libs/bsdf.glsl"
 
-#include "sampling.glsl"
-#include "raytrace.glsl"
-#include "water.glsl"
+#include "../libs/sampling.glsl"
+#include "../libs/raytrace.glsl"
+#include "../libs/water.glsl"
 
 uniform int isEyeInWater;
 

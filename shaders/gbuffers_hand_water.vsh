@@ -2,4 +2,4 @@
 #pragma optimize(on)
 
 #define VERTEX
-#include "libs/transparent.glsl"
+#include "programs/transparent.glsl"

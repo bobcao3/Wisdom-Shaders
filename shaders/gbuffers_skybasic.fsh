@@ -2,4 +2,4 @@
 #pragma optimize(on)
 
 #include "libs/gbuffers.frag.glsl"
-#include "libs/blend_sky_untex.glsl"
+#include "programs/blend_sky_untex.glsl"

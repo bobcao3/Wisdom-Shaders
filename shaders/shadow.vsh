@@ -2,4 +2,4 @@
 #pragma optimize(on)
 
 #define VERTEX
-#include "libs/shadow.glsl"
+#include "programs/shadow.glsl"

@@ -1,18 +1,17 @@
-#include "compat.glsl"
-#include "encoding.glsl"
+#include "../libs/compat.glsl"
+#include "../libs/encoding.glsl"
 
-#include "color.glsl"
+#include "../libs/color.glsl"
 
 INOUT vec4 color;
 INOUT vec3 normal;
 INOUT vec2 uv;
-INOUT vec2 lmcoord;
 
 uniform int frameCounter;
 
 #ifdef VERTEX
 
-#include "taa.glsl"
+#include "../libs/taa.glsl"
 uniform vec2 invWidthHeight;
 
 out float fragDepth;
@@ -26,7 +25,6 @@ void main() {
     color = gl_Color;
     uv = mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st;
     normal = normalize(gl_NormalMatrix * gl_Normal);
-    lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
     gl_Position = mvp_mat * input_pos;
 
@@ -41,17 +39,15 @@ uniform vec4 projParams;
 
 uniform int fogMode;
 
-uniform vec3 fogColor;
-
 void fragment() {
 /* DRAWBUFFERS:0 */
-    vec4 c = fromGamma(color * texture(tex, uv));
-
-#ifndef UNLIT
-    c.rgb *= lmcoord.x;
-#endif
-
+    vec4 c = color * texture(tex, uv);
     gl_FragData[0] = c;
+
+    if(fogMode == 9729)
+        gl_FragData[0].rgb = mix(gl_Fog.color.rgb, gl_FragData[0].rgb, clamp((gl_Fog.end - gl_FogFragCoord) / (gl_Fog.end - gl_Fog.start), 0.0, 1.0));
+    else if(fogMode == 2048)
+        gl_FragData[0].rgb = mix(gl_Fog.color.rgb, gl_FragData[0].rgb, clamp(exp(-gl_FogFragCoord * gl_Fog.density), 0.0, 1.0));
 }
 
 #endif

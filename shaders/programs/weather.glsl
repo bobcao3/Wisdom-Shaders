@@ -1,7 +1,7 @@
-#include "compat.glsl"
-#include "encoding.glsl"
+#include "../libs/compat.glsl"
+#include "../libs/encoding.glsl"
 
-#include "color.glsl"
+#include "../libs/color.glsl"
 
 INOUT vec4 color;
 INOUT vec3 normal;
@@ -11,7 +11,7 @@ uniform int frameCounter;
 
 #ifdef VERTEX
 
-#include "taa.glsl"
+#include "../libs/taa.glsl"
 uniform vec2 invWidthHeight;
 
 out float fragDepth;

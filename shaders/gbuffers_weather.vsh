@@ -2,4 +2,4 @@
 #pragma optimize(on)
 
 #define VERTEX
-#include "libs/weather.glsl"
+#include "programs/weather.glsl"

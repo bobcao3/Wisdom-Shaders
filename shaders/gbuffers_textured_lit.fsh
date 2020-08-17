@@ -2,4 +2,4 @@
 #pragma optimize(on)
 
 #include "libs/gbuffers.frag.glsl"
-#include "libs/particles_lit.glsl"
+#include "programs/particles_lit.glsl"

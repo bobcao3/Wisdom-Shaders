@@ -3,4 +3,4 @@
 
 #define UINT_BUFFER
 #include "libs/gbuffers.frag.glsl"
-#include "libs/textured.glsl"
+#include "programs/textured.glsl"

@@ -2,4 +2,4 @@
 #pragma optimize(on)
 
 #include "libs/gbuffers.frag.glsl"
-#include "libs/weather.glsl"
+#include "programs/weather.glsl"

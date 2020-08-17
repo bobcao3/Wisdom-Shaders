@@ -1,7 +1,7 @@
-#include "compat.glsl"
-#include "encoding.glsl"
+#include "../libs/compat.glsl"
+#include "../libs/encoding.glsl"
 
-#include "color.glsl"
+#include "../libs/color.glsl"
 
 INOUT vec4 color;
 
@@ -9,7 +9,7 @@ uniform int frameCounter;
 
 #ifdef VERTEX
 
-#include "taa.glsl"
+#include "../libs/taa.glsl"
 uniform vec2 invWidthHeight;
 
 void main() {
@@ -36,14 +36,16 @@ uniform vec4 projParams;
 
 uniform int fogMode;
 
-#include "noise.glsl"
+#include "../libs/noise.glsl"
 
 void fragment() {
 /* DRAWBUFFERS:0 */
-    float saturation = abs(color.r - color.g) + abs(color.r - color.b) + abs(color.g - color.b);
-	float luma = dot(color.rgb,vec3(0.2126, 0.7152, 0.0722));
+    gl_FragData[0] = color + bayer8(gl_FragCoord.st) / 128.0;
 
-    gl_FragData[0] = vec4(0.0, 0.0, 0.0, 1.0);
+    if(fogMode == 9729)
+        gl_FragData[0].rgb = mix(gl_Fog.color.rgb, gl_FragData[0].rgb, clamp((gl_Fog.end - gl_FogFragCoord) / (gl_Fog.end - gl_Fog.start), 0.0, 1.0));
+    else if(fogMode == 2048)
+        gl_FragData[0].rgb = mix(gl_Fog.color.rgb, gl_FragData[0].rgb, clamp(exp(-gl_FogFragCoord * gl_Fog.density), 0.0, 1.0));
 }
 
 #endif

@@ -1,7 +1,7 @@
-#include "compat.glsl"
-#include "encoding.glsl"
+#include "../libs/compat.glsl"
+#include "../libs/encoding.glsl"
 
-#include "color.glsl"
+#include "../libs/color.glsl"
 
 INOUT vec4 color;
 INOUT flat vec3 normal;
@@ -20,7 +20,7 @@ uniform int frameCounter;
 
 #ifdef VERTEX
 
-#include "taa.glsl"
+#include "../libs/taa.glsl"
 uniform vec2 invWidthHeight;
 
 attribute vec4 mc_Entity;
@@ -83,7 +83,7 @@ uniform vec4 projParams;
 
 uniform float wetness;
 
-#include "noise.glsl"
+#include "../libs/noise.glsl"
 
 float getDirectional(float lm, vec3 normal2) {
 	float Lx = dFdx(lm) * 60.0;
