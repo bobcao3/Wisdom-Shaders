@@ -39,8 +39,6 @@ void main() {
     vec3 max_neighbor0 = max(current, max(max(max(current_n0, current_n1), max(current_n2, current_n3)), max(max(current_n4, current_n5), max(current_n6, current_n7))));
     vec3 clamped_history = clamp(history.rgb, min_neighbor0, max_neighbor0);
 
-    if (isnan(clamped_history.r) || isnan(clamped_history.g) || isnan(clamped_history.b)) clamped_history = vec3(0.0);
-
     vec3 color = mix(clamped_history, current.rgb, 0.07);
 
     if (depth <= 0.7) {
