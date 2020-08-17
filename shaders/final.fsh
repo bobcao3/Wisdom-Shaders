@@ -23,8 +23,6 @@ uniform vec2 invWidthHeight;
 // #define DEBUG_ADAPTIVE_EXPOSURE
 // #define DEBUG_DEPTH_LOD
 
-#include "libs/bicubic.glsl"
-
 in flat float exposure;
 
 void main() {
