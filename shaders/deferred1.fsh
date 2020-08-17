@@ -184,7 +184,6 @@ void main() {
             proj_pos_prev.xyz /= proj_pos_prev.w;
 
             vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5) + 0.5 * invWidthHeight;
-            vec4 history_d = texture(colortex3, prev_uv);
             
             if (isnan(Ld.r) || isnan(Ld.g) || isnan(Ld.b)) Ld = vec3(0.0);
             
@@ -194,6 +193,8 @@ void main() {
             }
             else
             {
+                vec4 history_d = texture(colortex3, prev_uv);
+                
                 float mix_weight = 0.1;
                 float history_depth = proj_pos_prev.z * 0.5 + 0.5;
                 float depth_difference = abs(history_d.a - history_depth) / history_depth;
@@ -219,7 +220,7 @@ void main() {
             color.rgb = mix(color.rgb, moon_I * 8.0, smoothstep(0.9996, 0.99961, dot(normalize(view_pos), moonPosition * 0.01)));
         }
 
-        color.rgb += texture(gaux4, polarCoord).rgb + bayer64(iuv) * 0.0001;
+        color.rgb += bicubicSample(gaux4, polarCoord).rgb + bayer64(iuv) * 0.0001;
 
         composite_diffuse = color.rgb;
     }
