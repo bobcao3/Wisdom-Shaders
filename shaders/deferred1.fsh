@@ -219,7 +219,7 @@ void main() {
             color.rgb = mix(color.rgb, moon_I * 8.0, smoothstep(0.9996, 0.99961, dot(normalize(view_pos), moonPosition * 0.01)));
         }
 
-        color.rgb += texture(gaux4, polarCoord).rgb + bayer64(iuv) * 0.0001;
+        color.rgb += bicubicSample(gaux4, polarCoord).rgb + bayer64(iuv) * 0.0001;
 
         composite_diffuse = color.rgb;
     }
