@@ -121,7 +121,7 @@ void fragment() {
 #if (defined(ENTITY) || !defined(NORMAL_MAPPING))
     vec3 normal_map = normal;
 #else
-    vec3 normal_map = textureLod(normals, uv, lod).rgb * 2.0 - 1.0;
+    vec3 normal_map = texture(normals, uv, lod).rgb * 2.0 - 1.0;
     normal_map = mat3(tangent, bitangent, normal) * normal_map;
 #endif
 
