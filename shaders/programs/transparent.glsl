@@ -1,7 +1,7 @@
-#include "../libs/compat.glsl"
-#include "../libs/encoding.glsl"
+#include "/libs/compat.glsl"
+#include "/libs/encoding.glsl"
 
-#include "../libs/color.glsl"
+#include "/libs/color.glsl"
 
 INOUT vec4 color;
 INOUT vec3 normal;
@@ -17,7 +17,7 @@ INOUT vec3 sun_I;
 
 uniform int frameCounter;
 
-#include "../libs/taa.glsl"
+#include "/libs/taa.glsl"
 
 attribute vec4 mc_Entity;
 attribute vec4 at_tangent;
@@ -25,8 +25,8 @@ attribute vec4 at_tangent;
 #define VECTORS
 #define BUFFERS
 #define CLIPPING_PLANE
-#include "../libs/uniforms.glsl"
-#include "../libs/transform.glsl"
+#include "/libs/uniforms.glsl"
+#include "/libs/transform.glsl"
 
 void main() {
     vec4 input_pos = gl_Vertex;
@@ -61,15 +61,15 @@ uniform sampler2D tex;
 #define VECTORS
 #define BUFFERS
 #define CLIPPING_PLANE
-#include "../libs/uniforms.glsl"
-#include "../libs/transform.glsl"
+#include "/libs/uniforms.glsl"
+#include "/libs/transform.glsl"
 
-#include "../libs/noise.glsl"
-#include "../libs/bsdf.glsl"
+#include "/libs/noise.glsl"
+#include "/libs/bsdf.glsl"
 
-#include "../libs/sampling.glsl"
-#include "../libs/raytrace.glsl"
-#include "../libs/water.glsl"
+#include "/libs/sampling.glsl"
+#include "/libs/raytrace.glsl"
+#include "/libs/water.glsl"
 
 uniform int isEyeInWater;
 

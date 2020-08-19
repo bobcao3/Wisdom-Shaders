@@ -5,11 +5,11 @@
 #define TRANSFORMATIONS
 #define BUFFERS
 
-#include "libs/uniforms.glsl"
-#include "libs/taa.glsl"
-#include "libs/atmosphere.glsl"
-#include "libs/transform.glsl"
-#include "libs/color.glsl"
+#include "/libs/uniforms.glsl"
+#include "/libs/taa.glsl"
+#include "/libs/atmosphere.glsl"
+#include "/libs/transform.glsl"
+#include "/libs/color.glsl"
 
 uniform int frameCounter;
 uniform int biomeCategory;

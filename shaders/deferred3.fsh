@@ -6,12 +6,12 @@ const bool colortex3Clear = false;
 #define VECTORS
 #define BUFFERS
 
-#include "libs/encoding.glsl"
-#include "libs/sampling.glsl"
-#include "libs/transform.glsl"
-#include "libs/bsdf.glsl"
-#include "libs/color.glsl"
-#include "libs/noise.glsl"
+#include "/libs/encoding.glsl"
+#include "/libs/sampling.glsl"
+#include "/libs/transform.glsl"
+#include "/libs/bsdf.glsl"
+#include "/libs/color.glsl"
+#include "/libs/noise.glsl"
 
 float gaussian_weights[] = {
     0.071303, 0.131514, 0.189879, 0.214607, 0.189879, 0.131514, 0.071303

@@ -4,13 +4,13 @@
 flat out vec3 sun_I;
 flat out vec3 moon_I;
 
-#include "libs/transform.glsl"
-#include "libs/atmosphere.glsl"
-#include "libs/color.glsl"
+#include "/libs/transform.glsl"
+#include "/libs/atmosphere.glsl"
+#include "/libs/color.glsl"
 
 #define VECTORS
 #define CLIPPING_PLANE
-#include "libs/uniforms.glsl"
+#include "/libs/uniforms.glsl"
 
 void main() {
     vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);

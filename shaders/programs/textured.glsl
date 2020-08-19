@@ -1,7 +1,7 @@
-#include "../libs/compat.glsl"
-#include "../libs/encoding.glsl"
+#include "/libs/compat.glsl"
+#include "/libs/encoding.glsl"
 
-#include "../libs/color.glsl"
+#include "/libs/color.glsl"
 
 #define NORMAL_MAPPING
 
@@ -26,7 +26,7 @@ uniform int frameCounter;
 
 #ifdef VERTEX
 
-#include "../libs/taa.glsl"
+#include "/libs/taa.glsl"
 uniform vec2 invWidthHeight;
 
 attribute vec4 mc_Entity;
@@ -92,7 +92,7 @@ uniform vec4 projParams;
 
 uniform float wetness;
 
-#include "../libs/noise.glsl"
+#include "/libs/noise.glsl"
 
 #define RAIN_PUDDLES
 

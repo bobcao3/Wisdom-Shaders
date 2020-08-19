@@ -1,4 +1,4 @@
 #version 420 compatibility
 #pragma optimize(on)
 
-#include "libs/deferred.vert.glsl"
+#include "/libs/deferred.vert.glsl"

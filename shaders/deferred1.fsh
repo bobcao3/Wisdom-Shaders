@@ -3,23 +3,23 @@
 
 #define BUFFERS
 
-#include "libs/encoding.glsl"
-#include "libs/sampling.glsl"
-#include "libs/bsdf.glsl"
-#include "libs/transform.glsl"
-#include "libs/color.glsl"
-#include "libs/noise.glsl"
+#include "/libs/encoding.glsl"
+#include "/libs/sampling.glsl"
+#include "/libs/bsdf.glsl"
+#include "/libs/transform.glsl"
+#include "/libs/color.glsl"
+#include "/libs/noise.glsl"
 
 #define VECTORS
 #define CLIPPING_PLANE
 #define TRANSFORMATIONS_RESIDUAL
-#include "libs/uniforms.glsl"
+#include "/libs/uniforms.glsl"
 
 flat in vec3 sun_I;
 flat in vec3 moon_I;
 
-#include "libs/raytrace.glsl"
-#include "libs/atmosphere.glsl"
+#include "/libs/raytrace.glsl"
+#include "/libs/atmosphere.glsl"
 
 #define PCSS
 

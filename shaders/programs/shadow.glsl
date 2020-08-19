@@ -1,10 +1,10 @@
-#include "../libs/compat.glsl"
+#include "/libs/compat.glsl"
 
 uniform int frameCounter;
 
 #ifdef VERTEX
 
-#include "../libs/taa.glsl"
+#include "/libs/taa.glsl"
 uniform vec2 invWidthHeight;
 
 out vec4 vcolor;
@@ -40,7 +40,7 @@ in vec2 vuv[3];
 in vec4 shadow_view_pos[3];
 in float blockId[3];
 
-#include "../libs/transform.glsl"
+#include "/libs/transform.glsl"
 
 out vec4 color;
 out vec2 uv;
@@ -167,7 +167,7 @@ in flat int cascade;
 
 uniform sampler2D tex;
 
-#include "../configs.glsl"
+#include "/configs.glsl"
 
 void fragment() {
     ivec2 iuv = ivec2(gl_FragCoord.st);

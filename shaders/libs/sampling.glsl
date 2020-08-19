@@ -1,8 +1,8 @@
 #ifndef _INCLUDE_SAMPLING
 #define _INCLUDE_SAMPLING
 
-#include "./../configs.glsl"
-#include "./transform.glsl"
+#include "/configs.glsl"
+#include "/libs/transform.glsl"
 
 // Bicubic sampling from Robobo1221
 vec4 Cubic(float x) {
@@ -62,9 +62,9 @@ float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth, float bia
     return mix(mix(samples.w, samples.z, f.x), mix(samples.x, samples.y, f.x), f.y);
 }
 
-#include "./noise.glsl"
+#include "/libs/noise.glsl"
 
-#include "taa.glsl"
+#include "/libs/taa.glsl"
 uniform int frameCounter;
 
 float getShadowRadiusPCSS(in sampler2D tex, in vec3 spos, out float depth, in ivec2 iuv) {

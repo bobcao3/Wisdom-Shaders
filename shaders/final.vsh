@@ -6,7 +6,7 @@ flat out float exposure;
 uniform sampler2D colortex2;
 uniform vec2 invWidthHeight;
 
-#include "libs/taa.glsl"
+#include "/libs/taa.glsl"
 
 void main() {
     float L = 0.0;

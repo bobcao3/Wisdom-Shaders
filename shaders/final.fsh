@@ -9,15 +9,15 @@ uniform sampler2D gaux4;
 
 uniform sampler2D shadowtex0;
 
-#include "configs.glsl"
+#include "/configs.glsl"
 
 uniform float viewWidth;
 uniform float viewHeight;
 
 uniform vec2 invWidthHeight;
 
-#include "libs/color.glsl"
-#include "libs/taa.glsl"
+#include "/libs/color.glsl"
+#include "/libs/taa.glsl"
 
 // #define DEBUG_SHADOWMAP
 // #define DEBUG_ADAPTIVE_EXPOSURE

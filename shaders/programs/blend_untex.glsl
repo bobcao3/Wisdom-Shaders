@@ -1,7 +1,7 @@
-#include "../libs/compat.glsl"
-#include "../libs/encoding.glsl"
+#include "/libs/compat.glsl"
+#include "/libs/encoding.glsl"
 
-#include "../libs/color.glsl"
+#include "/libs/color.glsl"
 
 INOUT vec4 color;
 
@@ -9,7 +9,7 @@ uniform int frameCounter;
 
 #ifdef VERTEX
 
-#include "../libs/taa.glsl"
+#include "/libs/taa.glsl"
 uniform vec2 invWidthHeight;
 
 void main() {
@@ -36,7 +36,7 @@ uniform vec4 projParams;
 
 uniform int fogMode;
 
-#include "../libs/noise.glsl"
+#include "/libs/noise.glsl"
 
 void fragment() {
 /* DRAWBUFFERS:0 */
