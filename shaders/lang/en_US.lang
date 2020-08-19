@@ -1,0 +1,40 @@
+option.SSPT_SAMPLES   = SSPT Distance
+value.SSPT_SAMPLES.20 = Extended
+value.SSPT_SAMPLES.16 = Full
+value.SSPT_SAMPLES.12 = Medium
+value.SSPT_SAMPLES.8  = Low
+value.SSPT_SAMPLES.6  = Very Low
+
+option.NUM_SSPT_RAYS   = SSPT Quality
+value.NUM_SSPT_RAYS.32 = Extreme
+value.NUM_SSPT_RAYS.16 = Very High
+value.NUM_SSPT_RAYS.8  = High
+value.NUM_SSPT_RAYS.4  = Normal
+value.NUM_SSPT_RAYS.2  = Low
+value.NUM_SSPT_RAYS.1  = Very Low
+
+option.shadowMapResolution = Shadow Resolution
+
+option.shadowDistance     = Shadow Distance
+value.shadowDistance.64.0 = 64 Chunks
+value.shadowDistance.48.0 = 48 Chunks
+value.shadowDistance.32.0 = 32 Chunks
+value.shadowDistance.24.0 = 24 Chunks
+value.shadowDistance.16.0 = 16 Chunks
+value.shadowDistance.12.0 = 12 Chunks
+value.shadowDistance.10.0 = 10 Chunks
+value.shadowDistance.8.0  = 8 Chunks
+value.shadowDistance.6.0  = 6 Chunks
+value.shadowDistance.4.0  = 4 Chunks
+
+option.WaterParallaxMapping = Water Parallax
+
+option.WATER_PARALLAX_QUALITY    = Water Parallax Quality
+value.WATER_PARALLAX_QUALITY.1.0 = 100%
+value.WATER_PARALLAX_QUALITY.0.7 = 70%
+value.WATER_PARALLAX_QUALITY.0.5 = 50%
+value.WATER_PARALLAX_QUALITY.0.3 = 30%
+
+option.NORMAL_MAPPING = Texture Normals
+
+option.RAIN_PUDDLES = Rain Puddles

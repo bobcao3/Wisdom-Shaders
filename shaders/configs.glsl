@@ -1,7 +1,7 @@
 #ifndef _INCLUDE_CONFIGS
 #define _INCLUDE_CONFIGS
 
-const int RGBA32UI = 0, RGBA16F = 1, R32F = 2, R11F_G11F_B10F = 3;
+const int RGBA32UI = 0, RGBA16F = 1, R32F = 2, R11F_G11F_B10F = 3, R16 = 4;
 const int colortex0Format = R11F_G11F_B10F;
 const int colortex1Format = R11F_G11F_B10F;
 const int colortex2Format = RGBA16F;
@@ -12,11 +12,11 @@ const int colortex6Format = R32F;
 const int colortex7Format = R11F_G11F_B10F;
 
 const float sunPathRotation = -40.0;
-const int shadowMapResolution = 2048; // [512 1024 2048 4096]
+const int shadowMapResolution = 1512; // [512 768 1024 1512 2048 3200 4096]
 const vec2 shadowPixSize = vec2(1.0 / shadowMapResolution);
-const float shadowDistance = 12.0; // [4.0 6.0 8.0 10.0 12.0 16.0 24.0 32.0 48.0 64.0]
+const float shadowDistance = 10.0; // [4.0 6.0 8.0 10.0 12.0 16.0 24.0 32.0 48.0 64.0]
 const float shadowDistanceRenderMul = 16.0;
-const float shadowIntervalSize = 2.0;
+const float shadowIntervalSize = 1.0;
 
 const int shadowMapQuadRes = shadowMapResolution / 2;
 

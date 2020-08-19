@@ -11,16 +11,22 @@ INOUT vec2 uv;
 INOUT vec2 lmcoord;
 INOUT flat float layer;
 INOUT flat float isWater;
+INOUT vec3 sun_I;
 
 #ifdef VERTEX
 
 uniform int frameCounter;
 
 #include "../libs/taa.glsl"
-uniform vec2 invWidthHeight;
 
 attribute vec4 mc_Entity;
 attribute vec4 at_tangent;
+
+#define VECTORS
+#define BUFFERS
+#define CLIPPING_PLANE
+#include "../libs/uniforms.glsl"
+#include "../libs/transform.glsl"
 
 void main() {
     vec4 input_pos = gl_Vertex;
@@ -43,6 +49,9 @@ void main() {
     isWater = mc_Entity.y;
 
     gl_Position.st += JitterSampleOffset(frameCounter) * invWidthHeight * gl_Position.w;
+
+    vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (shadowLightPosition * 0.01);
+    sun_I = texture(gaux4, project_skybox2uv(world_sun_dir)).rgb;
 }
 
 #else
@@ -64,6 +73,9 @@ uniform sampler2D tex;
 
 uniform int isEyeInWater;
 
+#define WaterParallaxMapping
+#define WATER_PARALLAX_QUALITY 0.7 // [0.3 0.5 0.7 1.0]
+
 void fragment() {
 /* DRAWBUFFERS:0 */
     vec4 c = vec4(0.0);
@@ -78,9 +90,6 @@ void fragment() {
     vec3 wpos = view2world(viewPos.xyz);
 
     vec3 albedo = vec3(1.0);
-
-    vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (shadowLightPosition * 0.01);
-    vec3 sun_I = texture(gaux4, project_skybox2uv(world_sun_dir)).rgb;
 
     float s, ds;
     vec3 spos_cascaded = shadowProjCascaded(world2shadowProj(wpos), s, ds);
@@ -100,8 +109,11 @@ void fragment() {
         float waterLod = clamp(1.0 - (log2(abs(viewPos.z)) - 3.0) * 0.16666, 0.2, 1.0);
 
         vec3 wwpos = wpos + cameraPosition;
-        WaterParallax(wwpos, waterLod * 0.8, normalize(viewPos.xyz * mat3(tangent, bitangent, normal)));
+        
+#ifdef WaterParallaxMapping
+        WaterParallax(wwpos, waterLod * WATER_PARALLAX_QUALITY, normalize(viewPos.xyz * mat3(tangent, bitangent, normal)));
         surfaceVPos = world2view(wwpos - cameraPosition);
+#endif
 
         if (land_vpos.z > surfaceVPos.z) discard;
 
@@ -113,7 +125,7 @@ void fragment() {
 
         float waterDepth = abs(land_vpos.z - surfaceVPos.z);
 
-        float foam = getpeaks(wwpos, 1.0, 2, 6) * (getpeaks(wwpos, 1.0, 0, 2) * 0.7 + 0.3);
+        float foam = getpeaks(wwpos, 1.0, 2, 4) * (getpeaks(wwpos, 1.0, 0, 2) * 0.7 + 0.3);
         foam = max(foam, 0.3 * (1.0 - smoothstep(0.1, 0.7, waterDepth)) * (1.0 + getwave(wwpos * 10.0, 1.0, 2) / SEA_HEIGHT * 0.8));
         foam *= max(0.0, dot(surfaceNormal, shadowLightPosition * 0.01));
 
@@ -168,7 +180,7 @@ void fragment() {
     vec3 mirrorDir = reflect(-V, surfaceNormal);
 
     vec3 dir = mat3(gbufferModelViewInverse) * mirrorDir;
-    vec3 sky = isEyeInWater == 1 ? vec3(0.0) : texture(gaux4, project_skybox2uv(dir)).rgb * skyLight;
+    vec3 sky;
 
     float stride = max(2.0, viewHeight / 480.0);
     int lod = 0;
@@ -177,6 +189,10 @@ void fragment() {
     if (reflected != ivec2(-1))
     {
         sky = texelFetch(gaux2, reflected, 0).rgb * lmcoord.y;
+    }
+    else
+    {
+        sky = isEyeInWater == 1 ? vec3(0.0) : texture(gaux4, project_skybox2uv(dir)).rgb * skyLight;
     }
 
     if (isWater == 0)

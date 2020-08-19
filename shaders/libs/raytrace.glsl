@@ -1,6 +1,6 @@
 // const bool gaux3MipmapEnabled = true;
 
-#define SSPT_SAMPLES 16 // [4 8 12 16 20]
+#define SSPT_SAMPLES 16 // [6 8 12 16 20]
 
 ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float stride, float stride_multiplier, float zThickness, int noise_i, inout int lod) {
     float rayLength = clamp(-vpos.z, 0.1, 16.0);
