@@ -22,6 +22,7 @@ flat in vec3 moon_I;
 #include "/libs/atmosphere.glsl"
 
 #define PCSS
+// #define REDUCE_GHOSTING
 
 uniform int biomeCategory;
 
@@ -194,7 +195,11 @@ void main() {
             }
             else
             {
+                #ifdef REDUCE_GHOSTING
+                float mix_weight = 0.2;
+                #else
                 float mix_weight = 0.1;
+                #endif
                 float history_depth = proj_pos_prev.z * 0.5 + 0.5;
                 float depth_difference = abs(history_d.a - history_depth) / history_depth;
                 if (depth_difference > 0.001) {
