@@ -88,6 +88,8 @@ uniform sampler2D tex;
 uniform sampler2D normals;
 uniform sampler2D specular;
 
+uniform sampler2D gaux3;
+
 uniform vec4 projParams;
 
 uniform float wetness;
@@ -108,7 +110,7 @@ uniform float wetness;
 
 void fragment() {
 /* DRAWBUFFERS:4 */
-    float threshold = fract(bayer16(gl_FragCoord.st) + hash(frameCounter & 0xFFFF)) * 0.95 + 0.05;
+    float threshold = fract(texelFetch(gaux3, ivec2(gl_FragCoord.st) % 0xFF, 0).r + texelFetch(gaux3, ivec2(frameCounter) % 0xFF, 0).r) * 0.95 + 0.05;
 
     vec2 ddx = dFdx(uv);
     vec2 ddy = dFdy(uv);

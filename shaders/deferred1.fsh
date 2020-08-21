@@ -140,7 +140,7 @@ void main() {
             const float num_directions = 4096 * NUM_SSPT_RAYS;
 
             float stride = max(2.0, viewHeight / 480.0);
-            float noise_sample = fract(bayer64(iuv));
+            float noise_sample = fract(texelFetch(colortex1, iuv % 0xFF, 0).r + texelFetch(colortex1, ivec2(frameCounter) & 0xFF, 0).r);
 
             int sky_lod = clamp(int((1.0 - specular.r + specular.g) * 3.0), 0, 3);
 
@@ -148,8 +148,8 @@ void main() {
             mat3 obj2view = make_coord_space(normal);
 
             for (int i = 0; i < NUM_SSPT_RAYS; i++) {
-                float noiseSeed = noise(vec3(noise_sample, i * 0.1, (frameCounter & 0xFFF) * 0.01));
-                vec2 grid_sample = WeylNth(int(noiseSeed * 65536));
+                float noiseSeed = noise_sample * 65535 * NUM_SSPT_RAYS + i;
+                vec2 grid_sample = WeylNth(int(noiseSeed));
 
                 float pdf = 1.0;
                 vec3 ray_trace_dir = ImportanceSampleGGX(grid_sample, normal, -V, specular.r, pdf);
