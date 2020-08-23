@@ -67,60 +67,64 @@ void main() {
     }
 
     // Atmosphere
-
-    float distinction_distance = 4096.0;
-
-    if (biomeCategory == 16.0)
+    if (depth < 0.99999)
     {
-        distinction_distance = 512.0;
-    }
+        float distinction_distance = 4096.0;
 
-    if (isEyeInWater == 1)
-    {
-        distinction_distance = 50.0;
-    }
-
-    float distinction = clamp(length(view_pos) / distinction_distance, 0.0, 1.0);
-    float actualDistinction = 0.0;
-
-    float dither = fract(hash(frameCounter & 0xFFFF) + bayer16(iuv));
-
-    vec3 spos_start = world2shadowProj(vec3(0.0));
-    vec3 spos_end = world2shadowProj(world_pos);
-
-    float accumulation = 0.0;
-
-    vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
-    vec3 fog;
-    
-    if (biomeCategory != 16)
-        fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, 64.0 * distinction_distance * distinction);
-    else
-        fog = fromGamma(fogColor);
-
-    for (int i = 0; i < 3; i++)
-    {
-        float t = (float(i) + dither) * 0.3333;
-        vec3 spos = t * (spos_end - spos_start) + spos_start;
-        vec3 wpos = t * world_pos;
-
-        float s, ds;
-        vec3 spos_cascaded = shadowProjCascaded(spos, s, ds);
-
-        float shadow = 1.0;
-        
-        if (biomeCategory != 16 && spos_cascaded != vec3(-1))
+        if (biomeCategory == 16.0)
         {
-            shadow = shadowTexSmooth(shadowtex1, spos_cascaded, ds, 0.0);
+            distinction_distance = 512.0;
         }
 
-        float density = distinction * densities(wpos.y + cameraPosition.y);
-        actualDistinction += density;
-        accumulation += density * shadow * exp2(-(1.0 - t) * distinction);
-    }
+        if (isEyeInWater == 1)
+        {
+            distinction_distance = 50.0;
+        }
 
-    color *= exp2(-actualDistinction);
-    color += accumulation * fog;
+        float distinction = clamp(length(view_pos) / distinction_distance, 0.0, 1.0);
+        float actualDistinction = 0.0;
+
+        float dither = fract(hash(frameCounter & 0xFFFF) + bayer16(iuv));
+
+        vec3 spos_start = world2shadowProj(vec3(0.0));
+        vec3 spos_end = world2shadowProj(world_pos);
+
+        float accumulation = 0.0;
+
+        vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
+        vec3 fog;
+
+        float nseed = fract(texelFetch(colortex1, iuv & 0xFF, 0).r + texelFetch(colortex1, ivec2(frameCounter) & 0xFF, 0).r) - 0.5;
+        
+        if (biomeCategory != 16)
+            fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, 32.0 * distinction_distance * distinction, nseed).rgb;
+        else
+            fog = fromGamma(fogColor);
+
+        for (int i = 0; i < 3; i++)
+        {
+            float t = (float(i) + dither) * 0.3333;
+            vec3 spos = t * (spos_end - spos_start) + spos_start;
+            vec3 wpos = t * world_pos;
+
+            float s, ds;
+            vec3 spos_cascaded = shadowProjCascaded(spos, s, ds);
+
+            float shadow = 1.0;
+            
+            if (biomeCategory != 16 && spos_cascaded != vec3(-1))
+            {
+                shadow = shadowTexSmooth(shadowtex1, spos_cascaded, ds, 0.0);
+            }
+
+            float density = distinction * densities(wpos.y + cameraPosition.y);
+            actualDistinction += density;
+            accumulation += density * shadow * exp2(-(1.0 - t) * distinction);
+        }
+
+        color *= exp2(-actualDistinction);
+        color += accumulation * fog;
+    }
 
 /* DRAWBUFFERS:0 */
     gl_FragData[0] = vec4(color, 1.0);

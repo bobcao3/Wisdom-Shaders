@@ -9,7 +9,7 @@ const int colortex3Format = RGBA16F;
 const int colortex4Format = RGBA32UI;
 const int colortex5Format = R11F_G11F_B10F;
 const int colortex6Format = R32F;
-const int colortex7Format = R11F_G11F_B10F;
+const int colortex7Format = RGBA16F;
 
 const float sunPathRotation = -40.0;
 const int shadowMapResolution = 1512; // [512 768 1024 1512 2048 3200 4096]

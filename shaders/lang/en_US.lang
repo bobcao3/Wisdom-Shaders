@@ -38,3 +38,9 @@ value.WATER_PARALLAX_QUALITY.0.3 = 30%
 option.NORMAL_MAPPING = Texture Normals
 
 option.RAIN_PUDDLES = Rain Puddles
+
+option.CLOUDS = Volumetric Cloud
+option.cloudSteps = Cloud Quality
+value.cloudSteps.8 = Normal
+value.cloudSteps.16 = High
+value.cloudSteps.32 = Ultra

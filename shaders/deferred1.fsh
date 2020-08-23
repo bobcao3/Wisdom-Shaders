@@ -18,6 +18,8 @@
 flat in vec3 sun_I;
 flat in vec3 moon_I;
 
+#define CLOUDS
+
 #include "/libs/raytrace.glsl"
 #include "/libs/atmosphere.glsl"
 
@@ -224,7 +226,13 @@ void main() {
             color.rgb = mix(color.rgb, moon_I * 8.0, smoothstep(0.9996, 0.99961, dot(normalize(view_pos), moonPosition * 0.01)));
         }
 
-        color.rgb += bicubicSample(gaux4, polarCoord).rgb + bayer64(iuv) * 0.0001;
+#ifdef CLOUDS
+        vec4 atmosphere = bicubicSample(gaux4, vec2(iuv) * invWidthHeight * vec2(0.25, 0.5) + vec2(0.5, 0.0));
+        color.rgb *= atmosphere.a;
+        color.rgb += atmosphere.rgb;
+#else
+        color.rgb += bicubicSample(gaux4, polarCoord).rgb;
+#endif
 
         composite_diffuse = color.rgb;
     }

@@ -10,7 +10,7 @@
 
 float day = float(worldTime) / 24000.0;
 float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
-float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.3, max(rainStrength, wetness));
+float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.3, rainStrength);
 
 // ============
 const float g = .76;
@@ -18,35 +18,61 @@ const float g2 = g * g;
 
 const float R0 = 6360e3;
 const float Ra = 6420e3;
-const float Hr = 7.994e3;
+const float Hr = 8e3;
 const float Hm = 1.2e3;
 
 const vec3 I0 = vec3(10.0); // Adjust for D65
 const vec3 bR = vec3(3.8e-6, 13.5e-6, 33.1e-6);
 
-#ifdef LQ_ATMOS
-const int steps = 6;
-const int stepss = 3;
-#else
-const int steps = 6;
-const int stepss = 10;
+#ifdef CLOUDS
+#define cloudSteps 8 // [8 16 32]
 #endif
+const int steps = 6;
+const int stepss = 8;
 
 vec3 I = I0; // * (1.0 - cloud_coverage * 0.7);
 
 const vec3 C = vec3(0., -R0, 0.);
 const vec3 bM = vec3(21e-6);
 
+float cloud_noise(in vec3 v, float t) {
+	float n = 0.0;
+	n += 0.55 * noise(v + t * 0.2);
+	n += 0.225 * noise(v * 2.0 + t * 0.4);
+	n += 0.125 * noise(v * 3.99 + t * 0.6);
+	n += 0.0625 * noise(v * 8.9);
+	n += 0.0625 * noise(v * 16.9);
+
+	return smoothstep(0.5 * (1.0 - cloud_coverage * 0.6), 0.64, n);
+}
+
+float cloud(vec3 p) {
+	return cloud_noise(p * 0.0003, frameTimeCounter * 0.3) * 40.0;
+}
+
+const float cloudAltitude = 4.0e3;
+const float cloudDepth = 2.0e3;
+
 void densities(in vec3 pos, out vec2 des) {
 	// des.x = Rayleigh
 	// des.y = Mie
-	float h = length(pos - C) - R0;
-	des.x = exp(-h/Hr);
+	float h = max(0.0, length(pos - C) - R0);
+	des.x = min(0.5, exp(-h/Hr));
 
 	// Add Ozone layer densities
-	des.x += exp(-abs(h - 25e3) /  15e3) * 0.3;
+	des.x += exp(-abs(h - 25e3) /  15e3) * 0.15;
 
-	des.y = exp(-h/Hm) * (1.0 + cloud_coverage);
+	des.y = exp(-h/Hm);
+
+#ifdef CLOUDS
+	if (cloudAltitude - cloudDepth < h && cloudAltitude + cloudDepth > h) {
+		des.y += cloud(pos) * max(0.0, sin(3.1415926 * ((h - cloudAltitude) / cloudDepth * 0.5 + 0.5)));
+	}
+#else
+	if (cloudAltitude - cloudDepth < h && cloudAltitude + cloudDepth > h) {
+		des.y += cloud_coverage * max(0.0, sin(3.1415926 * ((h - cloudAltitude) / cloudDepth * 0.5 + 0.5)));
+	}
+#endif
 }
 
 float escape(in vec3 p, in vec3 d, in float R) {
@@ -61,10 +87,16 @@ float escape(in vec3 p, in vec3 d, in float R) {
 }
 
 // this can be explained: http://www.scratchapixel.com/lessons/3d-advanced-lessons/simulating-the-colors-of-the-sky/atmospheric-scattering/
-vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
+vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 	if (d.y < 0.0) d.y = 0.0016 / (-d.y + 0.04) - 0.04;
 
-	float L = min(l, escape(o, d, Ra));
+	float L = min(lmax, escape(o, d, Ra));
+
+#ifdef CLOUDS
+	float cloudMaxL = min(lmax, escape(o, d, R0 + cloudAltitude + cloudDepth));
+#else
+	float cloudMaxL = 0.0;
+#endif
 
 	float phaseM, phaseR;
 	float phaseM_moon, phaseR_moon;
@@ -89,11 +121,31 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 	vec3 R = vec3(0.), M = vec3(0.);
 	vec3 R_moon = vec3(0.), M_moon = vec3(0.);
 
-	float u0 = - (L - 100.0) / (1.0 - exp2(steps));
+	float u0 = - (L - cloudMaxL - 100.0) / (1.0 - exp2(steps));
 
+#ifdef CLOUDS
+	for (int i = 0; i < steps + cloudSteps; ++i) {
+#else
 	for (int i = 0; i < steps; ++i) {
-		float dl = u0 * exp2(i);
-		float l = - u0 * (1.0 - exp2(i + 1));
+#endif
+		float dl, l;
+
+#ifdef CLOUDS
+		if (i >= cloudSteps)
+		{
+			dl = u0 * exp2(i + nseed - cloudSteps);
+			l = cloudMaxL - u0 * (1.0 - exp2(i + 1));
+		}
+		else
+		{
+			dl = cloudMaxL / float(cloudSteps);
+			l = dl * float(i + nseed);
+		}
+#else
+		dl = u0 * exp2(i + nseed);
+		l = - u0 * (1.0 - exp2(i + 1));
+#endif
+
 		vec3 p = o + d * l;
 
 		vec2 des;
@@ -143,7 +195,10 @@ vec3 scatter(vec3 o, vec3 d, vec3 Ds, float l) {
 
 	vec3 color = I * (max(vec3(0.0), R) * bR * phaseR + max(vec3(0.0), M) * bM * phaseM);
 	color += (0.008 * I) * (max(vec3(0.0), R_moon) * bR * phaseR_moon + max(vec3(0.0), M_moon) * bM * phaseM_moon);
-	return max(vec3(0.0), color);
+
+	float transmittance = exp(-(bM.x * depth.y));
+
+	return max(vec4(0.0), vec4(color, transmittance));
 }
 
 float noisyStarField(vec3 dir)
