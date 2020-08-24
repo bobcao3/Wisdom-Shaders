@@ -31,7 +31,7 @@ void main() {
     vec4 color = texelFetch(colortex0, iuv, 0);
 
     color = toGamma(color * exposure);
-    color.rgb = ACESFitted(color.rgb) * 1.4;
+    color.rgb = ACESFitted(color.rgb) * 1.2;
 
 #ifdef DEBUG_SHADOWMAP
     if (iuv.x < shadowMapQuadRes / 2 && iuv.y < shadowMapQuadRes / 2) {

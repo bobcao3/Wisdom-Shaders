@@ -143,7 +143,7 @@ void main() {
             const float num_directions = 4096 * NUM_SSPT_RAYS;
 
             float stride = max(2.0, viewHeight / 480.0);
-            float noise_sample = fract(texelFetch(colortex1, iuv % 0xFF, 0).r + texelFetch(colortex1, ivec2(frameCounter) & 0xFF, 0).r);
+            float noise_sample = fract(texelFetch(colortex1, iuv & 0xFF, 0).r + texelFetch(colortex1, ivec2(frameCounter) & 0xFF, 0).r);
 
             int sky_lod = clamp(int((1.0 - specular.r + specular.g) * 3.0), 0, 3);
 

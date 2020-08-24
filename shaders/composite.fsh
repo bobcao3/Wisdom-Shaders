@@ -4,7 +4,6 @@
 #define BUFFERS
 #define VECTORS
 #define CLIPPING_PLANE
-#define LQ_ATMOS
 
 #include "libs/encoding.glsl"
 #include "libs/sampling.glsl"
@@ -84,7 +83,7 @@ void main() {
         float distinction = clamp(length(view_pos) / distinction_distance, 0.0, 1.0);
         float actualDistinction = 0.0;
 
-        float dither = fract(hash(frameCounter & 0xFFFF) + bayer16(iuv));
+        float dither = fract(hash(frameCounter & 0xFFFF) + bayer16(iuv)) * 2.0 - 1.0;
 
         vec3 spos_start = world2shadowProj(vec3(0.0));
         vec3 spos_end = world2shadowProj(world_pos);
@@ -97,13 +96,13 @@ void main() {
         float nseed = fract(texelFetch(colortex1, iuv & 0xFF, 0).r + texelFetch(colortex1, ivec2(frameCounter) & 0xFF, 0).r) - 0.5;
         
         if (biomeCategory != 16)
-            fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, 32.0 * distinction_distance * distinction, nseed).rgb;
+            fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, distinction_distance * max(0.5, distinction), nseed).rgb;
         else
             fog = fromGamma(fogColor);
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 4; i++)
         {
-            float t = (float(i) + dither) * 0.3333;
+            float t = (float(i) + nseed + 0.5) * 0.25;
             vec3 spos = t * (spos_end - spos_start) + spos_start;
             vec3 wpos = t * world_pos;
 
@@ -123,7 +122,7 @@ void main() {
         }
 
         color *= exp2(-actualDistinction);
-        color += accumulation * fog;
+        color += clamp(accumulation, 0.0, 1.0) * fog;
     }
 
 /* DRAWBUFFERS:0 */

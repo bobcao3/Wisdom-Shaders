@@ -51,7 +51,8 @@ void main() {
     gl_Position.st += JitterSampleOffset(frameCounter) * invWidthHeight * gl_Position.w;
 
     vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (shadowLightPosition * 0.01);
-    sun_I = texture(gaux4, project_skybox2uv(world_sun_dir)).rgb;
+    vec4 sunSample = texture(gaux4, project_skybox2uv(world_sun_dir));
+    sun_I = sunSample.rgb * sunSample.a;
 }
 
 #else
