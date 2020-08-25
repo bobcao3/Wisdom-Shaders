@@ -136,16 +136,15 @@ void fragment() {
         }
         else
         {
-            vec3 refractedVpos = surfaceVPos + refractDir * clamp(waterDepth, 0.0, 1.0);
+            vec3 refractedVpos = surfaceVPos + refractDir * clamp(waterDepth, 0.0, 0.5);
             vec3 projPos = view2proj(refractedVpos);
             vec2 projUV = projPos.st * 0.5 + 0.5;
 
             vec3 new_land_vpos = proj2view(getProjPos(projUV, texture(depthtex1, projUV).r));
-            waterDepth = abs(land_vpos.z - surfaceVPos.z);
 
             if (new_land_vpos.z < surfaceVPos.z)
             {
-                c.rgb = texture(gaux2, projUV, 3).rgb;
+                c.rgb = texture(gaux2, projUV, 0).rgb;
                 land_vpos = new_land_vpos;
             }
             else
@@ -201,7 +200,10 @@ void fragment() {
         sky *= fresnelSchlick(dot(mirrorDir, surfaceNormal), vec3(0.02));
     }
 
-    c.rgb += specular_brdf_ggx_oren_schlick(sun_I * shadows, isWater == 0 ? 0.1 * (1.0 + c.a) : 0.1, vec3(0.02), shadowLightPosition * 0.01, surfaceNormal, V);
+    if (isWater != 0 || isEyeInWater == 0)
+    {
+        c.rgb += specular_brdf_ggx_oren_schlick(sun_I * shadows, isWater == 0 ? 0.1 * (1.0 + c.a) : 0.1, vec3(0.02), shadowLightPosition * 0.01, surfaceNormal, V);
+    }
 
     c.rgb += sky * albedo;
 

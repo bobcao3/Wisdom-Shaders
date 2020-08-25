@@ -40,9 +40,14 @@ void main() {
     float depth = getDepth(iuv);
     vec3 proj_pos = getProjPos(iuv, depth);
 
-    uvec4 gbuffers = texelFetch(colortex4, iuv, 0);
+    uvec3 gbuffers = texelFetch(colortex4, iuv, 0).rgb;
 
-    vec4 color = unpackUnorm4x8(gbuffers.g);
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+    vec2 specular;
+    decodeAlbedoSpecular(gbuffers.g, color.rgb, specular);
+    
+    specular.r = (1.0 - specular.r * specular.r);
+    
     vec3 normal = normalDecode(gbuffers.r);
 
     vec4 decoded_b = unpackUnorm4x8(gbuffers.b);
@@ -50,9 +55,6 @@ void main() {
     float subsurface = decoded_b.b * 16.0;
 
     vec3 world_normal = mat3(gbufferModelViewInverse) * normal;
-
-    vec4 specular = unpackUnorm4x8(gbuffers.a);
-    specular.r = (1.0 - specular.r * specular.r);
 
     vec3 view_pos = proj2view(proj_pos);
     vec3 V = normalize(-view_pos);
@@ -126,7 +128,7 @@ void main() {
         }
 
         // SSPT
-        if (specular.a <= 0.05 || specular.a >= 0.995)
+        if (emmisive <= 0.05 || emmisive >= 0.995)
         {
             float sunDotUp = dot(normalize(sunPosition), normalize(upPosition));
             float ambientIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01);

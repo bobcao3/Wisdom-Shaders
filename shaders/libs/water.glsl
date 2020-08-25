@@ -15,7 +15,7 @@ float sea_octave_micro(vec2 fuv, float choppy) {
 
 const float SEA_CHOPPY = 5.5;
 const float SEA_SPEED = 5.3;
-const float SEA_FREQ = 0.11;
+const float SEA_FREQ = 0.08;
 const mat2 octave_m = mat2(1.4,1.1,-1.2,1.4);
 
 const float height_mul[6] = float[6] (
@@ -43,7 +43,7 @@ float getwave(vec3 p, in float lod, int iterations) {
         }
 
 		h += d * amp;
-		fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; //wave_speed *= 0.5;
+		fuv *= octave_m; freq *= 1.8; amp *= height_mul[i]; //wave_speed *= 0.5;
 		choppy = mix(choppy,1.0,0.2);
 
         total_height += amp;

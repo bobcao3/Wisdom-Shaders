@@ -51,7 +51,7 @@ void main() {
 
     vec3 color = texelFetch(colortex0, iuv, 0).rgb;
 
-    if (isEyeInWater == 1)
+    if (isEyeInWater == 1 && depth == texelFetch(depthtex1, iuv, 0).r)
     {
         // Underwater FX
         vec2 lmcoord = unpackUnorm4x8(texelFetch(colortex4, iuv, 0).b).st;

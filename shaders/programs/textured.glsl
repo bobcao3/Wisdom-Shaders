@@ -160,7 +160,7 @@ void fragment() {
 #endif
 
     if (c.a < threshold) discard;
-    fragData[0] = uvec4(normalEncode(normal_map), packUnorm4x8(c), packUnorm4x8(vec4(lmcoord_dithered, subsurface / 16.0, specular_map.a)), packUnorm4x8(specular_map));
+    fragData[0] = uvec3(normalEncode(normal_map), encodeAlbedoSpecular(c.rgb, specular_map.rg), packUnorm4x8(vec4(lmcoord_dithered, subsurface / 16.0, specular_map.a)));
 }
 
 #endif

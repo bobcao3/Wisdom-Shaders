@@ -26,9 +26,14 @@ void main() {
     float depth = getDepth(iuv);
     vec3 proj_pos = getProjPos(iuv, depth);
 
-    uvec4 gbuffers = texelFetch(colortex4, iuv, 0);
+    uvec3 gbuffers = texelFetch(colortex4, iuv, 0).rgb;
 
-    vec4 color = unpackUnorm4x8(gbuffers.g);
+    vec3 color;
+    vec2 specular;
+    decodeAlbedoSpecular(gbuffers.g, color, specular);
+    
+    specular.r = (1.0 - specular.r * specular.r);
+
     vec3 normal = normalDecode(gbuffers.r);
 
     vec3 composite = texelFetch(colortex0, iuv, 0).rgb;
@@ -36,10 +41,10 @@ void main() {
     vec3 Ld = Ld_center * 0.214607;
 
     vec4 decoded_b = unpackUnorm4x8(gbuffers.b);
-    vec2 lmcoord = decoded_b.st;
-    vec4 specular = unpackUnorm4x8(gbuffers.a);
+    vec2 lmcoord = decoded_b.st;\
+    float emmisive = decoded_b.a;
 
-    if ((specular.a <= 0.05 || specular.a >= 0.995) && proj_pos.z < 0.99999) {
+    if ((emmisive <= 0.05 || emmisive >= 0.995) && proj_pos.z < 0.99999) {
         const float bilateral_weight = 16.0;
         float total_weights = 0.214607;
 

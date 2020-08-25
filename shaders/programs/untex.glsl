@@ -32,7 +32,7 @@ void main() {
 
 void fragment() {
 /* DRAWBUFFERS:4 */
-    fragData[0] = uvec4(normalEncode(normal), packUnorm4x8(color), packUnorm4x8(vec4(0.0, 0.0, 0.0, 0.0)), packUnorm4x8(vec4(1.0, 1.0, 1.0, 1.0)));
+    fragData[0] = uvec3(normalEncode(normal), encodeAlbedoSpecular(color.rgb, vec2(1.0)), packUnorm4x8(vec4(0.0, 0.0, 0.0, 0.0)));
 }
 
 #endif

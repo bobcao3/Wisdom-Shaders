@@ -5,7 +5,7 @@
 // #endif
 
 #ifdef UINT_BUFFER
-out uvec4 fragData[1];
+out uvec3 fragData[1];
 #endif
 
 void fragment();
