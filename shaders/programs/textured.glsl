@@ -48,7 +48,6 @@ void main() {
 #ifdef ENTITY
     color += entityColor;
 #endif
-    color.rgb = fromGamma(color.rgb);
     uv = mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st;
     lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
     normal = normalize(gl_NormalMatrix * gl_Normal);
@@ -140,7 +139,10 @@ void fragment() {
     specular_map.a = 0.95;
     #endif
 
-    vec4 c = color * fromGamma(textureLod(tex, uv, lod));
+    vec4 c = color * textureLod(tex, uv, lod);
+
+    c.rgb += vec3(threshold - 0.5) / vec3(32.0, 64.0, 32.0);
+    c.rgb = max(c.rgb, vec3(0.0));
 
 #if (!defined(ENTITY) && defined(RAIN_PUDDLES))
     float wetnessMorph = 0.5 * noise(worldPos.xz + cameraPosition.xz);

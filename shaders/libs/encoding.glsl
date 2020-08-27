@@ -32,7 +32,7 @@ void decodeAlbedoSpecular(uint enc, out vec3 albedo, out vec2 specular)
 	ivec3 dAlbedo = ivec3((enc >> 11) & 0x1F, (enc >> 5) & 0x3F, enc & 0x1F);
 	ivec2 dSpecular = ivec2(enc >> 24, (enc >> 16) & 0xFF);
 
-	albedo = vec3(dAlbedo) / vec3(31.0, 63.0, 31.0);
+	albedo = pow(vec3(dAlbedo) / vec3(31.0, 63.0, 31.0), vec3(2.2));
 	specular = vec2(dSpecular) / vec2(255.0);
 }
 

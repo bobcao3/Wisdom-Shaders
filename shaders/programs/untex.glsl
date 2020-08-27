@@ -20,7 +20,6 @@ void main() {
     mat4 mvp_mat = gl_ModelViewProjectionMatrix;
 
     color = gl_Color;
-    color.rgb = fromGamma(color.rgb);
     normal = normalize(gl_NormalMatrix * gl_Normal);
 
     gl_Position = mvp_mat * input_pos;
