@@ -19,6 +19,8 @@ float gaussian_weights[] = {
 
 uniform float wetness;
 
+// #define METAL_TINT
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
     vec2 uv = vec2(iuv) * invWidthHeight;
@@ -62,10 +64,17 @@ void main() {
 
         Ld /= total_weights;
 
+#ifdef METAL_TINT
         if (specular.g > 229.5 / 255.0)
         {
             color.rgb = vec3(1.0);
         }
+#else
+        if (specular.g > 229.5 / 255.0)
+        {
+            color.rgb = color.rgb * 0.5 + 0.5;
+        }
+#endif
         
         composite += color.rgb * Ld.rgb;
         // composite = Ld.rgb;
