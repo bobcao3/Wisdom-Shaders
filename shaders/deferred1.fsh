@@ -188,9 +188,10 @@ void main() {
             vec4 proj_pos_prev = gbufferPreviousProjection * (gbufferPreviousModelView * world_pos_prev);
             proj_pos_prev.xyz /= proj_pos_prev.w;
 
-            vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5) + 0.5 * invWidthHeight;
-            vec4 history_d = texture(colortex3, prev_uv);
-            
+            vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5);
+            ivec2 iprev_uv = ivec2(prev_uv);
+            prev_uv += 0.5 * invWidthHeight;
+
             if (isnan(Ld.r) || isnan(Ld.g) || isnan(Ld.b)) Ld = vec3(0.0);
             
             if (prev_uv.x <= 0.0 || prev_uv.x >= 1.0 || prev_uv.y <= 0.0 || prev_uv.y >= 1.0)
@@ -199,11 +200,14 @@ void main() {
             }
             else
             {
+                vec4 history_d = texture(colortex3, prev_uv);
+            
                 #ifdef REDUCE_GHOSTING
                 float mix_weight = 0.2;
                 #else
                 float mix_weight = 0.1;
                 #endif
+        
                 float history_depth = proj_pos_prev.z * 0.5 + 0.5;
                 float depth_difference = abs(history_d.a - history_depth) / history_depth;
                 if (depth_difference > 0.001) {

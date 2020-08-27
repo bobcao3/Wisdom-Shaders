@@ -68,7 +68,7 @@ void main() {
         }
         
         composite += color.rgb * Ld.rgb;
-        // composite = Ld.rgb;
+        composite = Ld.rgb;
 
         // composite = normal * 0.5 + 0.5;
         // composite = vec3((specular.a <= 0.05 || specular.a >= 0.99));

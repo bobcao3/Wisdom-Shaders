@@ -69,28 +69,54 @@ void main() {
         ivec2 adj_iuv = iuv;
         adj_iuv.x -= int(viewWidth) >> 1;
         adj_iuv *= ivec2(4, 2);
-        
-        vec3 proj_pos = getProjPos(adj_iuv, 1.0);
-        vec3 view_pos = proj2view(proj_pos);
-        vec3 world_pos = view2world(view_pos);
 
-        vec3 dir = normalize(world_pos);
-        vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
+        bool shouldRender = false;
+        shouldRender = shouldRender || (texelFetchOffset(depthtex0, adj_iuv, 0, ivec2(-4, 0)).r >= 1.0);
+        shouldRender = shouldRender || (texelFetchOffset(depthtex0, adj_iuv, 0, ivec2(-2, 0)).r >= 1.0);
+        shouldRender = shouldRender || (texelFetchOffset(depthtex0, adj_iuv, 0, ivec2(2, 0)).r >= 1.0);
+        shouldRender = shouldRender || (texelFetchOffset(depthtex0, adj_iuv, 0, ivec2(4, 0)).r >= 1.0);
+        shouldRender = shouldRender || (texelFetchOffset(depthtex0, adj_iuv, 0, ivec2(-4, 1)).r >= 1.0);
+        shouldRender = shouldRender || (texelFetchOffset(depthtex0, adj_iuv, 0, ivec2(-2, 1)).r >= 1.0);
+        shouldRender = shouldRender || (texelFetchOffset(depthtex0, adj_iuv, 0, ivec2(2, 1)).r >= 1.0);
+        shouldRender = shouldRender || (texelFetchOffset(depthtex0, adj_iuv, 0, ivec2(4, 1)).r >= 1.0);
 
-        float nseed = fract(texelFetch(colortex1, iuv & 0xFF, 0).r + texelFetch(colortex1, ivec2(frameCounter) & 0xFF, 0).r);
-
-        skybox = scatter(vec3(0.0, cameraPosition.y, 0.0), dir, world_sun_dir, Ra, nseed);
-
-        vec4 world_pos_prev = vec4(world_pos - previousCameraPosition + cameraPosition, 1.0);
-        vec4 proj_pos_prev = gbufferPreviousProjection * (gbufferPreviousModelView * world_pos_prev);
-        proj_pos_prev.xyz /= proj_pos_prev.w;
-
-        vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5);
-        if (prev_uv.x > 0.0 && prev_uv.x < 1.0 && prev_uv.y > 0.0 && prev_uv.y < 1.0)
+        if (shouldRender)
         {
-            prev_uv = prev_uv * vec2(0.25, 0.5) + vec2(0.5, 0.0) + 0.5 * invWidthHeight;
-            prev_uv = clamp(prev_uv, vec2(0.5, 0.0) + invWidthHeight * 0.5, vec2(0.75, 0.5) - invWidthHeight * 2.0);
-            skybox = mix(texture(gaux4, prev_uv), skybox, 0.05);
+            vec3 proj_pos = getProjPos(adj_iuv, 1.0);
+            vec3 view_pos = proj2view(proj_pos);
+            vec3 world_pos = view2world(view_pos);
+
+            vec3 dir = normalize(world_pos);
+            vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
+
+            float nseed = fract(texelFetch(colortex1, iuv & 0xFF, 0).r + texelFetch(colortex1, ivec2(frameCounter) & 0xFF, 0).r);
+
+            skybox = scatter(vec3(0.0, cameraPosition.y, 0.0), dir, world_sun_dir, Ra, nseed);
+
+            vec4 world_pos_prev = vec4(world_pos - previousCameraPosition + cameraPosition, 1.0);
+            vec4 proj_pos_prev = gbufferPreviousProjection * (gbufferPreviousModelView * world_pos_prev);
+            proj_pos_prev.xyz /= proj_pos_prev.w;
+
+            vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5);
+            if (prev_uv.x > 0.0 && prev_uv.x < 1.0 && prev_uv.y > 0.0 && prev_uv.y < 1.0)
+            {
+                prev_uv = prev_uv * vec2(0.25, 0.5) + vec2(0.5, 0.0) + 0.5 * invWidthHeight;
+                prev_uv = clamp(prev_uv, vec2(0.5, 0.0) + invWidthHeight * 0.5, vec2(0.75, 0.5) - invWidthHeight * 2.0);
+                ivec2 iprev_uv = ivec2(prev_uv * vec2(viewWidth, viewHeight));
+
+                vec4 prevSkyBox00 = texelFetchOffset(gaux4, iprev_uv, 0, ivec2(0, 0));
+                vec4 prevSkyBox01 = texelFetchOffset(gaux4, iprev_uv, 0, ivec2(0, 1));
+                vec4 prevSkyBox10 = texelFetchOffset(gaux4, iprev_uv, 0, ivec2(1, 0));
+                vec4 prevSkyBox11 = texelFetchOffset(gaux4, iprev_uv, 0, ivec2(1, 1));
+
+                if (dot(prevSkyBox00, vec4(1.0)) > 0.0
+                 && dot(prevSkyBox01, vec4(1.0)) > 0.0
+                 && dot(prevSkyBox10, vec4(1.0)) > 0.0
+                 && dot(prevSkyBox11, vec4(1.0)) > 0.0)
+                {
+                    skybox = mix(texture(gaux4, prev_uv), skybox, 0.05);
+                }
+            }
         }
     }
 #endif
