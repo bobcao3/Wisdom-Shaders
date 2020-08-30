@@ -103,7 +103,7 @@ void main() {
             }
 
             L = max(vec3(0.0), (sun_I + moon_I) * shadow);
-            L = brdf_ggx_oren_schlick(color.rgb, L, specular.r, specular.g, F0, sun_vec, normal, V);
+            L = brdf_ggx_oren_schlick(color.rgb, L, specular.r, specular.g, subsurface, F0, sun_vec, normal, V);
 
             color.a = shadow;
         }

@@ -92,7 +92,7 @@ vec3 ImportanceSampleGGX(vec2 rand, vec3 N, vec3 wo, float roughness, out float 
 	return wi;
 }
 
-vec3 brdf_ggx_oren_schlick(vec3 albedo, vec3 radiance, float roughness, float metallic, vec3 F0, vec3 L, vec3 N, vec3 V)
+vec3 brdf_ggx_oren_schlick(vec3 albedo, vec3 radiance, float roughness, float metallic, float subsurface, vec3 F0, vec3 L, vec3 N, vec3 V)
 {
 	vec3 H = normalize(L + V);
 	float NDF = DistributionGGX(N, H, roughness);
@@ -107,7 +107,7 @@ vec3 brdf_ggx_oren_schlick(vec3 albedo, vec3 radiance, float roughness, float me
 	float denominator = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
 	vec3 specular     = numerator / denominator;  
 	
-	float NdotL = max(dot(N, L), 0.0);                
+	float NdotL = max(dot(N, L), subsurface);                
 	return max(vec3(0.0), (kD * albedo / 3.1415926 + specular) * radiance * NdotL); 
 }
 

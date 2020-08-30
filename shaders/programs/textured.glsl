@@ -128,7 +128,7 @@ void fragment() {
 
     //lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
 
-    vec4 specular_map = texture(specular, uv, lod);
+    vec4 specular_map = textureLod(specular, uv, lod);
 
     if (blockId > 8001.5 && blockId < 8002.5) {
         specular_map.a = 0.95;
