@@ -1,3 +1,5 @@
+#define GBUFFERS_WATER
+
 #include "/libs/compat.glsl"
 #include "/libs/encoding.glsl"
 
@@ -77,7 +79,7 @@ uniform int isEyeInWater;
 #define WaterParallaxMapping
 #define WATER_PARALLAX_QUALITY 0.7 // [0.3 0.5 0.7 1.0]
 
-void fragment() {
+void main() {
 /* DRAWBUFFERS:0 */
     vec4 c = vec4(0.0);
 
