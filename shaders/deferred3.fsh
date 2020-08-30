@@ -79,9 +79,7 @@ void main() {
         composite += color.rgb * Ld.rgb;
         // composite = Ld.rgb;
 
-        // composite = normal * 0.5 + 0.5;
-        // composite = vec3((specular.a <= 0.05 || specular.a >= 0.99));
-        // composite = getF(specular.g, dot(-normalize(view_pos), normal));
+        // composite = vec3(normal * 0.5 + 0.5);
     }
 
 /* DRAWBUFFERS:05 */

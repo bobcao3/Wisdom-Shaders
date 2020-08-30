@@ -87,8 +87,8 @@ void main() {
 
             // if (depth > 0.7) {
             //     int lod = 0;
-            //     float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 4.0, 1.0, 0.04, 0, lod) != ivec2(-1));
-            //     rt_contact_shadow *= smoothstep(0.20, 0.35, abs(dot(sun_vec, normal)));
+            //     float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 2.0, 1.0, 0.01, 0, lod) != ivec2(-1));
+            //     // rt_contact_shadow *= smoothstep(0.20, 0.35, abs(dot(sun_vec, normal)));
 
             //     shadow = min(shadow, 1.0 - rt_contact_shadow);
             // }
@@ -104,6 +104,8 @@ void main() {
 
             L = max(vec3(0.0), (sun_I + moon_I) * shadow);
             L = brdf_ggx_oren_schlick(color.rgb, L, specular.r, specular.g, subsurface, F0, sun_vec, normal, V);
+
+            // L = vec3(abs(dot(normal, L)));
 
             color.a = shadow;
         }

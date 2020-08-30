@@ -3,8 +3,8 @@ vec3 diffuse_bsdf(in vec3 albedo) {
 }
 
 float oren_nayer(in vec3 v, in vec3 l, in vec3 n, in float r) {
-	float NdotL = max(0.0001, dot(n, l));
-	float NdotV = max(0.0001, dot(n, v));
+	float NdotL = clamp(dot(n, l), 0.0, 1.0);
+	float NdotV = clamp(dot(n, v), 0.0, 1.0);
 
 	float t = max(NdotL,NdotV);
 	float g = max(.0, dot(v - n * NdotV, l - n * NdotL));
@@ -107,7 +107,7 @@ vec3 brdf_ggx_oren_schlick(vec3 albedo, vec3 radiance, float roughness, float me
 	float denominator = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
 	vec3 specular     = numerator / denominator;  
 	
-	float NdotL = max(dot(N, L), subsurface);                
+	float NdotL = min(1.0, max(dot(N, L), subsurface));                
 	return max(vec3(0.0), (kD * albedo / 3.1415926 + specular) * radiance * NdotL); 
 }
 

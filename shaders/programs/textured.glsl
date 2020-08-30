@@ -15,6 +15,10 @@ INOUT flat vec3 tangent;
 INOUT flat vec3 bitangent;
 #endif
 
+#ifdef POM
+INOUT vec3 tangentpos;
+#endif
+
 INOUT vec3 worldPos;
 INOUT vec3 viewPos;
 INOUT vec2 uv;
@@ -76,6 +80,11 @@ void main() {
 
     gl_Position = proj_mat * vpos;
 
+#ifdef POM
+	mat3 TBN = mat3(tangent, bitangent, normal);
+	tangentpos = normalize(viewPos * TBN);
+#endif
+
 #ifndef NO_TAA
     gl_Position.st += JitterSampleOffset(frameCounter) * invWidthHeight * gl_Position.w;
 #endif
@@ -107,6 +116,59 @@ uniform float wetness;
 // 	return clamp(dir_lighting * 1.4, 0.0, 1.0);
 // }
 
+#ifdef POM
+#define tileResolution 128 // [32 64 128 256 512 1024]
+
+uniform ivec2 atlasSize;
+
+vec2 tileResolutionF = vec2(tileResolution) / atlasSize;
+
+vec2 minCoord = vec2(uv.x - mod(uv.x, tileResolutionF.x), uv.y - mod(uv.y, tileResolutionF.y));
+vec2 maxCoord = minCoord + tileResolutionF;
+
+vec2 atlas_offset(in vec2 coord, in vec2 offset) {
+	vec2 offsetCoord = coord + mod(offset.xy, tileResolutionF);
+
+	offsetCoord.x -= float(offsetCoord.x > maxCoord.x) * tileResolutionF.x;
+	offsetCoord.x += float(offsetCoord.x < minCoord.x) * tileResolutionF.x;
+
+	offsetCoord.y -= float(offsetCoord.y > maxCoord.y) * tileResolutionF.y;
+	offsetCoord.y += float(offsetCoord.y < minCoord.y) * tileResolutionF.y;
+
+	return offsetCoord;
+}
+
+vec2 ParallaxMapping(in vec2 coord) {
+	vec2 adjusted = coord.st;
+	#define maxSteps 8 // [4 8 16]
+	#define scale 0.01 // [0.005 0.01 0.02 0.04]
+
+	float heightmap = texture(normals, coord.st).a - 1.0f;
+
+	vec3 offset = vec3(0.0f, 0.0f, 0.0f);
+	vec3 s = normalize(tangentpos);
+	s = s / s.z * scale / maxSteps;
+
+	float lazyx = 0.5;
+	const float lazyinc = 0.5 / maxSteps;
+
+	if (heightmap < 0.0f) {
+		for (int i = 0; i < maxSteps; i++) {
+			float prev = offset.z;
+
+			offset += (heightmap - prev) * lazyx * s;
+			lazyx += lazyinc;
+
+			adjusted = atlas_offset(coord.st, offset.st);
+			heightmap = texture(normals, adjusted).a - 1.0f;
+			if (max(0.0, offset.z - heightmap) < 0.05) break;
+		}
+	}
+
+	return adjusted;
+}
+#endif
+
 void fragment() {
 /* DRAWBUFFERS:4 */
     float threshold = fract(texelFetch(gaux3, ivec2(gl_FragCoord.st) % 0xFF, 0).r + texelFetch(gaux3, ivec2(frameCounter) % 0xFF, 0).r) * 0.95 + 0.05;
@@ -117,18 +179,26 @@ void fragment() {
     float dL = min(length(ddx), length(ddy.x));
     float lod = clamp(round(log2(dL * textureSize(tex, 0).x) - 1.0), 0, 3);
 
+#ifdef POM
+    vec2 adjuv = ParallaxMapping(uv);
+#else
+    #define adjuv uv
+#endif
+
     vec2 lmcoord_dithered = lmcoord + bayer8(gl_FragCoord.st) * 0.004;
 
 #if (defined(ENTITY) || !defined(NORMAL_MAPPING))
     vec3 normal_map = normal;
 #else
-    vec3 normal_map = texture(normals, uv, lod).rgb * 2.0 - 1.0;
+    vec3 normal_map;
+    normal_map.xy = texture(normals, adjuv).rg * 2.0 - 1.0;
+    normal_map.z = sqrt(1.0 - dot(normal_map.xy, normal_map.xy));
     normal_map = mat3(tangent, bitangent, normal) * normal_map;
 #endif
 
     //lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
 
-    vec4 specular_map = textureLod(specular, uv, lod);
+    vec4 specular_map = textureLod(specular, adjuv, lod);
 
     if (blockId > 8001.5 && blockId < 8002.5) {
         specular_map.a = 0.95;
@@ -139,7 +209,7 @@ void fragment() {
     specular_map.a = 0.95;
     #endif
 
-    vec4 c = color * textureLod(tex, uv, lod);
+    vec4 c = color * textureLod(tex, adjuv, lod);
 
     c.rgb += vec3(threshold - 0.5) / vec3(32.0, 64.0, 32.0);
     c.rgb = max(c.rgb, vec3(0.0));
