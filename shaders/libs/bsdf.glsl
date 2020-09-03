@@ -94,21 +94,22 @@ vec3 ImportanceSampleGGX(vec2 rand, vec3 N, vec3 wo, float roughness, out float 
 
 vec3 brdf_ggx_oren_schlick(vec3 albedo, vec3 radiance, float roughness, float metallic, float subsurface, vec3 F0, vec3 L, vec3 N, vec3 V)
 {
-	vec3 H = normalize(L + V);
-	float NDF = DistributionGGX(N, H, roughness);
-	float G = oren_nayer(V, L, N, roughness);
-	vec3 F = fresnelSchlickRoughness(max(0.0, dot(H, V)), F0, roughness);
+	f16vec3 H = normalize(f16vec3(L + V));
+	float16_t NDF = float16_t(DistributionGGX(N, H, roughness));
+	float16_t G = float16_t(oren_nayer(V, L, N, roughness));
+	f16vec3 F = f16vec3(fresnelSchlickRoughness(max(0.0006, dot(H, V)), F0, roughness));
 
-	vec3 kS = F;
-	vec3 kD = vec3(1.0) - kS;
-	kD *= 1.0 - metallic;	  
+	f16vec3 kS = F;
+	f16vec3 kD = f16vec3(1.0) - kS;
+	kD *= float16_t(1.0) - float16_t(metallic);
 	
-	vec3 numerator    = NDF * G * F;
-	float denominator = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
-	vec3 specular     = numerator / denominator;  
+	float16_t NdotL = min(float16_t(1.0), max(float16_t(dot(N, L)), float16_t(subsurface)));                
 	
-	float NdotL = min(1.0, max(dot(N, L), subsurface));                
-	return max(vec3(0.0), (kD * albedo / 3.1415926 + specular) * radiance * NdotL); 
+	f16vec3 numerator    = NDF * G * F;
+	float16_t denominator = float16_t(4.0) * max(float16_t(dot(N, V)), float16_t(0.005)) * max(NdotL, float16_t(0.005));
+	f16vec3 specular     = numerator / denominator;  
+	
+	return vec3(max(vec3(0.0), (kD * albedo / float16_t(3.1415926) + specular) * radiance * NdotL));
 }
 
 vec3 diffuse_brdf_ggx_oren_schlick(vec3 albedo, vec3 radiance, float roughness, float metallic, vec3 F0, vec3 N, vec3 V)

@@ -16,10 +16,30 @@ float noise(vec2 p) {
 	vec2 f = fract(p);
 	vec2 u = (f * f) * fma(vec2(-2.0f), f, vec2(3.0f));
 	return fma(2.0f, mix(
-		mix(hash(i),                      hash(i + vec2(1.0f,0.0f)), u.x),
+		mix(hash(i),                   hash(i + vec2(1.0f,0.0f)), u.x),
 		mix(hash(i + vec2(0.0f,1.0f)), hash(i + vec2(1.0f,1.0f)), u.x),
 	u.y), -1.0f);
 }
+
+#ifdef USE_HALF
+float16_t hash16(f16vec2 n) { 
+	return fract(sin(dot(n, f16vec2(12.9898, 4.1414))) * float16_t(43758.5453));
+}
+
+float16_t noise16(f16vec2 p){
+	f16vec2 ip = floor(p);
+	f16vec2 u = fract(p);
+	u = u * u * (float16_t(3.0) - float16_t(2.0) * u);
+	
+	float16_t res = mix(
+		mix(hash16(ip                    ), hash16(ip + f16vec2(1.0, 0.0)), u.x),
+		mix(hash16(ip + f16vec2(0.0, 1.0)), hash16(ip + f16vec2(1.0, 1.0)), u.x), u.y);
+	return res * res;
+}
+#else
+#define hash16 hash
+#define noise16 noise
+#endif
 
 float noise(vec3 x) {
 	const vec3 step = vec3(110, 241, 171);

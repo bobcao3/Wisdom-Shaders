@@ -1,6 +1,8 @@
 #version 420 compatibility
 #pragma optimize(on)
 
+#include "/libs/compat.glsl"
+
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
 uniform sampler2D colortex2;

@@ -54,34 +54,34 @@ float getwave(vec3 p, in float lod, int iterations) {
 
 float getpeaks(vec3 p, in float lod, int min_iter, int iterations) {
 	float freq = SEA_FREQ;
-	float amp = 1.0;
+	float16_t amp = 1.0;
 	float choppy = SEA_CHOPPY;
 	vec2 fuv = p.xz * 2.0 - p.y * 2.0 - frameTimeCounter * vec2(0.1, 0.5); fuv.x *= 0.75;
 
 	float wave_speed = frameTimeCounter * SEA_SPEED;
-    float total_height = 1.0;
+    float16_t total_height = 1.0;
 
-	float d, h = 0.0;
+	float16_t h = float16_t(0.0);
 	for(int i = 0; i < iterations * lod; i++) {
-		d = sea_octave_micro((fuv+wave_speed * vec2(0.1, 0.9))*freq,choppy);
+		float16_t d = float16_t(sea_octave_micro((fuv+wave_speed * vec2(0.1, 0.9))*freq,choppy));
 
         if (i + 1 >= iterations * lod)
         {
-            amp *= fract(iterations * lod);
+            amp *= fract(float16_t(iterations * lod));
         }
 
         if (i >= min_iter)
         {
-    		h += smoothstep(0.95, 1.0, d) * amp;
+    		h += smoothstep(float16_t(0.95), float16_t(1.0), d) * amp;
         }
 	
-    	fuv *= octave_m; freq *= 1.9; amp *= height_mul[i]; //wave_speed *= 0.5;
+    	fuv *= octave_m; freq *= 1.9; amp *= float16_t(height_mul[i]); //wave_speed *= 0.5;
 		choppy = mix(choppy,1.0,0.2);
 
         total_height += amp;
 	}
 
-	return h / total_height;
+	return float(h / total_height);
 }
 
 vec3 get_water_normal(in vec3 wwpos, in float lod, in vec3 N, in vec3 T, in vec3 B) {

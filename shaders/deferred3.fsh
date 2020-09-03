@@ -1,6 +1,8 @@
 #version 420 compatibility
 #pragma optimize(on)
 
+#include "/libs/compat.glsl"
+
 const bool colortex3Clear = false;
 
 #define VECTORS

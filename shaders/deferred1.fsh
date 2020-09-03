@@ -1,6 +1,8 @@
 #version 420 compatibility
 #pragma optimize(on)
 
+#include "/libs/compat.glsl"
+
 #define BUFFERS
 
 #include "/libs/encoding.glsl"

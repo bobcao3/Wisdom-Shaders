@@ -1,6 +1,8 @@
 #version 420 compatibility
 #pragma optimize(on)
 
+#include "/libs/compat.glsl"
+
 flat out vec3 sun_I;
 flat out vec3 moon_I;
 
