@@ -17,6 +17,10 @@
 
 #extension GL_AMD_gpu_shader_half_float : enable
 
+#define int8_t int
+#define int16_t int
+#define int32_t int
+
 #else
 
 #define float32_t float
