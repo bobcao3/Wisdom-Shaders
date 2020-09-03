@@ -1,6 +1,8 @@
 #version 420 compatibility
 #pragma optimize(on)
 
+#include "/libs/compat.glsl"
+
 #define VECTORS
 #define TRANSFORMATIONS_RESIDUAL
 #define TRANSFORMATIONS

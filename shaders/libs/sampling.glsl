@@ -67,12 +67,14 @@ float shadowTexSmooth(in sampler2D tex, in vec3 spos, out float depth, float bia
 #include "/libs/taa.glsl"
 uniform int frameCounter;
 
-float getShadowRadiusPCSS(in sampler2D tex, in vec3 spos, out float depth, in ivec2 iuv) {
+float getShadowRadiusPCSS(in sampler2D tex, in vec3 spos, out float depth, in ivec2 iuv, out bool skipShadow, out float shadowEstiamte) {
     const vec2 resolution = vec2(shadowMapResolution);
     const vec2 invresolution = 1.0 / resolution;
 
     float s, ds;
     depth = 100.0;
+
+    float allSamples = 0.0;
 
     for (int i = 0; i < 4; i++) {
         vec2 grid_sample = fract(WeylNth(i - (frameCounter & 0x7) * 8) + bayer8(iuv));
@@ -81,7 +83,12 @@ float getShadowRadiusPCSS(in sampler2D tex, in vec3 spos, out float depth, in iv
         vec3 spos_cascaded = shadowProjCascaded(spos + vec3(direction * 0.02, 0.0), s, ds);
         vec4 dsample = textureGather(tex, spos_cascaded.xy + invresolution * 0.5);
         depth = min(depth, (min(min(dsample.x, dsample.y), min(dsample.z, dsample.w)) * 2.0 - 1.0) * ds);
+
+        allSamples += dot(step(spos_cascaded.z, dsample + 0.0001), vec4(1.0));
     }
+
+    skipShadow = allSamples < 0.25 || allSamples > 15.75;
+    shadowEstiamte = allSamples * 0.0625;
 
     float sunSize = 1.5 / shadowDistance;
 

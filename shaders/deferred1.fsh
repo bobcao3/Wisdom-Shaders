@@ -77,12 +77,17 @@ void main() {
             vec3 shadow_proj_pos = world2shadowProj(world_pos + world_normal * 0.007 * abs(view_pos.z));
 
             float shadow_sampled_depth;
+            bool skipShadow = false;
+            float shadow = 1.0;
 #ifdef PCSS
-            float shadow_radius = getShadowRadiusPCSS(shadowtex1, shadow_proj_pos, shadow_sampled_depth, iuv);
+            float shadow_radius = getShadowRadiusPCSS(shadowtex1, shadow_proj_pos, shadow_sampled_depth, iuv, skipShadow, shadow);
 #else
             const float shadow_radius = 0.001;
 #endif
-            float shadow = shadowFiltered(shadowtex1, shadow_proj_pos, shadow_sampled_depth, shadow_radius, iuv);
+            if (!skipShadow)
+            {
+                shadow = shadowFiltered(shadowtex1, shadow_proj_pos, shadow_sampled_depth, shadow_radius, iuv);
+            }
 
             vec3 b = normalize(cross(sun_vec, normal));
             vec3 t = cross(normal, b);

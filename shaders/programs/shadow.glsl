@@ -48,44 +48,41 @@ float max_axis(in vec2 v) {
     return max(v.x, v.y);
 }
 
-bool intersect(vec3 _orig, vec3 _D) { 
+bool intersect(vec3 orig, vec3 D) { 
     // Test whether a line crosses the view frustum
-
-    f16vec3 orig = f16vec3(_orig);
-    f16vec3 D = f16vec3(_D);
     
-    float16_t tan_theta_h = float16_t(1.0) / float16_t(gbufferProjection[1][1]);
-    float16_t tan_theta = sqrt(square(tan_theta_h) + square(tan_theta_h * float16_t(aspectRatio)));
-    float16_t theta = atan(tan_theta);
-    float16_t cos_theta = cos(theta);
-    float16_t cos2_theta = cos_theta * cos_theta;
+    float tan_theta_h = 1.0 / gbufferProjection[1][1];
+    float tan_theta = sqrt(square(tan_theta_h) + square(tan_theta_h * aspectRatio));
+    float theta = atan(tan_theta);
+    float cos_theta = cos(theta);
+    float cos2_theta = cos_theta * cos_theta;
 
-    const f16vec3 C = f16vec3(0.0, 0.0, 1.0);
-    const f16vec3 V = f16vec3(0.0, 0.0, -1.0);
-    f16vec3 CFar = f16vec3(0.0, 0.0, -float16_t(far));
-    f16vec3 CO = orig - C;
+    const vec3 C = vec3(0.0, 0.0, 1.0);
+    const vec3 V = vec3(0.0, 0.0, -1.0);
+    vec3 CFar = vec3(0.0, 0.0, -far);
+    vec3 CO = orig - C;
 
-    f16vec3 isectFar = orig + D * ((-float16_t(far) - orig.z) / D.z);
-    if (D.z < 0.0 && length(isectFar.xy) < (float16_t(far) + float16_t(1.0)) * tan_theta) return true;
+    vec3 isectFar = orig + D * ((-far - orig.z) / D.z);
+    if (D.z < 0.0 && length(isectFar.xy) < (far + 1.0) * tan_theta) return true;
 
-    float16_t a = square(-D.z) - cos2_theta;
-    float16_t b = float16_t(2.0) * ((-D.z) * (-CO.z) - dot(D, CO) * cos2_theta);
-    float16_t c = square(-CO.z) - dot(CO, CO) * cos2_theta;
+    float a = square(-D.z) - cos2_theta;
+    float b = 2.0 * ((-D.z) * (-CO.z) - dot(D, CO) * cos2_theta);
+    float c = square(-CO.z) - dot(CO, CO) * cos2_theta;
 
-    float16_t det = b * b - float16_t(4.0) * a * c;
+    float det = b * b - 4.0 * a * c;
 
-    if (det < 0.0) return false;
+    if (det < 0) return false;
 
     det = sqrt(det);
-    float16_t inv2a = float16_t(1.0) / (float16_t(2.0) * a);
-    float16_t t1 = (-b - det) * inv2a;
-    float16_t t2 = (-b + det) * inv2a;
+    float inv2a = 1.0 / (2.0 * a);
+    float t1 = (-b - det) * inv2a;
+    float t2 = (-b + det) * inv2a;
 
-    float16_t t = t1;
+    float t = t1;
     if (t < 0.0 || t2 > 0.0 && t2 < t) t = t2;
     if (t < 0.0) return false;
 
-    f16vec3 CP = orig + t * D - C;
+    vec3 CP = orig + t * D - C;
     if (-CP.z < 0.0 || -CP.z > far + 1.0) return false;
 
     return true;
