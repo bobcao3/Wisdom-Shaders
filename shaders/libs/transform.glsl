@@ -17,6 +17,12 @@ float square(float a) {
     return a * a;
 }
 
+#ifdef USE_HALF
+float16_t square(float16_t a) {
+    return a * a;
+}
+#endif
+
 float fsqrt(float x) {
     // [Drobot2014a] Low Level Optimizations for GCN
     return intBitsToFloat(0x1FBD1DF5 + (floatBitsToInt(x) >> 1));

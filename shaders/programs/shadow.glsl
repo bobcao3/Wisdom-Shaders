@@ -7,10 +7,9 @@ uniform int frameCounter;
 #include "/libs/taa.glsl"
 uniform vec2 invWidthHeight;
 
-out vec4 vcolor;
-out vec2 vuv;
+out f16vec4 vcolor;
+out f16vec2 vuv;
 out vec4 shadow_view_pos;
-out float blockId;
 
 uniform vec3 shadowLightPosition;
 uniform vec3 upPosition;
@@ -20,12 +19,8 @@ attribute vec4 mc_Entity;
 void main() {
     vec4 input_pos = gl_Vertex;
 
-    vuv = mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st;
-    vcolor = gl_Color;
-
-    blockId = mc_Entity.x;
-
-    //if (mc_Entity.y == 0) blockId = 8001;
+    vuv = f16vec2(mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st);
+    vcolor = f16vec4(gl_Color);
 
     shadow_view_pos = gl_ModelViewMatrix * input_pos;
 }
@@ -35,16 +30,15 @@ void main() {
 #extension GL_ARB_geometry_shader4 : enable
 const int maxVerticesOut = 12;
 
-in vec4 vcolor[3];
-in vec2 vuv[3];
+in f16vec4 vcolor[3];
+in f16vec2 vuv[3];
 in vec4 shadow_view_pos[3];
-in float blockId[3];
 
 #include "/libs/transform.glsl"
 
-out vec4 color;
-out vec2 uv;
-out flat int cascade;
+out f16vec4 color;
+out f16vec2 uv;
+out flat int8_t cascade;
 
 uniform float aspectRatio;
 uniform float far;
@@ -54,41 +48,44 @@ float max_axis(in vec2 v) {
     return max(v.x, v.y);
 }
 
-bool intersect(vec3 orig, vec3 D) { 
+bool intersect(vec3 _orig, vec3 _D) { 
     // Test whether a line crosses the view frustum
+
+    f16vec3 orig = f16vec3(_orig);
+    f16vec3 D = f16vec3(_D);
     
-    float tan_theta_h = 1.0 / gbufferProjection[1][1];
-    float tan_theta = sqrt(square(tan_theta_h) + square(tan_theta_h * aspectRatio));
-    float theta = atan(tan_theta);
-    float cos_theta = cos(theta);
-    float cos2_theta = cos_theta * cos_theta;
+    float16_t tan_theta_h = float16_t(1.0) / float16_t(gbufferProjection[1][1]);
+    float16_t tan_theta = sqrt(square(tan_theta_h) + square(tan_theta_h * float16_t(aspectRatio)));
+    float16_t theta = atan(tan_theta);
+    float16_t cos_theta = cos(theta);
+    float16_t cos2_theta = cos_theta * cos_theta;
 
-    const vec3 C = vec3(0.0, 0.0, 1.0);
-    const vec3 V = vec3(0.0, 0.0, -1.0);
-    vec3 CFar = vec3(0.0, 0.0, -far);
-    vec3 CO = orig - C;
+    const f16vec3 C = f16vec3(0.0, 0.0, 1.0);
+    const f16vec3 V = f16vec3(0.0, 0.0, -1.0);
+    f16vec3 CFar = f16vec3(0.0, 0.0, -float16_t(far));
+    f16vec3 CO = orig - C;
 
-    vec3 isectFar = orig + D * ((-far - orig.z) / D.z);
-    if (D.z < 0.0 && length(isectFar.xy) < (far + 1.0) * tan_theta) return true;
+    f16vec3 isectFar = orig + D * ((-float16_t(far) - orig.z) / D.z);
+    if (D.z < 0.0 && length(isectFar.xy) < (float16_t(far) + float16_t(1.0)) * tan_theta) return true;
 
-    float a = square(-D.z) - cos2_theta;
-    float b = 2.0 * ((-D.z) * (-CO.z) - dot(D, CO) * cos2_theta);
-    float c = square(-CO.z) - dot(CO, CO) * cos2_theta;
+    float16_t a = square(-D.z) - cos2_theta;
+    float16_t b = float16_t(2.0) * ((-D.z) * (-CO.z) - dot(D, CO) * cos2_theta);
+    float16_t c = square(-CO.z) - dot(CO, CO) * cos2_theta;
 
-    float det = b * b - 4.0 * a * c;
+    float16_t det = b * b - float16_t(4.0) * a * c;
 
-    if (det < 0) return false;
+    if (det < 0.0) return false;
 
     det = sqrt(det);
-    float inv2a = 1.0 / (2.0 * a);
-    float t1 = (-b - det) * inv2a;
-    float t2 = (-b + det) * inv2a;
+    float16_t inv2a = float16_t(1.0) / (float16_t(2.0) * a);
+    float16_t t1 = (-b - det) * inv2a;
+    float16_t t2 = (-b + det) * inv2a;
 
-    float t = t1;
+    float16_t t = t1;
     if (t < 0.0 || t2 > 0.0 && t2 < t) t = t2;
     if (t < 0.0) return false;
 
-    vec3 CP = orig + t * D - C;
+    f16vec3 CP = orig + t * D - C;
     if (-CP.z < 0.0 || -CP.z > far + 1.0) return false;
 
     return true;
@@ -151,7 +148,7 @@ void main() {
                 gl_Position = emit_pos[i];
                 color = vcolor[i];
                 uv = vuv[i];
-                cascade = n;
+                cascade = int8_t(n);
                 EmitVertex();
             }
             EndPrimitive();
@@ -161,9 +158,9 @@ void main() {
 
 #else
 
-in vec4 color;
-in vec2 uv;
-in flat int cascade;
+in f16vec4 color;
+in f16vec2 uv;
+in flat int8_t cascade;
 
 uniform sampler2D tex;
 

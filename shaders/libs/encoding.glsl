@@ -13,7 +13,7 @@ vec3 normalDecode(uint e) {
 }
 
 uint normalEncode(vec3 n) {
-	vec2 enc = vec2(n.xy * inversesqrt(n.z * 8.0 + 8.0 + 0.00001) + 0.5);
+	f16vec2 enc = f16vec2(f16vec2(n.xy) * inversesqrt(float16_t(n.z) * float16_t(8.0) + float16_t(8.0 + 0.00001)) + float16_t(0.5));
 	return packUnorm2x16(enc);
 }
 

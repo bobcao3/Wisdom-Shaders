@@ -1,6 +1,6 @@
 #define SSPT_SAMPLES 16 // [6 8 12 16 20]
 
-ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float stride, float stride_multiplier, float zThickness, int noise_i, inout int lod) {
+ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, float stride, float stride_multiplier, float zThickness, int noise_i, inout int lod) {
     float rayLength = clamp(-vpos.z, 0.1, 16.0);
 
     vec3 vpos_target = vpos + dir * rayLength;
@@ -81,15 +81,6 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, bool checkNormals, float 
         uv_dir *= stride_multiplier;
         dZW *= stride_multiplier;
     }
-
-#ifndef GBUFFERS_WATER
-    if (checkNormals) {
-        vec3 n = normalDecode(texelFetch(colortex4, hit, 0).r);
-        if (dot(n, dir) > 0) {
-            return ivec2(-1);
-        }
-    }
-#endif
 
     return hit;
 }

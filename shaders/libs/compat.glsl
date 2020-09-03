@@ -27,6 +27,9 @@
 #define f16vec2 vec2
 #define f16vec3 vec3
 #define f16vec4 vec4
+#define int8_t int
+#define int16_t int
+#define int32_t int
 
 #endif
 

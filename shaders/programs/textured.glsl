@@ -19,8 +19,14 @@ INOUT flat vec3 bitangent;
 INOUT vec3 tangentpos;
 #endif
 
+#if (!defined(ENTITY) && defined(RAIN_PUDDLES))
 INOUT vec3 worldPos;
 INOUT vec3 viewPos;
+#else
+vec3 worldPos;
+vec3 viewPos;
+#endif
+
 INOUT vec2 uv;
 INOUT vec2 lmcoord;
 
@@ -73,6 +79,8 @@ void main() {
     } else if (blockId == 8001.0) {
         subsurface = 0.5;
     }
+
+    subsurface /= 16.0;
 
     vec4 vpos = model_view_mat * input_pos;
     viewPos = vpos.xyz;
@@ -232,7 +240,7 @@ void fragment() {
 #endif
 
     if (c.a < threshold) discard;
-    fragData[0] = uvec3(normalEncode(normal_map), encodeAlbedoSpecular(c.rgb, specular_map.rg), packUnorm4x8(vec4(lmcoord_dithered, subsurface / 16.0, specular_map.a)));
+    fragData[0] = uvec3(normalEncode(normal_map), encodeAlbedoSpecular(c.rgb, specular_map.rg), packUnorm4x8(vec4(lmcoord_dithered, subsurface, specular_map.a)));
 }
 
 #endif

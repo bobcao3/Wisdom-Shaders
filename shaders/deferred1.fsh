@@ -89,7 +89,7 @@ void main() {
 
             // if (depth > 0.7) {
             //     int lod = 0;
-            //     float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, false, 2.0, 1.0, 0.01, 0, lod) != ivec2(-1));
+            //     float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, 2.0, 1.0, 0.01, 0, lod) != ivec2(-1));
             //     // rt_contact_shadow *= smoothstep(0.20, 0.35, abs(dot(sun_vec, normal)));
 
             //     shadow = min(shadow, 1.0 - rt_contact_shadow);
@@ -167,7 +167,7 @@ void main() {
 
                 int lod = 4;
                 float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
-                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, false, stride, 1.44, 2.0, i, lod);
+                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 1.44, 2.0, i, lod);
                 
                 vec3 diffuse = vec3(0.0);
                 
