@@ -7,7 +7,7 @@ uniform int frameCounter;
 #include "/libs/taa.glsl"
 uniform vec2 invWidthHeight;
 
-out f16vec4 vcolor;
+out vec4 vcolor;
 out f16vec2 vuv;
 out vec4 shadow_view_pos;
 
@@ -20,7 +20,7 @@ void main() {
     vec4 input_pos = gl_Vertex;
 
     vuv = f16vec2(mat2(gl_TextureMatrix[0]) * gl_MultiTexCoord0.st);
-    vcolor = f16vec4(gl_Color);
+    vcolor = vec4(gl_Color);
 
     shadow_view_pos = gl_ModelViewMatrix * input_pos;
 }
@@ -30,15 +30,15 @@ void main() {
 #extension GL_ARB_geometry_shader4 : enable
 const int maxVerticesOut = 12;
 
-in f16vec4 vcolor[3];
+in vec4 vcolor[3];
 in f16vec2 vuv[3];
 in vec4 shadow_view_pos[3];
 
 #include "/libs/transform.glsl"
 
-out f16vec4 color;
+out vec4 color;
 out f16vec2 uv;
-out flat int8_t cascade;
+out flat int cascade;
 
 uniform float aspectRatio;
 uniform float far;
@@ -145,7 +145,7 @@ void main() {
                 gl_Position = emit_pos[i];
                 color = vcolor[i];
                 uv = vuv[i];
-                cascade = int8_t(n);
+                cascade = int(n);
                 EmitVertex();
             }
             EndPrimitive();
@@ -155,9 +155,9 @@ void main() {
 
 #else
 
-in f16vec4 color;
+in vec4 color;
 in f16vec2 uv;
-in flat int8_t cascade;
+in flat int cascade;
 
 uniform sampler2D tex;
 
