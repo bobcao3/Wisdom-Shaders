@@ -43,7 +43,10 @@ void main() {
     }
 
 #ifdef CLOUDS
-    if (iuv.x >= (int(viewWidth) >> 1) && iuv.x <= (int(viewWidth) >> 1) + (int(viewWidth) >> 2) && iuv.y < int(viewHeight) >> 1)
+    if (biomeCategory == 16) {
+        skybox = vec4(fromGamma(fogColor), 0.0);
+    }
+    else if (iuv.x >= (int(viewWidth) >> 1) && iuv.x <= (int(viewWidth) >> 1) + (int(viewWidth) >> 2) && iuv.y < int(viewHeight) >> 1)
     {
         ivec2 adj_iuv = iuv;
         adj_iuv.x -= int(viewWidth) >> 1;
