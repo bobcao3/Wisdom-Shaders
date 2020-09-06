@@ -238,6 +238,19 @@ void main() {
             color.rgb += starField(dir) * vec3(0.7, 0.8, 1.3);
             color.rgb += starField(dir * 0.5);
 
+#ifdef CLOUDS_2D
+            vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
+            float mu_s = dot(dir, world_sun_dir);
+            float mu = abs(mu_s);
+            
+            float c = cloud2d(dir * 512.0, cameraPosition);
+            color.rgb = mix(color.rgb, color.rgb * (1.0 - c), smoothstep(0.1, 0.2, dir.y));
+
+            float opmu2 = 1. + mu * mu;
+            float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
+            color.rgb += (luma(sun_I + moon_I) * 0.3 + sun_I * phaseM * 0.2) * c;
+#endif
+
             color.rgb = mix(color.rgb, moon_I * 8.0, smoothstep(0.9996, 0.99961, dot(normalize(view_pos), moonPosition * 0.01)));
         }
 

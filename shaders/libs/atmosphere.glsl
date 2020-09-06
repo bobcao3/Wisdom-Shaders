@@ -87,6 +87,35 @@ float densitiesCloud(in vec3 pos) {
 	return c;
 }
 
+#define CLOUDS_2D
+
+#ifdef CLOUDS_2D
+const mat2 octave_c = mat2(1.4,1.2,-1.2,1.4);
+
+float cloud2d(in vec3 sphere, in vec3 cam) {
+	if (sphere.y < 0.0) return 0.0;
+
+	vec3 c = sphere / max(sphere.y, 0.001) * 768.0;
+	c += noise((c.xz + cam.xz) * 0.001 + frameTimeCounter * 0.01) * 200.0 / sphere.y;
+	vec2 uv = (c.xz + cam.xz);
+
+	uv.x += frameTimeCounter * 10.0;
+	uv *= 0.002;
+	float n  = noise(uv * vec2(0.5, 1.0)) * 0.5;
+		uv += vec2(n * 0.6, 0.0) * octave_c; uv *= 4.0;
+		  n += noise(uv) * 0.25;
+		uv += vec2(n * 0.4, 0.0) * octave_c + vec2(frameTimeCounter * 0.1, 0.2); uv *= 2.01;
+		  n += noise(uv) * 0.105;
+		uv += vec2(n, 0.0) * octave_c + vec2(frameTimeCounter * 0.03, 0.1); uv *= 2.02;
+		  n += noise(uv) * 0.0625;
+	n = smoothstep(0.0, 1.0, n - 0.3 + cloud_coverage);
+
+	n *= smoothstep(0.0, 140.0, sphere.y) * 0.2;
+
+	return n;
+}
+#endif
+
 float escape(in vec3 p, in vec3 d, in float R) {
 	vec3 v = p - C;
 	float b = dot(v, d);
