@@ -10,10 +10,6 @@
 
 #define CLOUDS
 
-#ifndef CLOUDS
-#define USE_DES_MAP
-#endif
-
 #include "/libs/uniforms.glsl"
 #include "/libs/taa.glsl"
 #include "/libs/atmosphere.glsl"

@@ -66,12 +66,25 @@ void densities(in vec3 pos, out vec2 des) {
 
 	if (cloudAltitude - cloudDepth < h && cloudAltitude + cloudDepth > h) {
 #ifdef CLOUDS
-		float cloud = mix(cloud(pos), rainStrength * 30.0, smoothstep(20e3, 35e3, length(pos)));
+		float cloud = 0.0;
 #else
 		float cloud = (0.04 + rainStrength) * 30.0;
 #endif
 		des.y += cloud * max(0.0, sin(3.1415926 * ((h - cloudAltitude) / cloudDepth * 0.5 + 0.5)));
 	}
+}
+
+float densitiesCloud(in vec3 pos) {
+	float h = max(0.0, length(pos - C) - R0);
+
+	float c = 0.0;
+
+	if (cloudAltitude - cloudDepth < h && cloudAltitude + cloudDepth > h) {
+		c = mix(cloud(pos), rainStrength * 30.0, smoothstep(20e3, 35e3, length(pos)));
+		c *= max(0.0, sin(3.1415926 * ((h - cloudAltitude) / cloudDepth * 0.5 + 0.5)));
+	}
+
+	return c;
 }
 
 float escape(in vec3 p, in vec3 d, in float R) {
@@ -129,6 +142,37 @@ vec2 getDensityFromMap(vec3 p, vec3 d)
 	return vec2(texture(gaux4, vec2(h * 0.5, phi * 0.5 + 0.5)).xy);
 }
 
+void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, out vec3 R, out vec3 M, bool clouds = false)
+{
+	float Ls = escape(p, D, radius);
+	float u0s = - (Ls - 1.0) / (1.0 - exp2(stepss));
+
+	R = vec3(0.0);
+	M = vec3(0.0);
+
+	if (Ls > 0.) {
+		vec2 depth_in = vec2(getDensityFromMap(p, D)) * Ls;
+
+#ifdef CLOUDS
+		if (clouds)
+		{
+			for (int j = 0; j < stepss; ++j) {
+				float dls = u0s * exp2(j + nseed);
+				float ls = - u0s * (1.0 - exp2(j + nseed + 1));
+				vec3 ps = p + D * ls;
+				depth_in.y += densitiesCloud(ps) * dls;
+			}
+		}
+#endif
+		depth_in += depth;
+
+		vec3 A = exp(-(bR * depth_in.x + bM * depth_in.y));
+
+		R = A * des.x;
+		M = A * des.y;
+	}
+}
+
 // this can be explained: http://www.scratchapixel.com/lessons/3d-advanced-lessons/simulating-the-colors-of-the-sky/atmospheric-scattering/
 vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 	if (d.y < 0.0) d.y = 0.0;
@@ -167,27 +211,32 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 	float u0 = - (L - cloudMaxL - 1.0) / (1.0 - exp2(steps));
 
 #ifdef CLOUDS
-	for (int i = 0; i < steps + cloudSteps; ++i) {
-#else
-	for (int i = 0; i < steps; ++i) {
-#endif
+	for (int i = 0; i < cloudSteps; ++i) {
 		float dl, l;
 
-#ifdef CLOUDS
-		if (i >= cloudSteps)
-		{
-			dl = u0 * exp2(i + nseed - cloudSteps);
-			l = cloudMaxL - u0 * (1.0 - exp2(i + nseed + 1));
-		}
-		else
-		{
-			dl = cloudMaxL / float(cloudSteps);
-			l = dl * float(i + nseed);
-		}
-#else
-		dl = u0 * exp2(i + nseed);
-		l = - u0 * (1.0 - exp2(i + nseed + 1));
+		dl = cloudMaxL / float(cloudSteps);
+		l = dl * float(i + nseed);
+
+		vec3 p = o + d * l;
+
+		vec2 des;
+		densities(p, des);
+		des.y += densitiesCloud(p);
+
+		des *= vec2(dl);
+		depth += des;
+
+		vec3 Ri, Mi;
+		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi, true); R += Ri; M += Mi;
+		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi, true); R_moon += Ri; M_moon += Mi;
+	}
 #endif
+
+	for (int i = 0; i < steps; ++i) {
+		float dl, l;
+
+		dl = u0 * exp2(i + nseed);
+		l = cloudMaxL - u0 * (1.0 - exp2(i + nseed + 1));
 
 		vec3 p = o + d * l;
 
@@ -196,54 +245,9 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 		des *= vec2(dl);
 		depth += des;
 
-		float Ls = escape(p, Ds, Ra);
-		float u0s = - (Ls - 1.0) / (1.0 - exp2(stepss));
-
-		if (Ls > 0.) {
-			vec2 depth_in = vec2(0.0);
-
-#ifdef USE_DES_MAP
-			depth_in = vec2(getDensityFromMap(p, Ds)) * Ls;
-#else
-			for (int j = 0; j < stepss; ++j) {
-				float dls = u0s * exp2(j + nseed);
-				float ls = - u0s * (1.0 - exp2(j + nseed + 1));
-				vec3 ps = p + Ds * ls;
-				vec2 des_in;
-				densities(ps, des_in);
-				depth_in += des_in * dls;
-			}
-#endif
-			depth_in += depth;
-
-			vec3 A = exp(-(bR * depth_in.x + bM * depth_in.y));
-
-			R += A * des.x;
-			M += A * des.y;
-		}
-		
-		Ls = escape(p, -Ds, Ra);
-		if (Ls > 0.) {
-			vec2 depth_in = vec2(0.0);
-#ifdef USE_DES_MAP
-			depth_in = vec2(getDensityFromMap(p, -Ds)) * Ls;
-#else
-			for (int j = 0; j < stepss; ++j) {
-				float dls = u0s * exp2(j + nseed);
-				float ls = - u0s * (1.0 - exp2(j + nseed + 1));
-				vec3 ps = p + -Ds * ls;
-				vec2 des_in;
-				densities(ps, des_in);
-				depth_in += des_in * dls;
-			}
-#endif
-			depth_in += depth;
-
-			vec3 A = exp(-(bR * depth_in.x + bM * depth_in.y));
-
-			R_moon += A * des.x;
-			M_moon += A * des.y;
-		}
+		vec3 Ri, Mi;
+		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi); R += Ri; M += Mi;
+		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi); R_moon += Ri; M_moon += Mi;
 	}
 
 	vec3 color = I * (max(vec3(0.0), R) * bR * phaseR + max(vec3(0.0), M) * bM * phaseM);

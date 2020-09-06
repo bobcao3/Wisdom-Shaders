@@ -7,8 +7,6 @@
 #define VECTORS
 #define CLIPPING_PLANE
 
-#define USE_DES_MAP
-
 #include "libs/encoding.glsl"
 #include "libs/sampling.glsl"
 #include "libs/bsdf.glsl"
@@ -26,9 +24,7 @@ float densities(float h)
 {
     if (biomeCategory != 16)
     {
-        float d = clamp(2.0 * exp2(-h / 128.0f), 0.0, 2.0);
-
-        d += rainStrength * 8.0;
+        float d = clamp(3.0 * exp2(-h / 64.0f) - 0.2, 0.0, 2.0) * (4.0 + rainStrength * 8.0);
 
         return d;
     }
@@ -70,7 +66,7 @@ void main() {
     }
 
     // Atmosphere
-    if (depth < 0.99999)
+    if (true)
     {
         float distinction_distance = 4096.0;
 
@@ -100,7 +96,7 @@ void main() {
         float nseed = fract(texelFetch(colortex1, iuv & 0xFF, 0).r + texelFetch(colortex1, ivec2(frameCounter) & 0xFF, 0).r) - 0.5;
         
         if (biomeCategory != 16)
-            fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, distinction_distance * max(0.5, distinction), nseed).rgb;
+            fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, 8192 * max(0.5, distinction), nseed).rgb;
         else
             fog = fromGamma(fogColor);
 
@@ -110,19 +106,22 @@ void main() {
             vec3 spos = t * (spos_end - spos_start) + spos_start;
             vec3 wpos = t * world_pos;
 
-            float s, ds;
-            vec3 spos_cascaded = shadowProjCascaded(spos, s, ds);
-
             float shadow = 1.0;
-            
-            if (biomeCategory != 16 && spos_cascaded != vec3(-1))
+
+            if (depth < 0.99999 && biomeCategory != 16)
             {
-                shadow = shadowTexSmooth(shadowtex1, spos_cascaded, ds, 0.0);
+                float s, ds;
+                vec3 spos_cascaded = shadowProjCascaded(spos, s, ds);
+
+                if (spos_cascaded != vec3(-1))
+                {
+                    shadow = shadowTexSmooth(shadowtex1, spos_cascaded, ds, 0.0);
+                }
             }
 
-            float density = distinction * densities(wpos.y + cameraPosition.y);
+            float density = distinction * densities(wpos.y + cameraPosition.y) * 0.25;
             actualDistinction += density;
-            accumulation += density * shadow * exp2(-(1.0 - t) * distinction);
+            accumulation += exp2(-actualDistinction) * shadow * density;
         }
 
         color *= exp2(-actualDistinction);

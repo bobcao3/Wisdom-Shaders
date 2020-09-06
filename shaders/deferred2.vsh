@@ -6,8 +6,6 @@
 flat out vec3 sun_I;
 flat out vec3 moon_I;
 
-#define USE_DES_MAP
-
 #include "/libs/transform.glsl"
 #include "/libs/atmosphere.glsl"
 #include "/libs/color.glsl"
