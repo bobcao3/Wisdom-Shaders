@@ -10,7 +10,7 @@
 
 float day = float(worldTime) / 24000.0;
 float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
-float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.2 + 0.4, rainStrength);
+float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.2 + 0.5, rainStrength);
 
 // ============
 const float g = .76;
@@ -35,22 +35,34 @@ vec3 I = I0; // * (1.0 - cloud_coverage * 0.7);
 const vec3 C = vec3(0., -R0, 0.);
 const vec3 bM = vec3(21e-6);
 
+const mat2 octave_c = mat2(1.4,1.2,-1.2,1.4);
+
 float cloud_noise(in vec3 v, float t) {
 	float n = 0.0;
-	n += 0.55 * (noise(v + t * 0.2) * 2.0 - 1.0);
-	n += 0.225 * (noise(v * 2.0 + t * 0.4) * 2.0 - 1.0);
-	n += 0.125 * (noise(v * 3.99 + t * 0.6) * 2.0 - 1.0);
-	n += 0.0625 * (noise(v * 8.9) * 2.0 - 1.0);
-	n += 0.0625 * (noise(v * 16.9) * 2.0 - 1.0);
+	float speed = 0.1;
+	float amplitude = 0.5;
+	float frequency = -4.0;
+	float maxAmplitude = 0.0;
 
-	return smoothstep(0.0, 0.24, n + 0.55 * (cloud_coverage * 2.0 - 1.0));
+	for (int i = 0; i < 4; i++)
+	{
+		maxAmplitude += amplitude;
+		n += (noise(v * vec3(0.75, 0.5, 1.0)) * 2.0 - 1.0) * amplitude;
+		v += vec3(vec2(n * 0.6, n * 0.2) * octave_c, t * 0.2); v *= frequency;
+		amplitude *= 0.5;
+		// frequency *= 2.0;
+	}
+
+	n = n / maxAmplitude;
+
+	return smoothstep(0.0, 0.24, n - 0.9 + cloud_coverage * 1.8);
 }
 
 float cloud(vec3 p) {
-	return cloud_noise(p * 0.0003, frameTimeCounter * 0.3) * 40.0;
+	return cloud_noise(p * 0.0002, frameTimeCounter * 0.3) * 40.0;
 }
 
-const float cloudAltitude = 4.0e3;
+const float cloudAltitude = 9.0e3;
 const float cloudDepth = 3.0e3;
 
 void densities(in vec3 pos, out vec2 des) {
@@ -80,7 +92,7 @@ float densitiesCloud(in vec3 pos) {
 	float c = 0.0;
 
 	if (cloudAltitude - cloudDepth < h && cloudAltitude + cloudDepth > h) {
-		c = mix(cloud(pos), rainStrength * 30.0, smoothstep(20e3, 35e3, length(pos)));
+		c = mix(cloud(pos), rainStrength * 30.0, smoothstep(50e3, 150e3, length(pos)));
 		c *= max(0.0, sin(3.1415926 * ((h - cloudAltitude) / cloudDepth * 0.5 + 0.5)));
 	}
 
@@ -90,8 +102,6 @@ float densitiesCloud(in vec3 pos) {
 #define CLOUDS_2D
 
 #ifdef CLOUDS_2D
-const mat2 octave_c = mat2(1.4,1.2,-1.2,1.4);
-
 float cloud2d(in vec3 sphere, in vec3 cam) {
 	if (sphere.y < 0.0) return 0.0;
 
@@ -174,7 +184,6 @@ vec2 getDensityFromMap(vec3 p, vec3 d)
 void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, out vec3 R, out vec3 M, bool clouds)
 {
 	float Ls = escape(p, D, radius);
-	float u0s = - (Ls - 1.0) / (1.0 - exp2(stepss));
 
 	R = vec3(0.0);
 	M = vec3(0.0);
@@ -185,6 +194,8 @@ void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, 
 #ifdef CLOUDS
 		if (clouds)
 		{
+			float Ls = cloudDepth;//escape(p, D, R0 + cloudAltitude + cloudDepth);
+			float u0s = - (Ls - 1.0) / (1.0 - exp2(stepss));
 			for (int j = 0; j < stepss; ++j) {
 				float dls = u0s * exp2(j + nseed);
 				float ls = - u0s * (1.0 - exp2(j + nseed + 1));
@@ -210,6 +221,7 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 
 #ifdef CLOUDS
 	float cloudMaxL = min(lmax, escape(o, d, R0 + cloudAltitude + cloudDepth));
+	float cloudMinL = 0.0;//min(lmax, escape(o, d, R0 + cloudAltitude - cloudDepth));
 #else
 	float cloudMaxL = 0.0;
 #endif
@@ -237,14 +249,32 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 	vec3 R = vec3(0.), M = vec3(0.);
 	vec3 R_moon = vec3(0.), M_moon = vec3(0.);
 
-	float u0 = - (L - cloudMaxL - 1.0) / (1.0 - exp2(steps));
-
 #ifdef CLOUDS
+/*
+	for (int i = 0; i < 3; ++i) {
+		float dl, l;
+
+		dl = cloudMinL / 3.0;
+		l = dl * float(i + nseed);
+
+		vec3 p = o + d * l;
+
+		vec2 des;
+		densities(p, des);
+
+		des *= vec2(dl);
+		depth += des;
+
+		vec3 Ri, Mi;
+		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi, false); R += Ri; M += Mi;
+		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi, false); R_moon += Ri; M_moon += Mi;
+	}
+*/
 	for (int i = 0; i < cloudSteps; ++i) {
 		float dl, l;
 
-		dl = cloudMaxL / float(cloudSteps);
-		l = dl * float(i + nseed);
+		dl = (cloudMaxL - cloudMinL) / float(cloudSteps);
+		l = cloudMinL + dl * float(i + nseed * 2.0 - 1.0);
 
 		vec3 p = o + d * l;
 
@@ -261,6 +291,7 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 	}
 #endif
 
+	float u0 = - (L - cloudMaxL - 1.0) / (1.0 - exp2(steps));
 	for (int i = 0; i < steps; ++i) {
 		float dl, l;
 
