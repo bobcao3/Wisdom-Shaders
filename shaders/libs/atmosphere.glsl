@@ -142,7 +142,7 @@ vec2 getDensityFromMap(vec3 p, vec3 d)
 	return vec2(texture(gaux4, vec2(h * 0.5, phi * 0.5 + 0.5)).xy);
 }
 
-void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, out vec3 R, out vec3 M, bool clouds = false)
+void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, out vec3 R, out vec3 M, bool clouds)
 {
 	float Ls = escape(p, D, radius);
 	float u0s = - (Ls - 1.0) / (1.0 - exp2(stepss));
@@ -246,8 +246,8 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 		depth += des;
 
 		vec3 Ri, Mi;
-		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi); R += Ri; M += Mi;
-		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi); R_moon += Ri; M_moon += Mi;
+		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi, false); R += Ri; M += Mi;
+		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi, false); R_moon += Ri; M_moon += Mi;
 	}
 
 	vec3 color = I * (max(vec3(0.0), R) * bR * phaseR + max(vec3(0.0), M) * bM * phaseM);

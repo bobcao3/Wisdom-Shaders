@@ -18,7 +18,7 @@ float square(float a) {
 }
 
 #ifdef USE_HALF
-float16_t square(float16_t a) {
+float16_t square16(float16_t a) {
     return a * a;
 }
 #endif
