@@ -3,7 +3,7 @@
 
 #include "/libs/color.glsl"
 
-INOUT vec4 color;
+inout vec4 color;
 
 uniform int frameCounter;
 

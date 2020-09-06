@@ -5,15 +5,15 @@
 
 #include "/libs/color.glsl"
 
-INOUT vec4 color;
-INOUT vec3 normal;
-INOUT vec3 tangent;
-INOUT vec3 viewPos;
-INOUT vec2 uv;
-INOUT vec2 lmcoord;
-INOUT flat float layer;
-INOUT flat float isWater;
-INOUT vec3 sun_I;
+inout vec4 color;
+inout vec3 normal;
+inout vec3 tangent;
+inout vec3 viewPos;
+inout vec2 uv;
+inout vec2 lmcoord;
+inout flat float layer;
+inout flat float isWater;
+inout vec3 sun_I;
 
 #ifdef VERTEX
 

@@ -3,8 +3,8 @@
 
 #include "/libs/color.glsl"
 
-INOUT vec4 color;
-INOUT vec3 normal;
+inout vec4 color;
+inout vec3 normal;
 
 uniform int frameCounter;
 

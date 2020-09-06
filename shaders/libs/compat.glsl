@@ -2,9 +2,9 @@
 #define _INCLUDE_COMPAT
 
 #ifdef VERTEX
-#define INOUT out
+#define inout out
 #else
-#define INOUT in
+#define inout in
 #endif
 
 #define USE_HALF

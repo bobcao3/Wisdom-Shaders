@@ -68,7 +68,7 @@ void densities(in vec3 pos, out vec2 des) {
 #ifdef CLOUDS
 		float cloud = mix(cloud(pos), rainStrength * 30.0, smoothstep(20e3, 35e3, length(pos)));
 #else
-		float cloud = max(cloud_coverage - 0.2, 0.0) * 20.0;
+		float cloud = (0.04 + rainStrength) * 30.0;
 #endif
 		des.y += cloud * max(0.0, sin(3.1415926 * ((h - cloudAltitude) / cloudDepth * 0.5 + 0.5)));
 	}
@@ -83,6 +83,50 @@ float escape(in vec3 p, in vec3 d, in float R) {
 	float det = sqrt(det2);
 	float t1 = -b - det, t2 = -b + det;
 	return (t1 >= 0.) ? t1 : t2;
+}
+
+vec2 densitiesMap(in vec2 uv)
+{
+	float h = uv.x * (Ra - R0);
+	float phi = (uv.y - 0.5) * 3.1415926;
+
+	vec2 depth = vec2(0.0);
+
+	vec3 P = vec3(0.0, h, 0.0);
+	vec3 D = vec3(cos(phi), sin(phi), 0.0);
+
+	float Ls = escape(P, D, Ra);
+	// float Lground = escape(P, D, R0);
+
+	// if (Lground != -1) Ls = min(Ls, Lground
+
+	float u0s = - (Ls - 1.0) / (1.0 - exp2(10));
+
+	for (int i = 0; i < 10; i++)
+	{
+		float dls = u0s * exp2(i);
+		float ls = - u0s * (1.0 - exp2(i + 1));
+
+		vec3 ps = P + D * ls;
+		vec2 des;
+		densities(ps, des);
+		depth += vec2(des * dls);
+	}
+
+	return depth / Ls;
+}
+
+vec2 getDensityFromMap(vec3 p, vec3 d)
+{
+	float h = max(0.0, length(p - C) - R0) / (Ra - R0);
+
+	vec3 down = normalize(p - C);
+	vec2 dir = vec2(0.0, dot(d, down));
+	dir.x = length(d - down * dir.y);
+
+	float phi = (atan(dir.y / dir.x) / 3.1415926) + 0.5;
+
+	return vec2(texture(gaux4, vec2(h * 0.5, phi * 0.5 + 0.5)).xy);
 }
 
 // this can be explained: http://www.scratchapixel.com/lessons/3d-advanced-lessons/simulating-the-colors-of-the-sky/atmospheric-scattering/
@@ -157,6 +201,10 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 
 		if (Ls > 0.) {
 			vec2 depth_in = vec2(0.0);
+
+#ifdef USE_DES_MAP
+			depth_in = vec2(getDensityFromMap(p, Ds)) * Ls;
+#else
 			for (int j = 0; j < stepss; ++j) {
 				float dls = u0s * exp2(j + nseed);
 				float ls = - u0s * (1.0 - exp2(j + nseed + 1));
@@ -165,6 +213,7 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 				densities(ps, des_in);
 				depth_in += des_in * dls;
 			}
+#endif
 			depth_in += depth;
 
 			vec3 A = exp(-(bR * depth_in.x + bM * depth_in.y));
@@ -176,6 +225,9 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 		Ls = escape(p, -Ds, Ra);
 		if (Ls > 0.) {
 			vec2 depth_in = vec2(0.0);
+#ifdef USE_DES_MAP
+			depth_in = vec2(getDensityFromMap(p, -Ds)) * Ls;
+#else
 			for (int j = 0; j < stepss; ++j) {
 				float dls = u0s * exp2(j + nseed);
 				float ls = - u0s * (1.0 - exp2(j + nseed + 1));
@@ -184,6 +236,7 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 				densities(ps, des_in);
 				depth_in += des_in * dls;
 			}
+#endif
 			depth_in += depth;
 
 			vec3 A = exp(-(bR * depth_in.x + bM * depth_in.y));
@@ -194,7 +247,7 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 	}
 
 	vec3 color = I * (max(vec3(0.0), R) * bR * phaseR + max(vec3(0.0), M) * bM * phaseM);
-	color += (0.008 * I) * (max(vec3(0.0), R_moon) * bR * phaseR_moon + max(vec3(0.0), M_moon) * bM * phaseM_moon);
+	color += (0.004 * I) * (max(vec3(0.0), R_moon) * bR * phaseR_moon + max(vec3(0.0), M_moon) * bM * phaseM_moon);
 
 	float transmittance = exp(-(bM.x * depth.y));
 

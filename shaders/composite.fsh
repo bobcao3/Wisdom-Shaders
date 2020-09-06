@@ -7,6 +7,8 @@
 #define VECTORS
 #define CLIPPING_PLANE
 
+#define USE_DES_MAP
+
 #include "libs/encoding.glsl"
 #include "libs/sampling.glsl"
 #include "libs/bsdf.glsl"

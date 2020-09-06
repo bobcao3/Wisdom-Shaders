@@ -5,30 +5,30 @@
 
 #define NORMAL_MAPPING
 
-INOUT vec4 color;
-INOUT flat vec3 normal;
-INOUT flat float subsurface;
-INOUT flat float blockId;
+inout vec4 color;
+inout flat vec3 normal;
+inout flat float subsurface;
+inout flat float blockId;
 
 #ifdef NORMAL_MAPPING
-INOUT flat vec3 tangent;
-INOUT flat vec3 bitangent;
+inout flat vec3 tangent;
+inout flat vec3 bitangent;
 #endif
 
 #ifdef POM
-INOUT vec3 tangentpos;
+inout vec3 tangentpos;
 #endif
 
 #if (!defined(ENTITY) && defined(RAIN_PUDDLES))
-INOUT vec3 worldPos;
-INOUT vec3 viewPos;
+inout vec3 worldPos;
+inout vec3 viewPos;
 #else
 vec3 worldPos;
 vec3 viewPos;
 #endif
 
-INOUT vec2 uv;
-INOUT vec2 lmcoord;
+inout vec2 uv;
+inout vec2 lmcoord;
 
 uniform vec3 cameraPosition;
 
