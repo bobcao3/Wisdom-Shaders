@@ -42,10 +42,19 @@ uniform float nightVision;
 #define HIGHLIGHTS 0.0 // [-1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0]
 #define WHITES 0.0 // [-1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0]
 
+//#define PIXELATE
+
+uniform float aspectRatio;
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st * MC_RENDER_QUALITY);
-
     vec2 uv = vec2(iuv) * invWidthHeight;
+
+#ifdef PIXELATE
+    uv = floor(uv * vec2(aspectRatio * 240.0, 240.0)) / vec2(aspectRatio * 240.0, 240.0);
+    iuv = ivec2(uv * vec2(viewWidth, viewHeight));
+#endif
+
     float depth = getDepth(iuv);
     vec3 proj_pos = getProjPos(iuv, depth);
     vec3 view_pos = proj2view(proj_pos);
