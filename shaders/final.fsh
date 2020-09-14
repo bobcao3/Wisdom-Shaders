@@ -31,6 +31,9 @@
 
 in flat float exposure;
 
+uniform float blindness;
+uniform float nightVision;
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st * MC_RENDER_QUALITY);
 
@@ -42,6 +45,11 @@ void main() {
     vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
 
     vec4 color = texelFetch(colortex0, iuv, 0);
+
+    color.rgb = pow(color.rgb, vec3(1.0 + max(0.0, blindness - nightVision)));
+
+    float nightVisionStrength = float((iuv.y / 2) % 2 != 0) * max(0.0, nightVision - blindness) * max(0.0, 1.0 - pow(length(uv * 2.0 - 1.0), 0.5));
+    color.rgb = color.rgb + nightVisionStrength * vec3(0.1, 1.0, 0.1) * pow(color.rgb, vec3(1.0 / 2.0));
 
     color = toGamma(color * exposure);
 

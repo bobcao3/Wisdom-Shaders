@@ -8,6 +8,8 @@ uniform vec2 invWidthHeight;
 
 #include "/libs/taa.glsl"
 
+uniform float screenBrightness;
+
 void main() {
     float L = 0.0;
 
@@ -16,7 +18,7 @@ void main() {
         L += texture(colortex2, loc).a;
     }
 
-    exposure = clamp(4.0 / L, 0.1, 10.0);
+    exposure = clamp(4.0 / L, 0.1, 10.0) * (screenBrightness * 2.0 + 0.5);
 
     gl_Position = ftransform();
 }
