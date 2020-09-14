@@ -37,19 +37,10 @@ float cubicHermite(float t, float p0, float p1, float m0, float m1)
     return (2.0 * t3 - 3.0 * t2 + 1.0) * p0 + (t3 - 2.0 * t2 + t) * m0 + (-2.0 * t3 + 3.0 * t2) * p1 + (t3 - t2) * m1;
 }
 
-vec3 lumaCurve(vec3 C, float black, float shadow, float midtone, float highlight, float white)
+//#define CHROMA_PRESERVED_CURVE
+
+float lumaCurveComponent(float l, float black, float shadow, float midtone, float highlight, float white)
 {
-    black += 0.0;
-    shadow += 0.25;
-    midtone += 0.5;
-    highlight += 0.75;
-    white += 1.0;
-
-    C = max(C, vec3(0.0));
-
-    float l = luma(C);
-    C /= l;
-
     float m0 = (shadow - black) * 4.0;
     float m1 = (midtone - black) * 2.0;
     float m2 = (highlight - shadow) * 2.0;
@@ -65,7 +56,33 @@ vec3 lumaCurve(vec3 C, float black, float shadow, float midtone, float highlight
     else
         l = cubicHermite((l - 0.75) * 4.0, 0.0, 1.0, m3, m4) * (white - highlight) + highlight;
 
+    return l;
+}
+
+vec3 lumaCurve(vec3 C, float black, float shadow, float midtone, float highlight, float white)
+{
+    black += 0.0;
+    shadow += 0.25;
+    midtone += 0.5;
+    highlight += 0.75;
+    white += 1.0;
+
+    C = max(C, vec3(0.0));
+
+#ifdef CHROMA_PRESERVED_CURVE
+    float l = luma(C);
+    C /= l;
+
+    l = lumaCurveComponent(l, black, shadow, midtone, highlight, white);
+
     return C * l;
+#else
+    C.r = lumaCurveComponent(C.r, black, shadow, midtone, highlight, white);
+    C.g = lumaCurveComponent(C.g, black, shadow, midtone, highlight, white);
+    C.b = lumaCurveComponent(C.b, black, shadow, midtone, highlight, white);
+
+    return C;
+#endif
 }
 
 const mat3 ACESInputMat = mat3(
