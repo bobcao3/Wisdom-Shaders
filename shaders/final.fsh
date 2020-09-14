@@ -34,6 +34,14 @@ in flat float exposure;
 uniform float blindness;
 uniform float nightVision;
 
+#define SATURATION 0.0 // [-1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0]
+
+#define BLACKS 0.0 // [-1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0]
+#define SHADOWS 0.0 // [-1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0]
+#define MIDTONES 0.0 // [-1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0]
+#define HIGHLIGHTS 0.0 // [-1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0]
+#define WHITES 0.0 // [-1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0]
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st * MC_RENDER_QUALITY);
 
@@ -51,6 +59,8 @@ void main() {
     float nightVisionStrength = float((iuv.y / 2) % 2 != 0) * max(0.0, nightVision - blindness) * max(0.0, 1.0 - pow(length(uv * 2.0 - 1.0), 0.5));
     color.rgb = color.rgb + nightVisionStrength * vec3(0.1, 1.0, 0.1) * pow(color.rgb, vec3(1.0 / 2.0));
 
+    color.rgb = saturation(color.rgb, SATURATION * 0.5);
+
     color = toGamma(color * exposure);
 
     // color.rgb = texelFetch(gaux4, iuv, 0).rgb;
@@ -58,6 +68,8 @@ void main() {
     // color.rgb = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, Ra, 0.1).rgb;
 
     color.rgb = ACESFitted(color.rgb) * 1.2;
+
+    color.rgb = lumaCurve(color.rgb, BLACKS * 0.25, SHADOWS * 0.25, MIDTONES * 0.25, HIGHLIGHTS * 0.25, WHITES * 0.25);
 
 #ifdef DEBUG_SHADOWMAP
     if (iuv.x < shadowMapQuadRes / 2 && iuv.y < shadowMapQuadRes / 2) {

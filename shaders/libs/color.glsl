@@ -21,6 +21,53 @@ float luma(vec3 c) {
     return dot(c, vec3(0.2126, 0.7152, 0.0722));
 }
 
+vec3 saturation(vec3 C, float s)
+{
+    float l = luma(C);
+    C /= l;
+    C = max(pow(C, vec3(1.0 + s)), vec3(0.0));
+    return C * l;
+}
+
+float cubicHermite(float t, float p0, float p1, float m0, float m1)
+{
+    float t3 = t * t * t;
+    float t2 = t * t;
+
+    return (2.0 * t3 - 3.0 * t2 + 1.0) * p0 + (t3 - 2.0 * t2 + t) * m0 + (-2.0 * t3 + 3.0 * t2) * p1 + (t3 - t2) * m1;
+}
+
+vec3 lumaCurve(vec3 C, float black, float shadow, float midtone, float highlight, float white)
+{
+    black += 0.0;
+    shadow += 0.25;
+    midtone += 0.5;
+    highlight += 0.75;
+    white += 1.0;
+
+    C = max(C, vec3(0.0));
+
+    float l = luma(C);
+    C /= l;
+
+    float m0 = (shadow - black) * 4.0;
+    float m1 = (midtone - black) * 2.0;
+    float m2 = (highlight - shadow) * 2.0;
+    float m3 = (white - midtone) * 2.0;
+    float m4 = (white - highlight) * 4.0;
+
+    if (l < 0.25)
+        l = cubicHermite((l - 0.0) * 4.0, 0.0, 1.0, m0, m1) * (shadow - black) + black;
+    else if (l < 0.5)
+        l = cubicHermite((l - 0.25) * 4.0, 0.0, 1.0, m1, m2) * (midtone - shadow) + shadow;
+    else if (l < 0.75)
+        l = cubicHermite((l - 0.5) * 4.0, 0.0, 1.0, m2, m3) * (highlight - midtone) + midtone;
+    else
+        l = cubicHermite((l - 0.75) * 4.0, 0.0, 1.0, m3, m4) * (white - highlight) + highlight;
+
+    return C * l;
+}
+
 const mat3 ACESInputMat = mat3(
     vec3(0.59719, 0.07600, 0.02840),
     vec3(0.35458, 0.90834, 0.13383),
