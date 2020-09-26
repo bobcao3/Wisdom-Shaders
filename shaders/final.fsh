@@ -96,5 +96,5 @@ void main() {
     color.rgb = vec3(texelFetch(gaux3, iuv, 0).r);
 #endif
 
-    gl_FragColor = clamp(color, 0.0, 1.0);
+    gl_FragColor = color;
 }

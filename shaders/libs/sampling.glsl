@@ -120,16 +120,6 @@ float shadowFiltered(in sampler2D tex, in vec3 spos, out float depth, in float r
 }
 
 float sampleDepthLOD(ivec2 iuv, int lod) {
-    // if (lod == 0) {
-    //     return texelFetch(depthtex0, iuv, 0).r;
-    // } else if (lod == 1) {
-    //     return texelFetch(gaux3, iuv >> 1, 0).g;
-    // } else if (lod == 2) {
-    //     return texelFetch(gaux3, iuv >> 2, 0).b;
-    // } else {
-    //     return texelFetch(gaux3, iuv >> 3, 0).a;
-    // }
-
     if (lod == 0) {
         return texelFetch(depthtex1, iuv, 0).r;
     } else if (lod == 1) {
@@ -144,6 +134,25 @@ float sampleDepthLOD(ivec2 iuv, int lod) {
         return texelFetch(gaux3, (iuv >> 5) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2) + (int(viewHeight) >> 3) + (int(viewHeight) >> 4)), 0).r;
     } else if (lod == 6) {
         return texelFetch(gaux3, (iuv >> 6) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2) + (int(viewHeight) >> 3) + (int(viewHeight) >> 4) + (int(viewHeight) >> 5)), 0).r;
+    }
+    return 0.0;
+}
+
+float sampleDepthLODBilinear(vec2 uv, int lod) {
+    if (lod == 0) {
+        return texture(depthtex1, uv, 0).r;
+    } else if (lod == 1) {
+        return texture(gaux3, uv * 0.5, 0).r;
+    } else if (lod == 2) {
+        return texture(gaux3, uv * 0.25 + vec2(0, 0.5), 0).r;
+    } else if (lod == 3) {
+        return texture(gaux3, uv * 0.125 + vec2(0, 0.5 + 0.25), 0).r;
+    } else if (lod == 4) {
+        return texture(gaux3, uv * 0.0625 + vec2(0, 0.5 + 0.25 + 0.125), 0).r;
+    } else if (lod == 5) {
+        return texture(gaux3, uv * 0.03125 + vec2(0, 0.5 + 0.25 + 0.125 + 0.0625), 0).r;
+    } else if (lod == 6) {
+        return texture(gaux3, uv * 0.015625 + vec2(0, 0.5 + 0.25 + 0.125 + 0.0625 + 0.03125), 0).r;
     }
     return 0.0;
 }

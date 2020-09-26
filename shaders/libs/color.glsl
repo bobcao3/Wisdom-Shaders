@@ -29,6 +29,36 @@ vec3 saturation(vec3 C, float s)
     return C * l;
 }
 
+vec3 hsv2rgb(vec3 c)
+{
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+vec3 rgb2hsv(vec3 rgb) {
+ 	float Cmax = max(rgb.r, max(rgb.g, rgb.b));
+ 	float Cmin = min(rgb.r, min(rgb.g, rgb.b));
+ 	float delta = Cmax - Cmin;
+
+ 	vec3 hsv = vec3(0., 0., Cmax);
+
+ 	if (Cmax > Cmin) {
+ 		hsv.y = delta / Cmax;
+
+ 		if (rgb.r == Cmax)
+ 			hsv.x = (rgb.g - rgb.b) / delta;
+ 		else {
+ 			if (rgb.g == Cmax)
+ 				hsv.x = 2. + (rgb.b - rgb.r) / delta;
+ 			else
+ 				hsv.x = 4. + (rgb.r - rgb.g) / delta;
+ 		}
+ 		hsv.x = fract(hsv.x / 6.);
+ 	}
+ 	return hsv;
+}
+
 float cubicHermite(float t, float p0, float p1, float m0, float m1)
 {
     float t3 = t * t * t;

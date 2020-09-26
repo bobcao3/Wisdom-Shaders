@@ -82,5 +82,40 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, float stride, float strid
         dZW *= stride_multiplier;
     }
 
+    if (hit != ivec2(-1))
+    {
+        iuv -= uv_dir * dither;
+        ZW -= dZW * dither;
+        for (int i = 0; i < 4; i++)
+        {
+            float z = ZW.x / ZW.y;
+
+            int lod = clamp(int(floor(log2(length(uv_dir)) - 1.0)), 0, lod);
+
+            hit = ivec2(iuv);
+
+            vec2 uv = iuv * invWidthHeight;
+            float sampled_zbuffer = sampleDepthLODBilinear(uv, lod);
+            last_z = proj2view(getProjPos(uv, sampled_zbuffer)).z;
+            z_prev = z;
+
+            float z_next = (ZW.x + dZW.x * 1.0) / (ZW.y + dZW.y * 1.0);
+
+            if ((last_z > z_prev && z_next < z_prev) || (last_z < z_prev && z_next > z_prev))
+            {
+                uv_dir *= -0.5;
+                dZW *= -0.5;
+            }
+            else
+            {
+                uv_dir *= 0.5;
+                dZW *= 0.5;
+            }
+
+            iuv += uv_dir;
+            ZW += dZW;
+        }
+    }
+
     return hit;
 }

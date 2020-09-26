@@ -10,6 +10,8 @@ const bool colortex2Clear = false;
 
 #include "libs/transform.glsl"
 
+// #define TAA_NO_CLIP
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
 
@@ -37,9 +39,13 @@ void main() {
     vec3 current_n6 = texelFetchOffset(colortex0, iuv, 0, ivec2( 1,  0)).rgb;
     vec3 current_n7 = texelFetchOffset(colortex0, iuv, 0, ivec2( 1,  1)).rgb;
 
+#ifdef TAA_NO_CLIP
+    vec3 clamped_history = history.rgb;
+#else
     vec3 min_neighbor0 = min(current, min(min(min(current_n0, current_n1), min(current_n2, current_n3)), min(min(current_n4, current_n5), min(current_n6, current_n7))));
     vec3 max_neighbor0 = max(current, max(max(max(current_n0, current_n1), max(current_n2, current_n3)), max(max(current_n4, current_n5), max(current_n6, current_n7))));
     vec3 clamped_history = clamp(history.rgb, min_neighbor0, max_neighbor0);
+#endif
 
     vec3 color = mix(clamped_history, current.rgb, 0.07);
 

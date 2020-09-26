@@ -285,9 +285,11 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 		des *= vec2(dl);
 		depth += des;
 
+		vec3 randDir = vec3(hash(nseed + i), hash(nseed - i), hash(nseed + i + 17)) * 0.05;
+
 		vec3 Ri, Mi;
-		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi, true); R += Ri; M += Mi;
-		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi, true); R_moon += Ri; M_moon += Mi;
+		inScatter(p, Ds + randDir, Ra, depth, des, nseed, Ri, Mi, true); R += Ri; M += Mi;
+		inScatter(p, -Ds + randDir, Ra, depth, des, nseed, Ri, Mi, true); R_moon += Ri; M_moon += Mi;
 	}
 #endif
 

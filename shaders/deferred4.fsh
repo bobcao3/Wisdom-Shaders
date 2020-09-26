@@ -53,7 +53,7 @@ void main() {
         float total_weights = 0.214607;
 
         #pragma optionNV (unroll all)
-        for (int i = 0; i < 7; i++) if (i != 3) {
+        for (int i = 0; i < 7; i++) {
             ivec2 uv_s = iuv + ivec2(0, i - 3);
             vec3 ld_s = texelFetch(gaux2, uv_s, 0).rgb;
             vec3 normal_s = normalDecode(texelFetch(colortex4, uv_s, 0).r);

@@ -3,8 +3,6 @@
 
 #include "/libs/color.glsl"
 
-#define NORMAL_MAPPING
-
 inout vec4 color;
 inout flat vec3 normal;
 inout flat float subsurface;
@@ -19,7 +17,7 @@ inout flat vec3 bitangent;
 inout vec3 tangentpos;
 #endif
 
-#if (!defined(ENTITY) && defined(RAIN_PUDDLES))
+#if (!defined(ENTITY) && defined(RAIN_PUDDLES) || defined(POM))
 inout vec3 worldPos;
 inout vec3 viewPos;
 #else
@@ -107,6 +105,7 @@ uniform sampler2D specular;
 uniform sampler2D gaux3;
 
 uniform vec4 projParams;
+uniform mat4 gbufferProjection;
 
 uniform float wetness;
 
@@ -206,7 +205,7 @@ void fragment() {
 
     //lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
 
-    vec4 specular_map = textureLod(specular, adjuv, lod);
+    vec4 specular_map = textureLod(specular, adjuv, floor(lod));
 
     if (blockId > 8001.5 && blockId < 8002.5) {
         specular_map.a = 0.95;
