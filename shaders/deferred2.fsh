@@ -35,6 +35,24 @@ const bool colortex3Clear = false;
 
 #define NUM_SSPT_RAYS 4 // [1 2 4 8 16 32]
 
+vec3 sampleHistory(ivec2 iuv, float history_depth, vec3 Ld)
+{
+    vec4 history_d = texelFetch(colortex3, iuv, 0);
+            
+    #ifdef REDUCE_GHOSTING
+    float mix_weight = 0.15;
+    #else
+    float mix_weight = 0.07;
+    #endif
+
+    float depth_difference = abs(linearizeDepth(history_d.a) - history_depth) / history_depth;
+    if (depth_difference > 0.01) {
+        mix_weight = 1.0;
+    }
+
+    return mix(history_d.rgb, Ld, mix_weight);
+}
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
     vec2 uv = vec2(iuv) * invWidthHeight;
@@ -201,33 +219,35 @@ void main() {
             proj_pos_prev.xyz /= proj_pos_prev.w;
 
             vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5);
-            ivec2 iprev_uv = ivec2(prev_uv * vec2(viewWidth, viewHeight) + 0.5);
+            vec2 prev_uv_texels = prev_uv * vec2(viewWidth, viewHeight);
+            vec2 iprev_uv = floor(prev_uv_texels);
             prev_uv += 0.5 * invWidthHeight;
 
             if (isnan(Ld.r) || isnan(Ld.g) || isnan(Ld.b)) Ld = vec3(0.0);
             
-            if (prev_uv.x <= 0.0 || prev_uv.x >= 1.0 || prev_uv.y <= 0.0 || prev_uv.y >= 1.0)
+            if (prev_uv.x <= 0.001 || prev_uv.x >= 0.999 || prev_uv.y <= 0.001 || prev_uv.y >= 0.999)
             {
                 composite_diffuse = Ld;
             }
             else
             {
-                vec4 history_d = texture(colortex3, prev_uv, 0);
-            
-                #ifdef REDUCE_GHOSTING
-                float mix_weight = 0.2;
-                #else
-                float mix_weight = 0.08;
-                #endif
-        
-                float history_depth = view_pos_prev.z;
-                float depth_difference = abs(history_d.a - history_depth) / history_depth;
-                if (depth_difference > 0.1) {
-                    mix_weight = 1.0;
-                }
+                float history_depth = linearizeDepth(view_pos_prev.z);
+                
+                vec3 s00 = sampleHistory(ivec2(iprev_uv), history_depth, Ld);
+                vec3 s01 = sampleHistory(ivec2(iprev_uv) + ivec2(0, 1), history_depth, Ld);
+                vec3 s10 = sampleHistory(ivec2(iprev_uv) + ivec2(1, 0), history_depth, Ld);
+                vec3 s11 = sampleHistory(ivec2(iprev_uv) + ivec2(1, 1), history_depth, Ld);
 
-                composite_diffuse = mix(history_d.rgb, Ld, mix_weight);
+                composite_diffuse = mix(
+                    mix(s00, s10, prev_uv_texels.x - iprev_uv.x),
+                    mix(s01, s11, prev_uv_texels.x - iprev_uv.x),
+                    prev_uv_texels.y - iprev_uv.y
+                );
             }
+        }
+        else
+        {
+            composite_diffuse = vec3(0.0);
         }
     } else {
         vec3 dir = normalize(world_pos);
