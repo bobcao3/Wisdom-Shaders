@@ -31,14 +31,14 @@ void main() {
     {
         for (int i = 0; i < 8; i++)
         {
-            vec2 loc = WeylNth(int((frameCounter & 0xFF) * 8 + i + iuv.x ^ iuv.y)) * 0.5 + 0.25;
+            vec2 loc = WeylNth(int((frameCounter & 0xFFFF) * 8 + i + iuv.x ^ iuv.y)) * 0.5 + 0.25;
 
             L += clamp(luma(texelFetch(colortex0, ivec2(vec2(viewWidth, viewHeight) * loc), 0).rgb), 0.0, 10.0);
         }
 
         L *= 0.125;
 
-        float decay = 0.99;
+        float decay = 0.995;
         const float std_fps = 60.0;
         decay = pow(decay, frameTime * std_fps);
 

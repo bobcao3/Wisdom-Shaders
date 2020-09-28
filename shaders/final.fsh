@@ -9,7 +9,7 @@
 // uniform sampler2D gaux3;
 // uniform sampler2D gaux4;
 
-// uniform sampler2D shadowtex0;
+uniform sampler2D shadowtex0;
 
 #include "/configs.glsl"
 
@@ -88,7 +88,7 @@ void main() {
 
 #ifdef DEBUG_ADAPTIVE_EXPOSURE
     if (iuv.x < viewWidth / 8 && iuv.y < viewHeight / 8) {
-        color = vec4(L);
+        color = vec4(exposure);
     }
 #endif
 
