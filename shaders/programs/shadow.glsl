@@ -27,14 +27,14 @@ void main() {
 
 #elif defined(GEOMETRY)
 
-#extension GL_ARB_geometry_shader4 : enable
-const int maxVerticesOut = 12;
-
+layout (triangles) in;
 in vec4 vcolor[3];
 in f16vec2 vuv[3];
 in vec4 shadow_view_pos[3];
 
 #include "/libs/transform.glsl"
+
+layout (triangle_strip, max_vertices = 12) out;
 
 out vec4 color;
 out f16vec2 uv;
