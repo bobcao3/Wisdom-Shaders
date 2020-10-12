@@ -32,7 +32,7 @@ void main() {
 
     const float bilateral_weight = 16.0;
 
-    if (depth < 1.0) {
+    if (depth < 1.0 && depth > 0.7) {
         #pragma optionNV (unroll all)
         for (int i = 0; i < 7; i++) {
             ivec2 uv_s = iuv + ivec2(i - 3, 0);

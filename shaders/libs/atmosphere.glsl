@@ -10,7 +10,7 @@
 
 float day = float(worldTime) / 24000.0;
 float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
-float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.2 + 0.5, rainStrength);
+float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.1 + 0.5, rainStrength);
 
 // ============
 const float g = .76;
@@ -22,7 +22,7 @@ const float Hr = 8e3;
 const float Hm = 1.2e3;
 
 const vec3 I0 = vec3(10.0); // Adjust for D65
-const vec3 bR = vec3(3.8e-6, 13.5e-6, 33.1e-6);
+const vec3 bR = vec3(3.8e-6, 13.5e-6, 33.1e-6) * 0.7;
 
 #ifdef CLOUDS
 #define cloudSteps 8 // [8 16 32]
@@ -59,7 +59,7 @@ float cloud_noise(in vec3 v, float t) {
 }
 
 float cloud(vec3 p) {
-	return cloud_noise(p * 0.0002, frameTimeCounter * 0.3) * 40.0;
+	return cloud_noise(p * 0.0002, frameTimeCounter * 0.3) * 30.0;
 }
 
 const float cloudAltitude = 9.0e3;
@@ -250,26 +250,6 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 	vec3 R_moon = vec3(0.), M_moon = vec3(0.);
 
 #ifdef CLOUDS
-/*
-	for (int i = 0; i < 3; ++i) {
-		float dl, l;
-
-		dl = cloudMinL / 3.0;
-		l = dl * float(i + nseed);
-
-		vec3 p = o + d * l;
-
-		vec2 des;
-		densities(p, des);
-
-		des *= vec2(dl);
-		depth += des;
-
-		vec3 Ri, Mi;
-		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi, false); R += Ri; M += Mi;
-		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi, false); R_moon += Ri; M_moon += Mi;
-	}
-*/
 	for (int i = 0; i < cloudSteps; ++i) {
 		float dl, l;
 

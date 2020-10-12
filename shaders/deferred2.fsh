@@ -40,9 +40,9 @@ vec3 sampleHistory(ivec2 iuv, float history_depth, vec3 Ld)
     vec4 history_d = texelFetch(colortex3, iuv, 0);
             
     #ifdef REDUCE_GHOSTING
-    float mix_weight = 0.15;
+    float mix_weight = 0.2;
     #else
-    float mix_weight = 0.07;
+    float mix_weight = 0.1;
     #endif
 
     float depth_difference = abs(linearizeDepth(history_d.a) - history_depth) / history_depth;
@@ -67,6 +67,7 @@ void main() {
     decodeAlbedoSpecular(gbuffers.g, color.rgb, specular);
     
     specular.r = (1.0 - specular.r * specular.r);
+    specular.g = clamp(specular.g, 0.01, 0.99);
     
     vec3 normal = normalDecode(gbuffers.r);
 
@@ -92,7 +93,7 @@ void main() {
         if (biomeCategory != 16) {
             //int cascade = int(clamp(floor(log2(max(abs(world_pos.x), abs(world_pos.z)) / 8.0)), 0.0, 4.0));
             float scale;
-            vec3 shadow_proj_pos = world2shadowProj(world_pos + world_normal * 0.007 * abs(view_pos.z));
+            vec3 shadow_proj_pos = world2shadowProj(world_pos + world_normal * (depth < 0.7 ? 0.5 : 0.02));
 
             float shadow_sampled_depth;
             bool skipShadow = false;
@@ -109,14 +110,6 @@ void main() {
 
             vec3 b = normalize(cross(sun_vec, normal));
             vec3 t = cross(normal, b);
-
-            // if (depth > 0.7) {
-            //     int lod = 0;
-            //     float rt_contact_shadow = float(raytrace(view_pos, vec2(iuv), sun_vec, 2.0, 1.0, 0.01, 0, lod) != ivec2(-1));
-            //     // rt_contact_shadow *= smoothstep(0.20, 0.35, abs(dot(sun_vec, normal)));
-
-            //     shadow = min(shadow, 1.0 - rt_contact_shadow);
-            // }
             
             vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));
             float subsurface_depth = 1.0 - smoothstep(0.0, subsurface + pow(max(0.0, dot(normalize(view_pos), sun_vec)), 8.0), sposLinear(spos_diff) * 32.0);
@@ -142,7 +135,7 @@ void main() {
         #define BLOCKLIGHT_R 1.0 // [0.0 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.1 0.11 0.12 0.13 0.14 0.15 0.16 0.17 0.18 0.19 0.2 0.21 0.22 0.23 0.24 0.25 0.26 0.27 0.28 0.29 0.3 0.31 0.32 0.33 0.34 0.35 0.36 0.37 0.38 0.39 0.4 0.41 0.42 0.43 0.44 0.45 0.46 0.47 0.48 0.49 0.5 0.51 0.52 0.53 0.54 0.55 0.56 0.57 0.58 0.59 0.6 0.61 0.62 0.63 0.64 0.65 0.66 0.67 0.68 0.69 0.70 0.71 0.72 0.73 0.74 0.75 0.76 0.77 0.78 0.79 0.8 0.81 0.82 0.83 0.84 0.85 0.86 0.87 0.88 0.89 0.9 0.91 0.92 0.93 0.94 0.95 0.96 0.97 0.98 0.99 1.0]
         #define BLOCKLIGHT_G 0.35 // [0.0 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.1 0.11 0.12 0.13 0.14 0.15 0.16 0.17 0.18 0.19 0.2 0.21 0.22 0.23 0.24 0.25 0.26 0.27 0.28 0.29 0.3 0.31 0.32 0.33 0.34 0.35 0.36 0.37 0.38 0.39 0.4 0.41 0.42 0.43 0.44 0.45 0.46 0.47 0.48 0.49 0.5 0.51 0.52 0.53 0.54 0.55 0.56 0.57 0.58 0.59 0.6 0.61 0.62 0.63 0.64 0.65 0.66 0.67 0.68 0.69 0.70 0.71 0.72 0.73 0.74 0.75 0.76 0.77 0.78 0.79 0.8 0.81 0.82 0.83 0.84 0.85 0.86 0.87 0.88 0.89 0.9 0.91 0.92 0.93 0.94 0.95 0.96 0.97 0.98 0.99 1.0]
         #define BLOCKLIGHT_B 0.1 // [0.0 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.1 0.11 0.12 0.13 0.14 0.15 0.16 0.17 0.18 0.19 0.2 0.21 0.22 0.23 0.24 0.25 0.26 0.27 0.28 0.29 0.3 0.31 0.32 0.33 0.34 0.35 0.36 0.37 0.38 0.39 0.4 0.41 0.42 0.43 0.44 0.45 0.46 0.47 0.48 0.49 0.5 0.51 0.52 0.53 0.54 0.55 0.56 0.57 0.58 0.59 0.6 0.61 0.62 0.63 0.64 0.65 0.66 0.67 0.68 0.69 0.70 0.71 0.72 0.73 0.74 0.75 0.76 0.77 0.78 0.79 0.8 0.81 0.82 0.83 0.84 0.85 0.86 0.87 0.88 0.89 0.9 0.91 0.92 0.93 0.94 0.95 0.96 0.97 0.98 0.99 1.0]
-        #define EMMISIVE_BRIGHTNESS 1.5 // [0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 3.0 3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4.0 4.1 4.2 4.3 4.4 4.5 4.6 4.7 4.8 4.9 5.0]
+        #define EMMISIVE_BRIGHTNESS 1.2 // [0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 3.0 3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4.0 4.1 4.2 4.3 4.4 4.5 4.6 4.7 4.8 4.9 5.0]
 
         vec3 blockLightColor = vec3(BLOCKLIGHT_R, BLOCKLIGHT_G, BLOCKLIGHT_B);
 
@@ -157,7 +150,7 @@ void main() {
         }
 
         // SSPT
-        if (depth > 0.7 && (emmisive <= 0.05 || emmisive >= 0.995))
+        if ((emmisive <= 0.05 || emmisive >= 0.995))
         {
             float sunDotUp = dot(normalize(sunPosition), normalize(upPosition));
             float ambientIntensity = (max(sunDotUp, 0.0) + max(-sunDotUp, 0.0) * 0.01);
@@ -192,11 +185,11 @@ void main() {
 
                 int lod = 4;
                 float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
-                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 1.44, 2.0, i, lod);
+                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 1.44, 0.3, i, lod);
                 
                 vec3 diffuse = vec3(0.0);
                 
-                if (reflected != ivec2(-1)) {
+                if (reflected != ivec2(-1) && depth > 0.7) {
                     lod = min(3, lod);
                     vec3 prevComposite = texelFetch(colortex2, reflected >> lod, lod).rgb;
 
@@ -208,7 +201,7 @@ void main() {
                     diffuse = skyRadiance;
                 }
 
-                Ld += diffuse * getF(specular.g, dot(V, normal));
+                Ld += diffuse * clamp(getF(specular.g, dot(V, normal)), vec3(0.0), vec3(1.0));
             }
             
             Ld *= weight_per_ray;
@@ -219,11 +212,17 @@ void main() {
             proj_pos_prev.xyz /= proj_pos_prev.w;
 
             vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5);
+
+            if (depth < 0.7)
+            {
+                prev_uv = uv;
+            }
+
             vec2 prev_uv_texels = prev_uv * vec2(viewWidth, viewHeight);
             vec2 iprev_uv = floor(prev_uv_texels);
             prev_uv += 0.5 * invWidthHeight;
 
-            if (isnan(Ld.r) || isnan(Ld.g) || isnan(Ld.b)) Ld = vec3(0.0);
+            Ld = clamp(Ld, vec3(0.0), vec3(10.0));
             
             if (prev_uv.x <= 0.001 || prev_uv.x >= 0.999 || prev_uv.y <= 0.001 || prev_uv.y >= 0.999)
             {
@@ -275,6 +274,8 @@ void main() {
 #endif
 
             color.rgb = mix(color.rgb, moon_I * 8.0, smoothstep(0.9996, 0.99961, dot(normalize(view_pos), moonPosition * 0.01)));
+
+            // color.rgb = vec3(color.a);
         }
 
 #ifdef CLOUDS

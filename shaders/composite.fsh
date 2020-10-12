@@ -20,23 +20,23 @@
 uniform vec3 fogColor;
 uniform int biomeCategory;
 
+uniform int isEyeInWater;
+
 float densities(float h)
 {
     if (biomeCategory != 16)
     {
-        float d = clamp(3.0 * exp2(-h / 64.0f) - 0.2, 0.0, 2.0) * (4.0 + rainStrength * 8.0);
+        float d = clamp(3.0 * exp2(-h / 64.0f) - 0.2, 0.0, 2.0) * (4.0 + rainStrength * 8.0) * 2.0;
 
         return d;
     }
     else
     {
-        float d = 2.0 * clamp(exp2(-h / 32.0f), 0.0, 2.0);
+        float d = 2.0 * clamp(exp2(-h / 32.0f), 0.0, 2.0) * (isEyeInWater == 2 ? 10.0 : 1.0);
 
         return d;
     }
 }
-
-uniform int isEyeInWater;
 
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);

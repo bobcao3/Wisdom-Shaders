@@ -73,7 +73,7 @@ void main() {
     } else if (blockId == 18.0) {
         subsurface = 0.5;
     } else if (blockId == 79.0) {
-        subsurface = 1.0;
+        subsurface = 0.3;
     } else if (blockId == 8001.0) {
         subsurface = 0.5;
     }
@@ -113,15 +113,17 @@ uniform float wetness;
 
 #define RAIN_PUDDLES
 
-// float getDirectional(float lm, vec3 normal2) {
-// 	float Lx = dFdx(lm) * 60.0;
-// 	float Ly = dFdy(lm) * 60.0;
-//
-// 	vec3 TL = normalize(vec3(Lx * tangent + 0.005 * normal + Ly * bitangent));
-// 	float dir_lighting = fma((dot(normal2, TL)), 0.33, 0.67);
-//	
-// 	return clamp(dir_lighting * 1.4, 0.0, 1.0);
-// }
+#ifdef NORMAL_MAPPING
+float getDirectional(float lm, vec3 normal2) {
+	float Lx = dFdx(lm) * 60.0;
+	float Ly = dFdy(lm) * 60.0;
+
+	vec3 TL = normalize(vec3(Lx * tangent + 0.005 * normal + Ly * bitangent));
+	float dir_lighting = fma((dot(normal2, TL)), 0.33, 0.67);
+	
+	return clamp(dir_lighting * 1.4, 0.0, 1.0);
+}
+#endif
 
 #ifdef POM
 #define tileResolution 128 // [32 64 128 256 512 1024]
@@ -203,7 +205,9 @@ void fragment() {
     normal_map = mat3(tangent, bitangent, normal) * normal_map;
 #endif
 
-    //lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
+#ifdef NORMAL_MAPPING
+    lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
+#endif
 
     vec4 specular_map = textureLod(specular, adjuv, floor(lod));
 
