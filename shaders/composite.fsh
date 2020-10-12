@@ -32,7 +32,7 @@ float densities(float h)
     }
     else
     {
-        float d = 2.0 * clamp(exp2(-h / 32.0f), 0.0, 2.0) * (isEyeInWater == 2 ? 10.0 : 1.0);
+        float d = 4.0 * clamp(exp2(-h / 32.0f), 0.0, 2.0) * (isEyeInWater == 2 ? 10.0 : 1.0);
 
         return d;
     }

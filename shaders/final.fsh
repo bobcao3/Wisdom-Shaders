@@ -60,7 +60,7 @@ vec4 sharpened_fetch(sampler2D s, ivec2 iuv, int lod)
 
     #define SHARPEN_STRENGTH 0.15 // [0.0 0.05 0.1 0.15 0.2 0.25 0.3]
 
-    vec4 final = clamp((1.0 + SHARPEN_STRENGTH) * c11 - (SHARPEN_STRENGTH * 0.25) * (c00 + c01 + c02 + c10 + c12 + c20 + c21 + c22), vec4(0.0), vec4(10.0));
+    vec4 final = clamp((1.0 + SHARPEN_STRENGTH) * c11 - (SHARPEN_STRENGTH / 6.0) * (c00 * 0.5 + c01 + c02 * 0.5 + c10 + c12 + c20 * 0.5 + c21 + c22 * 0.5), vec4(0.0), vec4(10.0));
 
     return final;
 }

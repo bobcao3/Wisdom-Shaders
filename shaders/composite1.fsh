@@ -66,7 +66,7 @@ void main() {
 
     if (prev_uv.x < 0.0 || prev_uv.x > 1.0 || prev_uv.y < 0.0 || prev_uv.y > 1.0) history = current.rgb;
 
-    vec3 color = mix(history, current.rgb, 0.1);
+    vec3 color = mix(history, current.rgb, 0.15);
 
     if (depth <= 0.7) {
         color = current.rgb;
