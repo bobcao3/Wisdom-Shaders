@@ -46,6 +46,25 @@ uniform float nightVision;
 
 uniform float aspectRatio;
 
+vec4 sharpened_fetch(sampler2D s, ivec2 iuv, int lod)
+{
+    vec4 c00 = texelFetchOffset(s, iuv, lod, ivec2(-1, -1));
+    vec4 c01 = texelFetchOffset(s, iuv, lod, ivec2(-1,  0));
+    vec4 c02 = texelFetchOffset(s, iuv, lod, ivec2(-1,  1));
+    vec4 c10 = texelFetchOffset(s, iuv, lod, ivec2( 0, -1));
+    vec4 c11 = texelFetchOffset(s, iuv, lod, ivec2( 0,  0));
+    vec4 c12 = texelFetchOffset(s, iuv, lod, ivec2( 0,  1));
+    vec4 c20 = texelFetchOffset(s, iuv, lod, ivec2( 1, -1));
+    vec4 c21 = texelFetchOffset(s, iuv, lod, ivec2( 1,  0));
+    vec4 c22 = texelFetchOffset(s, iuv, lod, ivec2( 1,  1));
+
+    #define SHARPEN_STRENGTH 0.15 // [0.0 0.05 0.1 0.15 0.2 0.25 0.3]
+
+    vec4 final = clamp((1.0 + SHARPEN_STRENGTH) * c11 - (SHARPEN_STRENGTH * 0.25) * (c00 + c01 + c02 + c10 + c12 + c20 + c21 + c22), vec4(0.0), vec4(10.0));
+
+    return final;
+}
+
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st * MC_RENDER_QUALITY);
     vec2 uv = vec2(iuv) * invWidthHeight;
@@ -61,7 +80,7 @@ void main() {
     vec3 world_pos = view2world(view_pos);
     vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
 
-    vec4 color = texelFetch(colortex0, iuv, 0);
+    vec4 color = sharpened_fetch(colortex0, iuv, 0);
 
     color.rgb = pow(color.rgb, vec3(1.0 + max(0.0, blindness - nightVision)));
 

@@ -55,7 +55,7 @@ void main() {
         if (depth > 0.7)
         {
             #pragma optionNV (unroll all)
-            for (int i = 0; i < 7; i++) {
+            for (int i = 1; i < 6; i++) {
                 ivec2 uv_s = iuv + ivec2(0, i - 3);
                 vec3 ld_s = texelFetch(gaux2, uv_s, 0).rgb;
                 vec3 normal_s = normalDecode(texelFetch(colortex4, uv_s, 0).r);
