@@ -29,6 +29,8 @@ flat in vec3 moon_I;
 // #define REDUCE_GHOSTING
 
 uniform int biomeCategory;
+uniform int heldBlockLightValue;
+uniform int heldBlockLightValue2;
 
 const bool colortex2MipmapEnabled = true;
 const bool colortex3Clear = false;
@@ -142,11 +144,16 @@ void main() {
         float blockLight = pow(lmcoord.x, 6.0);
         vec3 block_L = blockLightColor * blockLight; // 10000 lux
 
+        float view_distance = length(view_pos);
+        vec3 hand_L = blockLightColor * (float(max(heldBlockLightValue, heldBlockLightValue2)) / 12.0 / ((view_distance + 1.0) * (view_distance + 1.0)));
+
         float emmisive = decoded_b.a;
         if (emmisive <= (254.5 / 255.0) && emmisive > 0.05) {
             color.rgb *= emmisive * EMMISIVE_BRIGHTNESS; // Max at 10000 lux
         } else {
-            color.rgb = L + diffuse_brdf_ggx_oren_schlick(color.rgb, block_L, specular.r, specular.g, F0, normal, V);
+            color.rgb = L
+             + diffuse_brdf_ggx_oren_schlick(color.rgb, block_L, specular.r, specular.g, F0, normal, V)
+             + brdf_ggx_oren_schlick(color.rgb, hand_L, specular.r, specular.g, subsurface, F0, V, normal, V);
         }
 
         // SSPT
@@ -272,7 +279,7 @@ void main() {
 
             float opmu2 = 1. + mu * mu;
             float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
-            color.rgb += (luma(sun_I + moon_I) * 0.3 + sun_I * phaseM * 0.2) * c;
+            color.rgb += (luma(sun_I + moon_I) * 0.2 + sun_I * phaseM * 0.2) * c;
 #endif
 
             color.rgb = mix(color.rgb, moon_I * 8.0, smoothstep(0.9996, 0.99961, dot(normalize(view_pos), moonPosition * 0.01)));
