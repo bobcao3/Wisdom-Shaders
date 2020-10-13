@@ -42,13 +42,13 @@ vec3 sampleHistory(ivec2 iuv, float history_depth, vec3 Ld)
     vec4 history_d = texelFetch(colortex3, iuv, 0);
             
     #ifdef REDUCE_GHOSTING
-    float mix_weight = 0.2;
+    float mix_weight = 0.15;
     #else
-    float mix_weight = 0.1;
+    float mix_weight = 0.07;
     #endif
 
     float depth_difference = abs(linearizeDepth(history_d.a) - history_depth) / history_depth;
-    if (depth_difference > 0.01) {
+    if (depth_difference > 0.05) {
         mix_weight = 1.0;
     }
 
@@ -205,7 +205,7 @@ void main() {
                     vec3 world_dir = mat3(gbufferModelViewInverse) * ray_trace_dir;
                     vec3 skyRadiance = skyLight * texture(gaux4, project_skybox2uv(world_dir), sky_lod).rgb;
 
-                    diffuse = skyRadiance;
+                    diffuse = min(skyRadiance, vec3(1.0));
                 }
 
                 Ld += diffuse * clamp(getF(specular.g, dot(V, normal)), vec3(0.0), vec3(1.0));

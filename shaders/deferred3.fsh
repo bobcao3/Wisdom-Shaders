@@ -32,9 +32,9 @@ void main() {
 
     const float bilateral_weight = 16.0;
 
-    if (depth < 1.0 && depth > 0.7) {
+    if (depth < 1.0) {
         #pragma optionNV (unroll all)
-        for (int i = 1; i < 6; i++) {
+        for (int i = 0; i < 7; i++) {
             ivec2 uv_s = iuv + ivec2(i - 3, 0);
             vec3 ld_s = texelFetch(colortex3, uv_s, 0).rgb;
             vec3 normal_s = normalDecode(texelFetch(colortex4, uv_s, 0).r);

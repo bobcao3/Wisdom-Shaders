@@ -206,7 +206,7 @@ void fragment() {
 #endif
 
 #ifdef NORMAL_MAPPING
-    lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
+    // lmcoord_dithered.x *= getDirectional(lmcoord.x, normal_map);
 #endif
 
     vec4 specular_map = textureLod(specular, adjuv, floor(lod));

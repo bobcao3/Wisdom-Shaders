@@ -10,7 +10,7 @@
 
 float day = float(worldTime) / 24000.0;
 float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
-float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.1 + 0.5, rainStrength);
+float cloud_coverage = max(noise(vec2(day_cycle, 0.0)) * 0.05 + 0.45, rainStrength);
 
 // ============
 const float g = .76;
