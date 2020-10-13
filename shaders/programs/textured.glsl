@@ -180,7 +180,7 @@ vec2 ParallaxMapping(in vec2 coord) {
 
 void fragment() {
 /* DRAWBUFFERS:4 */
-    float threshold = fract(texelFetch(gaux3, ivec2(gl_FragCoord.st) % 0xFF, 0).r + texelFetch(gaux3, ivec2(frameCounter) % 0xFF, 0).r) * 0.95 + 0.05;
+    float threshold = fract(texelFetch(gaux3, ivec2(gl_FragCoord.st) % 0xFF, 0).r + texelFetch(gaux3, ivec2(frameCounter, int(gl_FragCoord.z * 655336.0)) % 0xFF, 0).r) * 0.95 + 0.05;
 
     vec2 ddx = dFdx(uv);
     vec2 ddy = dFdy(uv);
