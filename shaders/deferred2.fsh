@@ -248,6 +248,8 @@ void main() {
         {
             composite_diffuse = vec3(0.0);
         }
+
+        composite_diffuse = clamp(composite_diffuse, vec3(0.0), vec3(10.0));
     } else {
         vec3 dir = normalize(world_pos);
         vec2 polarCoord = project_skybox2uv(dir);

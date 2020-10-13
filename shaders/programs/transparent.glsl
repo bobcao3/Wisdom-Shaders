@@ -204,7 +204,7 @@ void main() {
 
     if (isWater != 0 || isEyeInWater == 0)
     {
-        c.rgb += specular_brdf_ggx_oren_schlick(sun_I * shadows, isWater == 0 ? 0.1 * (1.0 + c.a) : 0.1, vec3(0.02), shadowLightPosition * 0.01, surfaceNormal, V);
+        c.rgb += specular_brdf_ggx_oren_schlick(sun_I * shadows, 0.2, vec3(0.02), shadowLightPosition * 0.01, surfaceNormal, V) * clamp(1.0 / c.a, 1.0, 10.0);
     }
 
     c.rgb += sky * albedo;
