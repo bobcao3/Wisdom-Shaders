@@ -119,8 +119,11 @@ void main() {
         vec3 world_normal = mat3(gbufferModelViewInverse) * normal;
         
 #ifdef WaterParallaxMapping
-        wwpos = WaterParallax(wwpos, waterLod * WATER_PARALLAX_QUALITY, wpos);
-        surfaceVPos = world2view(wwpos - cameraPosition);
+        if (abs(world_normal.y) > 0.9)
+        {
+            wwpos = WaterParallax(wwpos, waterLod * WATER_PARALLAX_QUALITY, wpos);
+            surfaceVPos = world2view(wwpos - cameraPosition);
+        }
 #endif
 
         if (land_vpos.z > surfaceVPos.z) discard;
