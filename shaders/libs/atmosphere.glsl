@@ -56,7 +56,7 @@ float cloud_noise(in vec3 v, float t) {
 
 	n = n / maxAmplitude;
 
-	return smoothstep(0.0, 0.15, n - 0.9 + cloud_coverage * 1.8);
+	return smoothstep(0.0, 0.15 + rainStrength * 0.7, n - 0.9 + cloud_coverage * 1.8);
 }
 
 float cloud(vec3 p) {
@@ -211,7 +211,7 @@ void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, 
 	if (Ls > 0.) {
 		vec2 depth_in = vec2(getDensityFromMap(p, D)) * Ls;
 
-		float Ls = cloudDepth;//escape(p, D, R0 + cloudAltitude + cloudDepth);
+		float Ls = cloudDepth * 2.0;//escape(p, D, R0 + cloudAltitude + cloudDepth);
 		float u0s = - (Ls - 1.0) / (1.0 - exp2(stepss));
 		for (int j = 0; j < stepss; ++j) {
 			float dls = u0s * exp2(j + nseed);
