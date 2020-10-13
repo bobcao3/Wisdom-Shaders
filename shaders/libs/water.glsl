@@ -92,23 +92,23 @@ vec3 get_water_normal(in vec3 wwpos, in float lod, in vec3 N, in vec3 T, in vec3
 }
 
 #ifdef WATER_PARALLAX
-void WaterParallax(inout vec3 wpos, in float lod, vec3 tangentpos) {
+vec3 WaterParallax(vec3 wpos, float lod, vec3 tangentpos) {
 	float heightmap = getwave(wpos, lod, WATER_ITERATIONS);
 
 	vec3 offset = vec3(0.0f);
 	vec3 s = normalize(tangentpos);
-	s /= s.z;
+	s /= s.y;
 
 	for (int i = 0; i < 8; i++) {
-		float prev = offset.z;
+		float prev = offset.y;
 
 		offset += (heightmap - prev) * 0.5 * s;
 
-		heightmap = getwave(wpos + vec3(offset.x, 0.0, offset.y), lod, WATER_ITERATIONS);
+		heightmap = getwave(wpos + vec3(offset.x, 0.0, offset.z), lod, WATER_ITERATIONS);
 		if (abs(offset.z - heightmap) < 0.05) break;
 	}
 
-	wpos += vec3(offset.x, offset.z, offset.y);
+	return wpos + offset;
 }
 #endif
 

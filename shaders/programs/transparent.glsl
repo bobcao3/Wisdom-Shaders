@@ -109,18 +109,23 @@ void main() {
 
         vec3 bitangent = cross(tangent, normal);
 
-        float waterLod = clamp(1.0 - (log2(abs(viewPos.z)) - 3.0) * 0.16666, 0.2, 1.0);
+        float lod_wavelength = max(length(dFdx(wpos)), length(dFdy(wpos)));
+        float waterLod = clamp(0.5 / lod_wavelength, 0.1, 1.0);
 
         vec3 wwpos = wpos + cameraPosition;
+
+        vec3 world_bitangent = mat3(gbufferModelViewInverse) * bitangent;
+        vec3 world_tangent = mat3(gbufferModelViewInverse) * tangent;
+        vec3 world_normal = mat3(gbufferModelViewInverse) * normal;
         
 #ifdef WaterParallaxMapping
-        WaterParallax(wwpos, waterLod * WATER_PARALLAX_QUALITY, normalize(viewPos.xyz * mat3(tangent, bitangent, normal)));
+        wwpos = WaterParallax(wwpos, waterLod * WATER_PARALLAX_QUALITY, wpos);
         surfaceVPos = world2view(wwpos - cameraPosition);
 #endif
 
         if (land_vpos.z > surfaceVPos.z) discard;
 
-        vec3 waterWNormal = get_water_normal(wwpos, waterLod, mat3(gbufferModelViewInverse) * normal, mat3(gbufferModelViewInverse) * tangent, mat3(gbufferModelViewInverse) * bitangent);
+        vec3 waterWNormal = get_water_normal(wwpos, waterLod, world_normal, world_tangent, world_bitangent);
         if (isEyeInWater == 1) waterWNormal = -waterWNormal;
         surfaceNormal = mat3(gbufferModelView) * waterWNormal;
 
