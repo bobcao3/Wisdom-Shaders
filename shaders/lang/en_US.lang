@@ -44,3 +44,6 @@ option.cloudSteps = Cloud Quality
 value.cloudSteps.8 = Normal
 value.cloudSteps.16 = High
 value.cloudSteps.32 = Ultra
+
+value.PATREONS.PT0 = Click to cycle through
+value.PATREONS.PT1 = Brian Cohen

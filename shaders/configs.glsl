@@ -34,3 +34,6 @@ const float ambientOcclusionLevel = 0.0f;
 #endif
 
 #endif
+
+
+#define PATREONS PT0 // [PT0 PT1 PT2 PT3 PT4 PT5 PT6 PT7 PT8]
