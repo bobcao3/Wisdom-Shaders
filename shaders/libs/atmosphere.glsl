@@ -21,7 +21,7 @@ const float Ra = 6420e3;
 const float Hr = 8e3;
 const float Hm = 1.2e3;
 
-const vec3 I0 = vec3(10.0); // Adjust for D65
+const vec3 I0 = 10.0 * vec3(1.0, 0.8794, 0.8267); // Adjust for D65
 const vec3 bR = vec3(3.8e-6, 13.5e-6, 33.1e-6) * 0.7;
 
 #define CLOUD_STEPS 8 // [4 6 8 12 16 20 24 28 32]
