@@ -149,20 +149,20 @@ vec2 atlas_offset(in vec2 coord, in vec2 offset) {
 
 vec2 ParallaxMapping(in vec2 coord) {
 	vec2 adjusted = coord.st;
-	#define maxSteps 8 // [4 8 16]
+	#define POM_STEPS 4 // [4 8 16]
 	#define scale 0.01 // [0.005 0.01 0.02 0.04]
 
 	float heightmap = texture(normals, coord.st).a - 1.0f;
 
 	vec3 offset = vec3(0.0f, 0.0f, 0.0f);
 	vec3 s = normalize(tangentpos);
-	s = s / s.z * scale / maxSteps;
+	s = s / s.z * scale / POM_STEPS;
 
 	float lazyx = 0.5;
-	const float lazyinc = 0.5 / maxSteps;
+	const float lazyinc = 0.5 / POM_STEPS;
 
 	if (heightmap < 0.0f) {
-		for (int i = 0; i < maxSteps; i++) {
+		for (int i = 0; i < POM_STEPS; i++) {
 			float prev = offset.z;
 
 			offset += (heightmap - prev) * lazyx * s;

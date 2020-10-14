@@ -194,7 +194,7 @@ void main() {
 
     float stride = max(2.0, viewHeight / 480.0);
     int lod = 0;
-    ivec2 reflected = raytrace(surfaceVPos.xyz, vec2(iuv), mirrorDir, stride, 1.3, -surfaceVPos.z * 0.3, 0, lod);
+    ivec2 reflected = raytrace(surfaceVPos.xyz, vec2(iuv), mirrorDir, stride, 1.3, -surfaceVPos.z * 0.3, 0, lod, true);
 
     if (reflected != ivec2(-1))
     {

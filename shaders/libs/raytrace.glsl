@@ -1,6 +1,6 @@
 #define SSPT_SAMPLES 16 // [6 8 12 16 20]
 
-ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, float stride, float stride_multiplier, float zThickness, int noise_i, inout int lod) {
+ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, float stride, float stride_multiplier, float zThickness, int noise_i, inout int lod, bool refine) {
     float rayLength = clamp(-vpos.z, 0.1, 16.0);
 
     vec3 vpos_target = vpos + dir * rayLength;
@@ -82,7 +82,7 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, float stride, float strid
         dZW *= stride_multiplier;
     }
 
-    if (hit != ivec2(-1))
+    if (refine && hit != ivec2(-1))
     {
         iuv -= uv_dir * dither;
         ZW -= dZW * dither;

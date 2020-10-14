@@ -1,3 +1,14 @@
+profile.LOW       = Low
+profile.MEDIUM    = Medium
+profile.HIGH      = High
+profile.VERY_HIGH = Very High
+profile.ULTRA     = Ultra
+profile.CINEMATIC = Cinematic
+
+screen.LIGHTING = Lighting Options
+screen._SSPT = Screenspace Pathtracing Options
+screen._SHADOWS = Shadow Options
+
 option.SSPT_SAMPLES   = SSPT Distance
 value.SSPT_SAMPLES.20 = Extended
 value.SSPT_SAMPLES.16 = Full
@@ -27,7 +38,16 @@ value.shadowDistance.8.0  = 8 Chunks
 value.shadowDistance.6.0  = 6 Chunks
 value.shadowDistance.4.0  = 4 Chunks
 
+option.EMMISIVE_BRIGHTNESS = Brightness of Emmisives
+option.BLOCKLIGHT_R = Lightmap Red
+option.BLOCKLIGHT_G = Lightmap Green
+option.BLOCKLIGHT_B = Lightmap Blue
+
+option.PCSS = Variable Penumbra Shadows
+
 option.WaterParallaxMapping = Water Parallax
+
+option.WATER_PARALLAX_STEPS = Water POM Steps
 
 option.WATER_PARALLAX_QUALITY    = Water Parallax Quality
 value.WATER_PARALLAX_QUALITY.1.0 = 100%
@@ -39,11 +59,34 @@ option.NORMAL_MAPPING = Texture Normals
 
 option.RAIN_PUDDLES = Rain Puddles
 
-option.CLOUDS = Volumetric Cloud
+option.CLOUDS = HQ Volumetric Cloud
 option.cloudSteps = Cloud Quality
 value.cloudSteps.8 = Normal
 value.cloudSteps.16 = High
 value.cloudSteps.32 = Ultra
+
+option.CLOUD_STEPS = Cloud Ray-march Steps
+option.FBM_STEPS = Cloud FBM Iterations
+option.CLOUDS_2D = 2D Clouds
+
+option.POM = Parallax Occlusion Mapping
+option.POM_STEPS = POM Steps
+option.tileResolution = Texutre Resolution
+
+option.PIXELATE = Pixelation Effect
+option.SHARPEN_STRENGTH = Sharpen Filter Strength
+
+screen.COLORS = Tonemapping / Colors
+
+screen._TAA = Temporal Antialising Options
+
+option.SATURATION=Saturation
+option.CHROMA_PRESERVED_CURVE=Chroma-Preserved Tone Curve
+option.BLACKS=Black
+option.SHADOWS=Shadow Tones
+option.MIDTONES=Mid Tones
+option.HIGHLIGHTS=Highlight Tone
+option.WHITES=White
 
 value.PATREONS.PT0 = Click to cycle through
 value.PATREONS.PT1 = Brian Cohen

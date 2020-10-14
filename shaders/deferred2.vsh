@@ -21,8 +21,8 @@ void main() {
     float sunCoverage = texture(gaux4, project_skybox2uv(world_sun_dir)).a;
     float moonCoverage = texture(gaux4, project_skybox2uv(-world_sun_dir)).a;
 
-    vec3 sunColor = scatter(vec3(0.0, cameraPosition.y, 0.0), world_sun_dir, world_sun_dir, Ra, 0.1).rgb;
-    vec3 moonColor = scatter(vec3(0.0, cameraPosition.y, 0.0), -world_sun_dir, world_sun_dir, Ra, 0.1).rgb;
+    vec3 sunColor = texture(gaux4, project_skybox2uv(world_sun_dir)).rgb;
+    vec3 moonColor = texture(gaux4, project_skybox2uv(-world_sun_dir)).rgb;
 
     sun_I = sunCoverage * sunColor * fade;
     moon_I = moonCoverage * moonColor * fade;

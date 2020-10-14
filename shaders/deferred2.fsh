@@ -35,7 +35,7 @@ uniform int heldBlockLightValue2;
 const bool colortex2MipmapEnabled = true;
 const bool colortex3Clear = false;
 
-#define NUM_SSPT_RAYS 4 // [1 2 4 8 16 32]
+#define NUM_SSPT_RAYS 2 // [1 2 4 8 16 32]
 
 vec3 sampleHistory(ivec2 iuv, float history_depth, vec3 Ld)
 {
@@ -192,7 +192,7 @@ void main() {
 
                 int lod = 4;
                 float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
-                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 1.44, 0.3, i, lod);
+                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 1.44, 0.3, i, lod, specular.r > 0.8);
                 
                 vec3 diffuse = vec3(0.0);
                 
@@ -288,7 +288,7 @@ void main() {
         }
 
 #ifdef CLOUDS
-        vec4 atmosphere = bicubicSample(gaux4, vec2(iuv) * invWidthHeight * vec2(0.5, 0.5) + vec2(0.5, 0.0));
+        vec4 atmosphere = bicubicSample(gaux4, vec2(iuv) * invWidthHeight * vec2(0.25, 0.5) + vec2(0.5, 0.0));
         color.rgb *= atmosphere.a;
         color.rgb += atmosphere.rgb;
 #else

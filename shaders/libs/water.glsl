@@ -91,6 +91,8 @@ vec3 get_water_normal(in vec3 wwpos, in float lod, in vec3 N, in vec3 T, in vec3
 	return normalize(cross(w2 - w0, w1 - w0));
 }
 
+#define WATER_PARALLAX_STEPS 4 // [4 8 16]
+
 #ifdef WATER_PARALLAX
 vec3 WaterParallax(vec3 wpos, float lod, vec3 tangentpos) {
 	float heightmap = getwave(wpos, lod, WATER_ITERATIONS);
@@ -99,7 +101,7 @@ vec3 WaterParallax(vec3 wpos, float lod, vec3 tangentpos) {
 	vec3 s = normalize(tangentpos);
 	s /= s.y;
 
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < WATER_PARALLAX_STEPS; i++) {
 		float prev = offset.y;
 
 		offset += (heightmap - prev) * 0.5 * s;
