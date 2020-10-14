@@ -30,7 +30,7 @@ void main() {
     vec3 composite = center_color * 0.214607;
     float total_weights = 0.214607;
 
-    const float bilateral_weight = 16.0;
+    const float bilateral_weight = 2.0;
 
     if (depth < 1.0) {
         #pragma optionNV (unroll all)

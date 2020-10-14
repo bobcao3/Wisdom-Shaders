@@ -49,7 +49,7 @@ void main() {
     float emmisive = decoded_b.a;
 
     if ((emmisive <= 0.05 || emmisive >= 0.995) && proj_pos.z < 0.99999) {
-        const float bilateral_weight = 16.0;
+        const float bilateral_weight = 2.0;
         float total_weights = 0.214607;
 
         #pragma optionNV (unroll all)

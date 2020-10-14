@@ -288,7 +288,7 @@ void main() {
         }
 
 #ifdef CLOUDS
-        vec4 atmosphere = bicubicSample(gaux4, vec2(iuv) * invWidthHeight * vec2(0.25, 0.5) + vec2(0.5, 0.0));
+        vec4 atmosphere = bicubicSample(gaux4, vec2(iuv) * invWidthHeight * vec2(0.5, 0.5) + vec2(0.5, 0.0));
         color.rgb *= atmosphere.a;
         color.rgb += atmosphere.rgb;
 #else
