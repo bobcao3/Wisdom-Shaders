@@ -44,7 +44,16 @@ attribute vec4 at_tangent;
 uniform vec4 entityColor;
 #endif
 
+#define WAVING_FOILAGE
+
 uniform mat4 gbufferModelViewInverse;
+
+uniform float rainStrength;
+uniform float frameTimeCounter;
+
+attribute vec4 mc_midTexCoord;
+
+#include "/libs/noise.glsl"
 
 void main() {
     vec4 input_pos = gl_Vertex;
@@ -63,6 +72,27 @@ void main() {
 #ifdef NORMAL_MAPPING
     tangent = normalize(gl_NormalMatrix * (at_tangent.xyz / at_tangent.w));
     bitangent = cross(tangent, normal);
+#endif
+
+#if defined(WAVING_FOILAGE) && !defined(ENTITY) && defined(NORMAL_MAPPING)
+    float maxStrength = 0.5 + rainStrength;
+    float time = frameTimeCounter * 3.0;
+
+	if (mc_Entity.x == 31.0) {
+		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
+			float rand_ang = hash(input_pos.xz);
+			float reset = cos(rand_ang * 10.0 + time * 0.1);
+			reset = max( reset * reset, max(rainStrength * 0.5, 0.1));
+			input_pos.x += (sin(rand_ang * 10.0 + time + input_pos.y) * 0.2) * (reset * maxStrength);
+		}
+	} else if (mc_Entity.x == 18.0) {
+		float rand_ang = hash(input_pos.xz);
+		float reset = cos(rand_ang * 10.0 + time * 0.1);
+		reset = max( reset * reset, max(rainStrength * 0.5, 0.1));
+		input_pos.x += (sin(rand_ang * 5.0 + time + input_pos.x) * 0.035 + 0.035) * (reset * maxStrength);
+		input_pos.y += (cos(rand_ang * 5.0 + time + input_pos.y) * 0.01 + 0.01) * (reset * maxStrength);
+		input_pos.z += (sin(rand_ang * 5.0 + time + input_pos.z) * 0.035 + 0.035) * (reset * maxStrength);
+    }
 #endif
 
     subsurface = 0.0;
