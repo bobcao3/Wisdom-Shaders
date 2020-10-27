@@ -169,5 +169,14 @@ vec3 getF0(vec3 albedo, float metalic)
 
 	#include "materials.glsl"
 
-	return max(vec3(0.0), (N - 1.0) / (N + 1.0));
+	float cosTheta = 1.0;
+
+	vec3 NcosTheta = 2.0 * N * cosTheta;
+	float cosTheta2 = cosTheta * cosTheta;
+	vec3 N2K2 = N * N + K * K;
+
+	vec3 Rs = (N2K2 - NcosTheta + cosTheta2) / (N2K2 + NcosTheta + cosTheta2);
+	vec3 Rp = (N2K2 * cosTheta2 - NcosTheta + 1.0) / (N2K2 * cosTheta2 + NcosTheta + 1.0);
+
+	return (Rs + Rp) * 0.5;
 }

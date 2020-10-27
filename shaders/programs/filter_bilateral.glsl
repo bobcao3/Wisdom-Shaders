@@ -23,12 +23,13 @@ void main() {
     vec3 normal = normalDecode(texelFetch(colortex4, iuv, 0).r);
     
     vec3 center_color = texelFetch(SRC_TEXTURE, iuv, 0).rgb;
-    vec3 composite = center_color * 0.214607;
-    float total_weights = 0.214607;
+    vec3 composite = vec3(0.0);
 
     const float bilateral_weight = 2.0;
 
     if (depth < 1.0) {
+        float total_weights = 0.000316;
+        
         #pragma optionNV (unroll all)
         for (int i = 0; i < 3; i++) {
             #pragma optionNV (unroll all)

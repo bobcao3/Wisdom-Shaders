@@ -17,7 +17,7 @@ const bool colortex3Clear = false;
 
 uniform float wetness;
 
-// #define METAL_TINT
+#define METAL_TINT
 
 void main() {
     ivec2 iuv = ivec2(gl_FragCoord.st);
@@ -41,7 +41,7 @@ void main() {
     float emmisive = decoded_b.a;
 
     if ((emmisive <= 0.05 || emmisive >= 0.995) && proj_pos.z < 0.99999) {
-#ifdef METAL_TINT
+#ifndef METAL_TINT
         if (specular.g > 229.5 / 255.0)
         {
             color.rgb = vec3(1.0);

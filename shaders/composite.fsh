@@ -72,7 +72,7 @@ void main() {
 
         if (biomeCategory == 16.0)
         {
-            distinction_distance = 1024.0;
+            distinction_distance = 512.0;
         }
 
         if (isEyeInWater == 1)

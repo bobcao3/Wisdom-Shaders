@@ -30,20 +30,20 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, float stride, float strid
         uv_dir = vec2(uv_dir.x * invdx, sign(uv_dir.y));
     }
 
-    iuv += uv_dir * 2.0;
-
-    float dither = hash(iuv + vec2((noise_i ^ frameCounter & 0xF) * viewWidth, 0.0));
+    vec2 dither_uv = vec2(iuv) + vec2((noise_i ^ frameCounter & 0xF) * 17);
+    float dither = bayer64(dither_uv); //hash(iuv + vec2((noise_i ^ frameCounter & 0xF) * viewWidth, 0.0));
 
     uv_dir *= stride;
     dZW *= invdx * stride;
 
     ivec2 hit = ivec2(-1);
 
-    vec2 iuvStart = iuv;
-
     float last_z = 0.0;
 
-    float z_prev = (ZW.x + dZW.x * (dither + 0.5)) / (ZW.y + dZW.y * (dither + 0.5));
+    iuv += uv_dir * 3.0;
+    ZW += dZW * 3.0;
+
+    float z_prev = (ZW.x + dZW.x * 0.5) / (ZW.y + dZW.y * 0.5);
     for (int i = 0; i < SSPT_SAMPLES; i++) {
         iuv += uv_dir;
         ZW += dZW;
