@@ -155,7 +155,7 @@ vec2 densitiesMap(in vec2 uv)
 
 	float u0s = - (Ls - 1.0) / (1.0 - exp2(10));
 
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < 20; i++)
 	{
 		float dls = u0s * exp2(i);
 		float ls = - u0s * (1.0 - exp2(i + 1));
@@ -179,7 +179,7 @@ vec2 getDensityFromMap(vec3 p, vec3 d)
 
 	float phi = (atan(dir.y / dir.x) / 3.1415926) + 0.5;
 
-	return vec2(texture(gaux4, vec2(h * 0.5, phi * 0.5 + 0.5)).xy);
+	return vec2(texture(gaux4, vec2(h * 0.25, phi * 0.25 + 0.5)).xy);
 }
 
 void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, out vec3 R, out vec3 M)
@@ -347,10 +347,12 @@ vec4 scatterClouds(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 	vec3 R = vec3(0.0), M = vec3(0.0), Mc = vec3(0.0);
 	vec3 R_moon = vec3(0.0), M_moon = vec3(0.0), Mc_moon = vec3(0.0);
 
-	for (int i = 0; i < CLOUD_STEPS; ++i) {
+	float steps_required = min(CLOUD_STEPS, ceil(cloudMaxL / 2e3));
+
+	for (int i = 0; i < steps_required; ++i) {
 		float dl, l;
 
-		dl = (cloudMaxL - cloudMinL) / float(CLOUD_STEPS);
+		dl = (cloudMaxL - cloudMinL) / float(steps_required);
 		l = cloudMinL + dl * float(i + nseed * 2.0 - 1.0);
 
 		vec3 p = o + d * l;

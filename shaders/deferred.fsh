@@ -49,10 +49,10 @@ void main() {
 
     vec4 skybox = texelFetch(gaux4, iuv, 0);
 
-    if (iuv.x <= (int(viewWidth) >> 1) && iuv.y > (int(viewHeight) >> 1))
+    if (iuv.x <= (int(viewWidth) >> 2) && iuv.y > (int(viewHeight) >> 2))
     {
-        vec2 uv = (vec2(iuv) * invWidthHeight - vec2(0.0, 0.5)) * 2.0;
-        skybox.rg = clamp(vec2(densitiesMap(uv)), vec2(0.0), vec2(100.0));
+        vec2 uv = (vec2(iuv) * invWidthHeight - vec2(0.0, 0.5)) * 4.0;
+        skybox.rg = clamp(vec2(densitiesMap(uv)), vec2(0.0), vec2(200.0));
         skybox.ba = vec2(0.0);
     }
 
