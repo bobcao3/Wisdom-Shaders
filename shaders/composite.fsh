@@ -22,6 +22,8 @@ uniform int biomeCategory;
 
 uniform int isEyeInWater;
 
+#define VL_SAMPLES 6 // [2 4 6 8 12]
+
 float densities(float h)
 {
     if (biomeCategory != 16)
@@ -100,7 +102,7 @@ void main() {
         else
             fog = fromGamma(fogColor);
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < VL_SAMPLES; i++)
         {
             float t = (float(i) + nseed + 0.5) * 0.25;
             vec3 spos = t * (spos_end - spos_start) + spos_start;
