@@ -282,7 +282,7 @@ void fragment() {
     vec4 c10 = texelFetch(tex, atlas_offset(ivec2(fuv), ivec2(1, 0), lodi), lodi);
     vec4 c11 = texelFetch(tex, atlas_offset(ivec2(fuv), ivec2(1, 1), lodi), lodi);
 
-    vec4 c = mix(
+    vec4 c = color * mix(
         mix(c00, c01, iuv.y - fuv.y),
         mix(c10, c11, iuv.y - fuv.y), iuv.x - fuv.x
     );
