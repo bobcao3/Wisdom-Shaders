@@ -32,9 +32,10 @@ uniform vec3 cameraPosition;
 
 uniform int frameCounter;
 
+#include "/libs/taa.glsl"
+
 #ifdef VERTEX
 
-#include "/libs/taa.glsl"
 uniform vec2 invWidthHeight;
 
 attribute vec4 mc_Entity;
@@ -74,7 +75,7 @@ void main() {
     bitangent = cross(tangent, normal);
 #endif
 
-#if defined(WAVING_FOILAGE) && !defined(ENTITY) && defined(NORMAL_MAPPING)
+#if defined(WAVING_FOILAGE) && !defined(ENTITY)
     float maxStrength = 0.5 + rainStrength;
     float time = frameTimeCounter * 3.0;
 

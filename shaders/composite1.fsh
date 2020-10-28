@@ -36,22 +36,24 @@ void main() {
 
     if (isnan(current.r) || isnan(current.g) || isnan(current.b)) current = vec3(0.0);
 
-    vec3 current_n0 = texelFetchOffset(colortex0, iuv, 0, ivec2(-1, -1)).rgb;
-    vec3 current_n1 = texelFetchOffset(colortex0, iuv, 0, ivec2(-1,  0)).rgb;
-    vec3 current_n2 = texelFetchOffset(colortex0, iuv, 0, ivec2(-1,  1)).rgb;
-    vec3 current_n3 = texelFetchOffset(colortex0, iuv, 0, ivec2( 0, -1)).rgb;
-    vec3 current_n4 = texelFetchOffset(colortex0, iuv, 0, ivec2( 0,  1)).rgb;
-    vec3 current_n5 = texelFetchOffset(colortex0, iuv, 0, ivec2( 1, -1)).rgb;
-    vec3 current_n6 = texelFetchOffset(colortex0, iuv, 0, ivec2( 1,  0)).rgb;
-    vec3 current_n7 = texelFetchOffset(colortex0, iuv, 0, ivec2( 1,  1)).rgb;
+    vec3 min_neighbor0 = vec3(1000.0);
+    vec3 max_neighbor0 = vec3(0.0);
+
+    for (int i = -2; i <= 2; i++)
+    {
+        for (int j = -2; j <= 2; j++) if (i != 0 || j != 0)
+        {
+            vec3 s = texelFetch(colortex0, iuv + ivec2(i, j), 0).rgb;
+            min_neighbor0 = min(min_neighbor0, s);
+            max_neighbor0 = max(max_neighbor0, s);
+        }
+    }
 
     vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5);
     vec2 prev_uv_texels = prev_uv * vec2(viewWidth, viewHeight);
     vec2 iprev_uv = floor(prev_uv_texels);
     prev_uv += 0.5 * invWidthHeight;
 
-    vec3 min_neighbor0 = min(current, min(min(min(current_n0, current_n1), min(current_n2, current_n3)), min(min(current_n4, current_n5), min(current_n6, current_n7))));
-    vec3 max_neighbor0 = max(current, max(max(max(current_n0, current_n1), max(current_n2, current_n3)), max(max(current_n4, current_n5), max(current_n6, current_n7))));
 
     vec3 s00 = sampleHistory(ivec2(iprev_uv), min_neighbor0, max_neighbor0);
     vec3 s01 = sampleHistory(ivec2(iprev_uv) + ivec2(0, 1), min_neighbor0, max_neighbor0);
