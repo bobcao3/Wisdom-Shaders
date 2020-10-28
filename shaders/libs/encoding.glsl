@@ -4,6 +4,8 @@
 #define CLIPPING_PLANES
 #include "uniforms.glsl"
 
+#include "/libs/color.glsl"
+
 vec3 normalDecode(uint e) {
     f16vec2 encodedNormal = f16vec2(unpackUnorm2x16(e));
 	encodedNormal = encodedNormal * float16_t(4.0) - float16_t(2.0);
@@ -32,7 +34,7 @@ void decodeAlbedoSpecular(uint enc, out vec3 albedo, out vec2 specular)
 	ivec3 dAlbedo = ivec3((enc >> 11) & 0x1F, (enc >> 5) & 0x3F, enc & 0x1F);
 	ivec2 dSpecular = ivec2(enc >> 24, (enc >> 16) & 0xFF);
 
-	albedo = pow(vec3(dAlbedo) / vec3(31.0, 63.0, 31.0), vec3(2.2));
+	albedo = fromGamma(vec3(dAlbedo) / vec3(31.0, 63.0, 31.0));
 	specular = vec2(dSpecular) / vec2(255.0);
 }
 

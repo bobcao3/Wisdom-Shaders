@@ -17,11 +17,11 @@ float oren_nayer(in vec3 v, in vec3 l, in vec3 n, in float r) {
 }
 
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
-	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, 0.001), 5.0);
+	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow5(max(1.0 - cosTheta, 0.001));
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
-	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+	return F0 + (1.0 - F0) * pow5(1.0 - cosTheta);
 }
 
 #define GeometrySchlickGGX(NdotV, k) (NdotV / (NdotV * (1.0 - k) + k))
@@ -57,11 +57,6 @@ mat3 make_coord_space(vec3 n) {
     vec3 x = normalize(cross(n, y));
 
     return mat3(x, y, n);
-}
-
-float pow2(float c)
-{
-	return c * c;
 }
 
 vec3 ImportanceSampleGGX(vec2 rand, vec3 N, vec3 wo, float roughness, out float pdf)

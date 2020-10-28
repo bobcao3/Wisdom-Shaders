@@ -18,7 +18,8 @@ uniform mat4 gbufferProjectionInverse;          // inverse gbufferProjection
 uniform mat4 shadowProjectionInverse;           // inverse shadowProjection
 uniform mat4 shadowModelViewInverse;            // inverse shadowModelView
 uniform vec2 invWidthHeight;
-uniform vec4 projParams;
+uniform float near;
+uniform float far;
 #endif
 #endif
 
@@ -27,14 +28,6 @@ uniform vec4 projParams;
 #define _INCLUDE_TRANSFORMATIONS_RESIDUAL
 uniform mat4 gbufferPreviousModelView;          // last frame gbufferModelView
 uniform mat4 gbufferPreviousProjection;         // last frame gbufferProjection
-#endif
-#endif
-
-#ifdef CLIPPING_PLANE
-#ifndef _INCLUDE_CLIPPING_PLANE
-#define _INCLUDE_CLIPPING_PLANE
-uniform float near;                             // near viewing plane distance
-uniform float far;                              // far viewing plane distance
 #endif
 #endif
 

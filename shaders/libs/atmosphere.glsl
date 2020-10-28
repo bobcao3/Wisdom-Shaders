@@ -241,7 +241,7 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 		float opmu2 = 1. + mu*mu;
 		phaseR = .0596831 * opmu2;
 		phaseM = .1193662 * (1. - g2) * opmu2;
-		phaseM /= ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));		
+		phaseM /= ((2. + g2) * pow1d5(1. + g2 - 2.*g*mu));		
 	}
 
 	{
@@ -249,7 +249,7 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 		float opmu2 = 1. + mu*mu;
 		phaseR_moon = .0596831 * opmu2;
 		phaseM_moon = .1193662 * (1. - g2) * opmu2;
-		phaseM_moon /= ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));	
+		phaseM_moon /= ((2. + g2) * pow1d5(1. + g2 - 2.*g*mu));	
 	}
 
 	vec2 depth = vec2(0.0);
@@ -324,7 +324,7 @@ vec4 scatterClouds(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 		float opmu2 = 1. + mu*mu;
 		phaseR = .0596831 * opmu2;
 		phaseM = .1193662 * (1. - g2) * opmu2;
-		phaseM /= ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));		
+		phaseM /= ((2. + g2) * pow1d5(1. + g2 - 2.*g*mu));		
 	}
 
 	{
@@ -332,7 +332,7 @@ vec4 scatterClouds(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 		float opmu2 = 1. + mu*mu;
 		phaseR_moon = .0596831 * opmu2;
 		phaseM_moon = .1193662 * (1. - g2) * opmu2;
-		phaseM_moon /= ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));	
+		phaseM_moon /= ((2. + g2) * pow1d5(1. + g2 - 2.*g*mu));	
 	}
 
 	vec2 depth = vec2(0.0);
@@ -414,7 +414,7 @@ vec3 starField(vec3 dir)
 	float s0 = mix(s00, s01, t.y);
 	float s1 = mix(s10, s11, t.y);
 
-	float star = pow(mix(s0, s1, t.x), 1.5);
+	float star = pow1d5(mix(s0, s1, t.x));
 
 	return star * smoothstep(0.0, 500.0, dir.y) * vec3(1.0 - star * 0.8, 1.0, 1.0 + star * 0.8);
 }

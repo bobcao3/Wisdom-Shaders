@@ -84,8 +84,8 @@ void main() {
 
     color.rgb = pow(color.rgb, vec3(1.0 + max(0.0, blindness - nightVision)));
 
-    float nightVisionStrength = float((iuv.y / 2) % 2 != 0) * max(0.0, nightVision - blindness) * max(0.0, 1.0 - pow(length(uv * 2.0 - 1.0), 0.5));
-    color.rgb = color.rgb + nightVisionStrength * vec3(0.1, 1.0, 0.1) * pow(color.rgb, vec3(1.0 / 2.0));
+    float nightVisionStrength = float((iuv.y / 2) % 2 != 0) * max(0.0, nightVision - blindness) * max(0.0, 1.0 - sqrt(length(uv * 2.0 - 1.0)));
+    color.rgb = color.rgb + nightVisionStrength * vec3(0.1, 1.0, 0.1) * sqrt(color.rgb);
 
     color.rgb = saturation(color.rgb, SATURATION * 0.5);
 

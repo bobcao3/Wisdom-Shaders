@@ -41,7 +41,6 @@ out f16vec2 uv;
 out flat int cascade;
 
 uniform float aspectRatio;
-uniform float far;
 
 float max_axis(in vec2 v) {
     v = abs(v);

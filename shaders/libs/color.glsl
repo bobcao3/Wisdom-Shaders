@@ -1,5 +1,8 @@
-const float gamma = 2.4;
-const float invGamma = 1.0 / 2.4;
+#ifndef _INCLUDE_COLOR
+#define _INCLUDE_COLOR
+
+const float gamma = 2.2;
+const float invGamma = 1.0 / 2.2;
 
 vec4 fromGamma(vec4 c) {
     return pow(c, vec4(gamma));
@@ -144,3 +147,5 @@ vec3 ACESFitted(vec3 color) {
 
     return color;
 }
+
+#endif

@@ -37,7 +37,8 @@ void main() {
 
 uniform sampler2D tex;
 
-uniform vec4 projParams;
+uniform float near;
+uniform float far;
 
 uniform int fogMode;
 

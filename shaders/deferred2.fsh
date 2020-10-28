@@ -88,7 +88,7 @@ void main() {
             vec3 t = cross(normal, b);
             
             vec3 spos_diff = vec3(shadow_proj_pos.xy, max(shadow_proj_pos.z - shadow_sampled_depth, 0.0));
-            float subsurface_depth = 1.0 - smoothstep(0.0, subsurface + pow(max(0.0, dot(normalize(view_pos), sun_vec)), 8.0), sposLinear(spos_diff) * 32.0);
+            float subsurface_depth = 1.0 - smoothstep(0.0, subsurface + pow8(max(0.0, dot(normalize(view_pos), sun_vec))), sposLinear(spos_diff) * 32.0);
 
             if (subsurface > 0.0) {
                 shadow = mix(min(subsurface_depth, 1.0), shadow, min(1.0, subsurface));
@@ -152,7 +152,7 @@ void main() {
             color.rgb = mix(color.rgb, color.rgb * (1.0 - c), smoothstep(0.1, 0.2, dir.y));
 
             float opmu2 = 1. + mu * mu;
-            float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow(1. + g2 - 2.*g*mu, 1.5));
+            float phaseM = .1193662 * (1. - g2) * opmu2 / ((2. + g2) * pow1d5(1. + g2 - 2.*g*mu));
             color.rgb += (luma(sun_I + moon_I) * 0.2 + sun_I * phaseM * 0.2) * c;
 #endif
         }

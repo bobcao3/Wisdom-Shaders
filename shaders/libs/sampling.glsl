@@ -90,7 +90,7 @@ float getShadowRadiusPCSS(in sampler2D tex, in vec3 spos, out float depth, in iv
     skipShadow = allSamples < 0.25 || allSamples > 15.75;
     shadowEstiamte = allSamples * 0.0625;
 
-    float sunSize = 1.5 / shadowDistance;
+    const float sunSize = 1.5 / shadowDistance;
 
     return max((spos.z - depth) * sunSize, 2.0 / shadowMapResolution);
 }
@@ -128,12 +128,6 @@ float sampleDepthLOD(ivec2 iuv, int lod) {
         return texelFetch(gaux3, (iuv >> 2) + ivec2(0, (int(viewHeight) >> 1)), 0).r;
     } else if (lod == 3) {
         return texelFetch(gaux3, (iuv >> 3) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2)), 0).r;
-    } else if (lod == 4) {
-        return texelFetch(gaux3, (iuv >> 4) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2) + (int(viewHeight) >> 3)), 0).r;
-    } else if (lod == 5) {
-        return texelFetch(gaux3, (iuv >> 5) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2) + (int(viewHeight) >> 3) + (int(viewHeight) >> 4)), 0).r;
-    } else if (lod == 6) {
-        return texelFetch(gaux3, (iuv >> 6) + ivec2(0, (int(viewHeight) >> 1) + (int(viewHeight) >> 2) + (int(viewHeight) >> 3) + (int(viewHeight) >> 4) + (int(viewHeight) >> 5)), 0).r;
     }
     return 0.0;
 }
@@ -147,12 +141,6 @@ float sampleDepthLODBilinear(vec2 uv, int lod) {
         return texture(gaux3, uv * 0.25 + vec2(0, 0.5), 0).r;
     } else if (lod == 3) {
         return texture(gaux3, uv * 0.125 + vec2(0, 0.5 + 0.25), 0).r;
-    } else if (lod == 4) {
-        return texture(gaux3, uv * 0.0625 + vec2(0, 0.5 + 0.25 + 0.125), 0).r;
-    } else if (lod == 5) {
-        return texture(gaux3, uv * 0.03125 + vec2(0, 0.5 + 0.25 + 0.125 + 0.0625), 0).r;
-    } else if (lod == 6) {
-        return texture(gaux3, uv * 0.015625 + vec2(0, 0.5 + 0.25 + 0.125 + 0.0625 + 0.03125), 0).r;
     }
     return 0.0;
 }

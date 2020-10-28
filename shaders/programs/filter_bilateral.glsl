@@ -37,7 +37,7 @@ void main() {
                 ivec2 uv_s = iuv + ivec2(i - 1, j - 1) * STRIDE;
                 vec3 ld_s = texelFetch(SRC_TEXTURE, uv_s, 0).rgb;
                 vec3 normal_s = normalDecode(texelFetch(colortex4, uv_s, 0).r);
-                float weight_s = pow(max(0.0, dot(normal_s, normal)), 5.0) * weights[i] * weights[j];
+                float weight_s = pow5(max(0.0, dot(normal_s, normal))) * weights[i] * weights[j];
                 weight_s *= exp(-norm2(ld_s, center_color) * bilateral_weight);
 
                 composite += ld_s * weight_s;

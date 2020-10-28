@@ -57,11 +57,11 @@ float getDepth(in ivec2 iuv) {
 }
 
 float linearizeDepth(in float d) {
-    return (2 * projParams.x) / (projParams.y + projParams.x - (d * 2.0 - 1.0) * (projParams.y - projParams.x));
+    return (2 * near) / (far + near - (d * 2.0 - 1.0) * (far - near));
 }
 
 vec4 linearizeDepth(in vec4 d) {
-    return (2 * projParams.x) / (projParams.y + projParams.x - (d * 2.0 - 1.0) * (projParams.y - projParams.x));
+    return (2 * near) / (far + near - (d * 2.0 - 1.0) * (far - near));
 }
 
 vec3 getProjPos(in ivec2 iuv) {

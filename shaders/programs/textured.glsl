@@ -134,7 +134,8 @@ uniform sampler2D specular;
 
 uniform sampler2D gaux3;
 
-uniform vec4 projParams;
+uniform float near;
+uniform float far;
 uniform mat4 gbufferProjection;
 
 uniform float wetness;
@@ -261,7 +262,7 @@ void fragment() {
     wetnessMorph += 2.0 * noise(worldPos.xz * 0.2 + cameraPosition.xz * 0.2);
     wetnessMorph = clamp(wetnessMorph + 1.0, 0.0, 1.0) * wetness * smoothstep(0.9, 0.95, lmcoord.y);
 
-    if (threshold < wetnessMorph * pow(1.0 - abs(dot(normalize(viewPos), normal)), 3.0))
+    if (threshold < wetnessMorph * pow3(1.0 - abs(dot(normalize(viewPos), normal))))
     {
         specular_map.rg = vec2(0.99, 1.0);
         normal_map = normal;

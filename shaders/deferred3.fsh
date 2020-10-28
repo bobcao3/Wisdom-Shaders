@@ -139,7 +139,7 @@ void main() {
 
                 if (dot(ray_trace_dir, normal) < 0.05) continue;
 
-                int lod = 4;
+                int lod = 3;
                 float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
                 ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 1.44, 0.3, i, lod, specular.r > 0.8);
                 

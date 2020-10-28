@@ -26,21 +26,16 @@ void main() {
     float depth = getDepth(iuv);
     vec3 proj_pos = getProjPos(iuv, depth);
 
-    uvec3 gbuffers = texelFetch(colortex4, iuv, 0).rgb;
-
     vec3 color;
     vec2 specular;
-    decodeAlbedoSpecular(gbuffers.g, color, specular);
+    decodeAlbedoSpecular(texelFetch(colortex4, iuv, 0).g, color, specular);
     
     specular.r = (1.0 - specular.r * specular.r);
 
     vec3 composite = texelFetch(colortex0, iuv, 0).rgb;
     vec3 Ld = texelFetch(gaux2, iuv, 0).rgb;
 
-    vec4 decoded_b = unpackUnorm4x8(gbuffers.b);
-    float emmisive = decoded_b.a;
-
-    if ((emmisive <= 0.05 || emmisive >= 0.995) && proj_pos.z < 0.99999) {
+    if (proj_pos.z < 0.99999) {
 #ifndef METAL_TINT
         if (specular.g > 229.5 / 255.0)
         {
