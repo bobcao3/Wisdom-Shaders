@@ -158,7 +158,7 @@ float getDirectional(float lm, vec3 normal2) {
 #endif
 
 #ifdef POM
-#define tileResolution 128 // [32 64 128 256 512 1024]
+#define tileResolution 128 // [16 32 64 128 256 512 1024]
 
 uniform ivec2 atlasSize;
 
@@ -175,6 +175,25 @@ vec2 atlas_offset(in vec2 coord, in vec2 offset) {
 
 	offsetCoord.y -= float(offsetCoord.y > maxCoord.y) * tileResolutionF.y;
 	offsetCoord.y += float(offsetCoord.y < minCoord.y) * tileResolutionF.y;
+
+	return offsetCoord;
+}
+
+// #define SMOOTH_TEXTURE
+
+ivec2 atlas_offset(in ivec2 coord, in ivec2 offset, int lodi) {
+    int tileResLod = (tileResolution >> lodi);
+
+	ivec2 offsetCoord = coord + offset.xy % tileResLod;
+
+    ivec2 minCoordi = coord - coord % tileResLod;
+    ivec2 maxCoordi = minCoordi + tileResLod;
+
+	offsetCoord.x -= int(offsetCoord.x >= maxCoordi.x) * tileResLod;
+	offsetCoord.x += int(offsetCoord.x < minCoordi.x) * tileResLod;
+
+	offsetCoord.y -= int(offsetCoord.y >= maxCoordi.y) * tileResLod;
+	offsetCoord.y += int(offsetCoord.y < minCoordi.y) * tileResLod;
 
 	return offsetCoord;
 }
@@ -252,7 +271,25 @@ void fragment() {
     specular_map.a = 0.95;
     #endif
 
+#if defined(SMOOTH_TEXTURE) && defined(POM)
+    ivec2 texSize = textureSize(tex, int(floor(lod)));
+    vec2 iuv = vec2(texSize) * adjuv;
+    vec2 fuv = floor(iuv);
+
+    int lodi = int(floor(lod));
+
+    vec4 c00 = texelFetch(tex, atlas_offset(ivec2(fuv), ivec2(0, 0), lodi), lodi);
+    vec4 c01 = texelFetch(tex, atlas_offset(ivec2(fuv), ivec2(0, 1), lodi), lodi);
+    vec4 c10 = texelFetch(tex, atlas_offset(ivec2(fuv), ivec2(1, 0), lodi), lodi);
+    vec4 c11 = texelFetch(tex, atlas_offset(ivec2(fuv), ivec2(1, 1), lodi), lodi);
+
+    vec4 c = mix(
+        mix(c00, c01, iuv.y - fuv.y),
+        mix(c10, c11, iuv.y - fuv.y), iuv.x - fuv.x
+    );
+#else
     vec4 c = color * textureLod(tex, adjuv, lod);
+#endif
 
     c.rgb += vec3(threshold - 0.5) / vec3(32.0, 64.0, 32.0);
     c.rgb = max(c.rgb, vec3(0.0));
