@@ -3,7 +3,7 @@
 
 uniform sampler2D noisetex;
 
-float hash(float n) { return fract(sin(n) * 1e4); }
+float hash(float n) { return fract(sin(n) * 43758.5453123); }
 
 float hash(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.2031);
@@ -11,14 +11,19 @@ float hash(vec2 p) {
 	return fract((p3.x + p3.y) * p3.z);
 }
 
-float noise(vec2 p) {
-	vec2 i = floor(p);
-	vec2 f = fract(p);
-	vec2 u = (f * f) * fma(vec2(-2.0f), f, vec2(3.0f));
-	return fma(2.0f, mix(
-		mix(hash(i),                   hash(i + vec2(1.0f,0.0f)), u.x),
-		mix(hash(i + vec2(0.0f,1.0f)), hash(i + vec2(1.0f,1.0f)), u.x),
-	u.y), -1.0f);
+float noise(vec2 x) {
+	const vec2 step = vec2(110, 241);
+
+	vec2 i = floor(x);
+	vec2 f = fract(x);
+ 
+	// For performance, compute the base input to a 1D hash from the integer part of the argument and the 
+	// incremental change to the 1D based on the 3D -> 1D wrapping
+    float n = dot(i, step);
+
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix( hash(n + dot(step, vec2(0, 0))), hash(n + dot(step, vec2(1, 0))), u.x),
+               mix( hash(n + dot(step, vec2(0, 1))), hash(n + dot(step, vec2(1, 1))), u.x), u.y) * 2.0 - 1.0;
 }
 
 #ifdef USE_HALF

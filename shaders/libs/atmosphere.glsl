@@ -37,22 +37,30 @@ const vec3 bMc = vec3(1e-7);
 
 const mat2 octave_c = mat2(1.4,1.2,-1.2,1.4);
 
-#define FBM_STEPS 3 // [1 2 3 4 5 6]
+#define FBM_STEPS 2 // [1 2 3 4 5 6]
+#define FBM_STEPS_3D 1 // [1 2 3 4 5 6]
 
 float cloud_noise(in vec3 v, float t) {
 	float n = 0.0;
 	float speed = 0.1;
-	float amplitude = 0.6;
+	float amplitude = 1.0;
 	float frequency = -3.0;
 	float maxAmplitude = 0.0;
 
 	for (int i = 0; i < FBM_STEPS; i++)
 	{
 		maxAmplitude += amplitude;
+		n += (noise(v.xz * vec2(0.75, 1.0))) * amplitude;
+		v += vec3(vec2(n * 0.4, n * 0.15) * octave_c, t * 0.2); v *= frequency;
+		amplitude *= 0.5;
+	}
+
+	for (int i = 0; i < FBM_STEPS_3D; i++)
+	{
+		maxAmplitude += amplitude;
 		n += (noise(v * vec3(0.75, 0.5, 1.0)) * 2.0 - 1.0) * amplitude;
 		v += vec3(vec2(n * 0.4, n * 0.15) * octave_c, t * 0.2); v *= frequency;
 		amplitude *= 0.5;
-		// frequency *= 0.7;
 	}
 
 	n = n / maxAmplitude;
