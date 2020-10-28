@@ -104,7 +104,7 @@ void main() {
 
         for (int i = 0; i < VL_SAMPLES; i++)
         {
-            float t = (float(i) + nseed + 0.5) * 0.25;
+            float t = (float(i) + nseed + 0.5) / float(VL_SAMPLES);
             vec3 spos = t * (spos_end - spos_start) + spos_start;
             vec3 wpos = t * world_pos;
 
@@ -121,7 +121,7 @@ void main() {
                 }
             }
 
-            float density = distinction * densities(wpos.y + cameraPosition.y) * 0.25;
+            float density = distinction * densities(wpos.y + cameraPosition.y) / float(VL_SAMPLES);
             actualDistinction += density;
             accumulation += exp2(-actualDistinction) * shadow * density;
         }
