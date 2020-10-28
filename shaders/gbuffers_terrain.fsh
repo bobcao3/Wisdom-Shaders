@@ -4,6 +4,7 @@
 #define NORMAL_MAPPING
 #define RAIN_PUDDLES
 #define POM
+// #define SMOOTH_TEXTURE
 
 #define UINT_BUFFER
 #include "libs/gbuffers.frag.glsl"

@@ -179,8 +179,6 @@ vec2 atlas_offset(in vec2 coord, in vec2 offset) {
 	return offsetCoord;
 }
 
-// #define SMOOTH_TEXTURE
-
 ivec2 atlas_offset(in ivec2 coord, in ivec2 offset, int lodi) {
     int tileResLod = (tileResolution >> lodi);
 
@@ -272,6 +270,7 @@ void fragment() {
     #endif
 
 #if defined(SMOOTH_TEXTURE) && defined(POM)
+#ifdef SMOOTH_TEXTURE
     ivec2 texSize = textureSize(tex, int(floor(lod)));
     vec2 iuv = vec2(texSize) * adjuv;
     vec2 fuv = floor(iuv);
@@ -287,6 +286,7 @@ void fragment() {
         mix(c00, c01, iuv.y - fuv.y),
         mix(c10, c11, iuv.y - fuv.y), iuv.x - fuv.x
     );
+#endif
 #else
     vec4 c = color * textureLod(tex, adjuv, lod);
 #endif
