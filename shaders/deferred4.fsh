@@ -23,7 +23,7 @@ void main() {
 
     float depth = getDepth(iuv);
 
-    vec3 composite = texelFetch(colortex3, iuv, 0).rgb;
+    vec3 composite = texelFetch(colortex3, iuv / 2, 0).rgb;
 
     if (depth < 1.0) {
         vec3 min_bound = vec3(100.0);
@@ -31,35 +31,35 @@ void main() {
 
         vec3 s;
         
-        s = texelFetchOffset(colortex3, iuv, 0, ivec2(-1, -1)).rgb;
+        s = texelFetchOffset(colortex3, iuv / 2, 0, ivec2(-1, -1)).rgb;
         min_bound = min(min_bound, s);
         max_bound = max(max_bound, s);
 
-        s = texelFetchOffset(colortex3, iuv, 0, ivec2( 0, -1)).rgb;
+        s = texelFetchOffset(colortex3, iuv / 2, 0, ivec2( 0, -1)).rgb;
         min_bound = min(min_bound, s);
         max_bound = max(max_bound, s);
 
-        s = texelFetchOffset(colortex3, iuv, 0, ivec2( 1, -1)).rgb;
+        s = texelFetchOffset(colortex3, iuv / 2, 0, ivec2( 1, -1)).rgb;
         min_bound = min(min_bound, s);
         max_bound = max(max_bound, s);
 
-        s = texelFetchOffset(colortex3, iuv, 0, ivec2(-1,  0)).rgb;
+        s = texelFetchOffset(colortex3, iuv / 2, 0, ivec2(-1,  0)).rgb;
         min_bound = min(min_bound, s);
         max_bound = max(max_bound, s);
 
-        s = texelFetchOffset(colortex3, iuv, 0, ivec2( 1,  0)).rgb;
+        s = texelFetchOffset(colortex3, iuv / 2, 0, ivec2( 1,  0)).rgb;
         min_bound = min(min_bound, s);
         max_bound = max(max_bound, s);
 
-        s = texelFetchOffset(colortex3, iuv, 0, ivec2(-1,  1)).rgb;
+        s = texelFetchOffset(colortex3, iuv / 2, 0, ivec2(-1,  1)).rgb;
         min_bound = min(min_bound, s);
         max_bound = max(max_bound, s);
     
-        s = texelFetchOffset(colortex3, iuv, 0, ivec2( 0,  1)).rgb;
+        s = texelFetchOffset(colortex3, iuv / 2, 0, ivec2( 0,  1)).rgb;
         min_bound = min(min_bound, s);
         max_bound = max(max_bound, s);
 
-        s = texelFetchOffset(colortex3, iuv, 0, ivec2( 1,  1)).rgb;
+        s = texelFetchOffset(colortex3, iuv / 2, 0, ivec2( 1,  1)).rgb;
         min_bound = min(min_bound, s);
         max_bound = max(max_bound, s);
 

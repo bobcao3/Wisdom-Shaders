@@ -31,7 +31,7 @@ const bool colortex0MipmapEnabled = true;
 const bool colortex3MipmapEnabled = true;
 const bool colortex3Clear = false;
 
-#define NUM_SSPT_RAYS 2 // [1 2 4 8 16 32]
+#define NUM_SSPT_RAYS 4 // [1 2 4 8 16 32]
 
 vec3 sampleHistory(ivec2 iuv, float history_depth, vec3 Ld, float roughness)
 {
@@ -64,10 +64,12 @@ flat in vec3 ambient_down;
 #define AMBIENT_INTENSITY 0.5 // [0.25 0.5 0.75 1.0 1.25 1.5 1.75 2.0 2.25 2.5]
 
 void main() {
-    ivec2 iuv = ivec2(gl_FragCoord.st);
+    ivec2 iuv = ivec2(gl_FragCoord.st) * 2;
     vec2 uv = vec2(iuv) * invWidthHeight;
 
-    float depth = getDepth(iuv);
+    if (uv.x > 1.0 || uv.y > 1.0) discard;
+
+    float depth = sampleDepthLOD(iuv, 1);
     vec3 proj_pos = getProjPos(iuv, depth);
 
     uvec3 gbuffers = texelFetch(colortex4, iuv, 0).rgb;
@@ -175,7 +177,7 @@ void main() {
             vec4 proj_pos_prev = gbufferPreviousProjection * view_pos_prev;
             proj_pos_prev.xyz /= proj_pos_prev.w;
 
-            vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5);
+            vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5) * 0.5;
 
             if (depth < 0.7)
             {
