@@ -108,7 +108,7 @@ float shadowFiltered(in sampler2D tex, in vec3 spos, out float depth, in float r
         vec2 grid_sample = fract(WeylNth(i + (frameCounter & 0x7) * 8) + bayer8(iuv));
         vec2 direction = vec2(cos(grid_sample.x * 3.1415926 * 2.0), sin(grid_sample.x * 3.1415926 * 2.0)) * grid_sample.y;
 
-        shadow += shadowTexSmooth(tex, shadowProjCascaded(spos + vec3(direction * radius, 0.0), s, ds), d, 0.0002);
+        shadow += shadowTexSmooth(tex, shadowProjCascaded(spos + vec3(direction * radius, 0.0), s, ds), d, 0.0003);
         depth += (d * 2.0 - 1.0) * ds;
     }
 

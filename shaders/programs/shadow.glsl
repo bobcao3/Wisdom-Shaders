@@ -124,13 +124,13 @@ void main() {
                 // Bottom Left
                 if (max_axis(proj_pos.xy) > 4.4 || max_axis(proj_pos.xy) < 1.8) emit = false;
                 proj_pos.xy *= 0.125;
-                proj_pos.z *= 0.5;
+                proj_pos.z *= 0.25;
                 proj_pos.xy += vec2(-0.5, -0.5);
             } else if (n == 3) {
                 // Bottom Right
                 if (max_axis(proj_pos.xy) < 3.6) emit = false;
                 proj_pos.xy *= 0.03125;
-                proj_pos.z *= 0.125;
+                proj_pos.z *= 0.0625;
                 proj_pos.xy += vec2(0.5, -0.5);
             }
 

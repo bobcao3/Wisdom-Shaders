@@ -24,10 +24,10 @@ const float Hm = 1.2e3;
 const vec3 I0 = 10.0 * vec3(1.0, 0.8794, 0.8267); // Adjust for D65
 const vec3 bR = vec3(3.8e-6, 13.5e-6, 33.1e-6) * 0.7;
 
-#define CLOUD_STEPS 8 // [4 6 8 12 16 20 24 28 32]
+#define CLOUD_STEPS 6 // [2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32]
 
 const int steps = 6;
-const int stepss = 4;
+const int stepss = 2;
 
 vec3 I = I0; // * (1.0 - cloud_coverage * 0.7);
 
@@ -322,7 +322,7 @@ vec4 scatterClouds(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 	float L = min(lmax, escape(o, d, Ra));
 
 	float cloudMaxL = min(lmax, escape(o, d, R0 + cloudAltitude + cloudDepth));
-	float cloudMinL = 0.0;//min(lmax, escape(o, d, R0 + cloudAltitude - cloudDepth));
+	float cloudMinL = min(lmax, escape(o, d, R0 + cloudAltitude - cloudDepth));
 
 	float phaseM, phaseR;
 	float phaseM_moon, phaseR_moon;
@@ -347,12 +347,30 @@ vec4 scatterClouds(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 	vec3 R = vec3(0.0), M = vec3(0.0), Mc = vec3(0.0);
 	vec3 R_moon = vec3(0.0), M_moon = vec3(0.0), Mc_moon = vec3(0.0);
 
-	float steps_required = min(CLOUD_STEPS, ceil(cloudMaxL / 2e3));
+	// float steps_required = min(CLOUD_STEPS, ceil(cloudMaxL / 2e3));
 
-	for (int i = 0; i < steps_required; ++i) {
+	for (int i = 0; i < 3; ++i) {
 		float dl, l;
 
-		dl = (cloudMaxL - cloudMinL) / float(steps_required);
+		dl = cloudMinL / 3.0;
+		l = dl * float(i + nseed * 2.0 - 1.0);
+
+		vec3 p = o + d * l;
+
+		vec2 des;
+		densities(p, des);
+		des *= vec2(dl);
+		depth += des;
+
+		vec3 Ri, Mi;
+		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi); R += Ri; M += Mi;
+		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi); R_moon += Ri; M_moon += Mi;
+	}
+
+	for (int i = 0; i < CLOUD_STEPS; ++i) {
+		float dl, l;
+
+		dl = (cloudMaxL - cloudMinL) / float(CLOUD_STEPS);
 		l = cloudMinL + dl * float(i + nseed * 2.0 - 1.0);
 
 		vec3 p = o + d * l;

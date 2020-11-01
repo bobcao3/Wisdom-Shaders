@@ -112,7 +112,7 @@ void main() {
             const float weight_per_ray = 1.0 / float(NUM_SSPT_RAYS);
             const float num_directions = 4096 * NUM_SSPT_RAYS;
 
-            float stride = max(2.0, viewHeight / 480.0);
+            float stride = max(2.0, viewHeight / 640.0);
             float noise_sample = fract(texelFetch(colortex1, iuv & 0xFF, 0).r + texelFetch(colortex1, ivec2(frameCounter) & 0xFF, 0).r);
 
             int sky_lod = clamp(int((1.0 - specular.r + specular.g) * 3.0), 0, 3);
@@ -141,7 +141,7 @@ void main() {
 
                 int lod = 3;
                 float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
-                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 1.44, 0.3, i, lod, specular.r > 0.8);
+                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 2.0, 0.3, i, lod, specular.r > 0.8);
                 
                 vec3 diffuse = vec3(0.0);
                 

@@ -118,16 +118,16 @@ vec3 shadowProjCascaded(in vec3 spos, out float scale, out float dscale) {
     } else if (largest_axis < 3.8) {
         // Bottom Left
         spos.xy *= 0.125;
-        spos.z *= 0.5;
+        spos.z *= 0.25;
         scale = 0.5;
-        dscale = 2.0;
+        dscale = 4.0;
         spos.xy += vec2(-0.5, -0.5);
     } else if (largest_axis < 16) {
         // Bottom Right
         spos.xy *= 0.03125;
-        spos.z *= 0.125;
+        spos.z *= 0.0625;
         scale = 0.25;
-        dscale = 8.0;
+        dscale = 16.0;
         spos.xy += vec2(0.5, -0.5);
     } else {
         spos = vec3(-1);
@@ -158,10 +158,10 @@ float sposLinear(in vec3 spos) {
         return spos.z * 2.0;
     } else if (largest_axis < 3.8) {
         // Bottom Left
-        return spos.z * 2.0;
+        return spos.z * 4.0;
     } else if (largest_axis < 16) {
         // Bottom Right
-        return spos.z * 4.0;
+        return spos.z * 16.0;
     } else {
         return 1.0;
     }

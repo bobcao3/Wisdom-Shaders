@@ -100,7 +100,7 @@ void main() {
                  && dot(prevSkyBox10, vec4(1.0)) > 0.0
                  && dot(prevSkyBox11, vec4(1.0)) > 0.0)
                 {
-                    skybox = mix(texture(gaux4, prev_uv), skybox, 0.05);
+                    skybox = mix(texture(gaux4, prev_uv), skybox, 0.1);
                 }
             }
         }

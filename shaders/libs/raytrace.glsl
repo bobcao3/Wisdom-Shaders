@@ -1,4 +1,4 @@
-#define SSPT_SAMPLES 16 // [6 8 12 16 20]
+#define SSPT_SAMPLES 16 // [6 8 10 12 16 20]
 
 ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, float stride, float stride_multiplier, float zThickness, int noise_i, inout int lod, bool refine) {
     float rayLength = clamp(-vpos.z, 0.1, 16.0);
@@ -30,7 +30,7 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, float stride, float strid
         uv_dir = vec2(uv_dir.x * invdx, sign(uv_dir.y));
     }
 
-    vec2 dither_uv = vec2(iuv) + vec2((noise_i ^ frameCounter & 0xF) * 17);
+    vec2 dither_uv = floor(vec2(iuv) + WeylNth(frameCounter + noise_i) * 64.0);
     float dither = bayer64(dither_uv); //hash(iuv + vec2((noise_i ^ frameCounter & 0xF) * viewWidth, 0.0));
 
     uv_dir *= stride;
@@ -55,7 +55,8 @@ ivec2 raytrace(in vec3 vpos, in vec2 iuv, in vec3 dir, float stride, float strid
 
         float z = (ZWd.x + dZW.x * 0.5) / (ZWd.y + dZW.y * 0.5);
 
-        if (-z > far * 0.9 || -z < near) break;
+        // if (-z > far * 0.9 || -z < near) break;
+        if (-z < near) break;
 
         float zmin = z_prev, zmax = z;
         if (z_prev > z) {
