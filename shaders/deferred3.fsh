@@ -145,7 +145,7 @@ void main() {
 
                 int lod = 3;
                 float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
-                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 1.45, subsurface > 0.5 ? 0.3 : 6.0, i, lod, specular.r > 0.8);
+                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 1.45, subsurface > 0.5 ? 0.3 : 2.0, i, lod, specular.r > 0.8);
                 
                 vec3 diffuse = vec3(0.0);
                 
