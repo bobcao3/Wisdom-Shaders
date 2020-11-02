@@ -98,7 +98,7 @@ void main() {
         float nseed = fract(texelFetch(colortex1, iuv & 0xFF, 0).r + texelFetch(colortex1, ivec2(frameCounter) & 0xFF, 0).r) - 0.5;
         
         if (biomeCategory != 16)
-            fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, 8192 * max(0.5, distinction), nseed).rgb;
+            fog = scatter(vec3(0.0, cameraPosition.y, 0.0), normalize(world_pos), world_sun_dir, 8192 * max(0.5, distinction), nseed, cameraPosition + world_pos).rgb;
         else
             fog = fromGamma(fogColor);
 

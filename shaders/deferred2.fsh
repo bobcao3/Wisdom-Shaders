@@ -26,6 +26,7 @@ flat in vec3 moon_I;
 #include "/libs/atmosphere.glsl"
 
 #define PCSS
+#define CLOUD_SHADOW
 
 uniform int biomeCategory;
 uniform int heldBlockLightValue;
@@ -58,6 +59,8 @@ void main() {
     vec3 view_pos = proj2view(proj_pos);
     vec3 V = normalize(-view_pos);
     vec3 world_pos = view2world(view_pos);
+
+    vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
 
     if (proj_pos.z < 0.99999) {
         // Direct Lighting
@@ -95,6 +98,11 @@ void main() {
             } else {
                 shadow = shadow;
             }
+
+#ifdef CLOUD_SHADOW
+            float trans = scatterTransmittance(vec3(0.0, cameraPosition.y, 0.0), world_sun_dir, world_sun_dir, Ra, 0.0, cameraPosition + world_pos * 8.0);
+            shadow *= smoothstep(trans, 0.0, 0.7);
+#endif
 
             L = max(vec3(0.0), (sun_I + moon_I) * shadow);
             L = brdf_ggx_oren_schlick(color.rgb, L, specular.r, specular.g, subsurface, F0, sun_vec, normal, V);
@@ -144,7 +152,6 @@ void main() {
             color.rgb += starField(dir * 0.5);
 
 #ifdef CLOUDS_2D
-            vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
             float mu_s = dot(dir, world_sun_dir);
             float mu = abs(mu_s);
             

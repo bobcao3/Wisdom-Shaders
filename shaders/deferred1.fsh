@@ -36,7 +36,7 @@ void main() {
             vec3 dir = project_uv2skybox(vec2(iuv) * invWidthHeight);
             vec3 world_sun_dir = mat3(gbufferModelViewInverse) * (sunPosition * 0.01);
 
-            skybox = scatter(vec3(0.0, cameraPosition.y, 0.0), dir, world_sun_dir, Ra, 0.1);
+            skybox = scatter(vec3(0.0, cameraPosition.y, 0.0), dir, world_sun_dir, Ra, 0.1, cameraPosition);
         } else {
             skybox = vec4(fromGamma(fogColor), 0.0);
         }
@@ -75,9 +75,9 @@ void main() {
             float nseed = fract(texelFetch(colortex1, iuv & 0xFF, 0).r + texelFetch(colortex1, ivec2(frameCounter & 0xFF), 0).r);
 
 #ifdef CLOUDS
-            skybox = scatterClouds(vec3(0.0, cameraPosition.y, 0.0), dir, world_sun_dir, Ra, nseed);
+            skybox = scatterClouds(vec3(0.0, cameraPosition.y, 0.0), dir, world_sun_dir, Ra, nseed, cameraPosition + world_pos);
 #else
-            skybox = scatter(vec3(0.0, cameraPosition.y, 0.0), dir, world_sun_dir, Ra, nseed);
+            skybox = scatter(vec3(0.0, cameraPosition.y, 0.0), dir, world_sun_dir, Ra, nseed, cameraPosition + world_pos);
 #endif
 
             vec4 world_pos_prev = vec4(world_pos - previousCameraPosition + cameraPosition, 1.0);

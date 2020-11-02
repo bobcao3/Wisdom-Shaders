@@ -41,12 +41,12 @@ void main() {
     moon_I = moonCoverage * moonColor * fade;
 
     if (biomeCategory != 16) {
-        ambient_left = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(1.0, 0.0, 0.0), world_sun_dir, Ra, 0.1).rgb;
-        ambient_right = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(-1.0, 0.0, 0.0), world_sun_dir, Ra, 0.1).rgb;
-        ambient_front = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(0.0, 0.0, 1.0), world_sun_dir, Ra, 0.1).rgb;
-        ambient_back = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(0.0, 0.0, -1.0), world_sun_dir, Ra, 0.1).rgb;
-        ambient_up = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(0.0, 1.0, 0.0), world_sun_dir, Ra, 0.1).rgb;
-        ambient_down = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(0.0, -1.0, 0.0), world_sun_dir, Ra, 0.1).rgb;
+        ambient_left = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(1.0, 0.0, 0.0), world_sun_dir, Ra, 0.1, cameraPosition).rgb;
+        ambient_right = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(-1.0, 0.0, 0.0), world_sun_dir, Ra, 0.1, cameraPosition).rgb;
+        ambient_front = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(0.0, 0.0, 1.0), world_sun_dir, Ra, 0.1, cameraPosition).rgb;
+        ambient_back = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(0.0, 0.0, -1.0), world_sun_dir, Ra, 0.1, cameraPosition).rgb;
+        ambient_up = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(0.0, 1.0, 0.0), world_sun_dir, Ra, 0.1, cameraPosition).rgb;
+        ambient_down = scatter(vec3(0.0, cameraPosition.y, 0.0), vec3(0.0, -1.0, 0.0), world_sun_dir, Ra, 0.1, cameraPosition).rgb;
     } else {
         vec3 ambient = fromGamma(fogColor);
         ambient_left = ambient;

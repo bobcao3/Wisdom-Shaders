@@ -87,13 +87,13 @@ void densities(in vec3 pos, out vec2 des) {
 	des.y = exp(-h/Hm);
 }
 
-float densitiesCloud(in vec3 pos) {
+float densitiesCloud(in vec3 pos, in vec3 world_offset) {
 	float h = max(0.0, length(pos - C) - R0);
 
 	float c = 0.0;
 
 	if (cloudAltitude - cloudDepth < h && cloudAltitude + cloudDepth > h) {
-		c = mix(cloud(pos), rainStrength * 30.0, smoothstep(30e3, 250e3, length(pos)));
+		c = mix(cloud(pos + world_offset), rainStrength * 30.0, smoothstep(30e3, 250e3, length(pos)));
 		c *= max(0.0, sin(3.1415926 * ((h - cloudAltitude) / cloudDepth * 0.5 + 0.5)));
 	}
 
@@ -182,7 +182,7 @@ vec2 getDensityFromMap(vec3 p, vec3 d)
 	return vec2(texture(gaux4, vec2(h * 0.25, phi * 0.25 + 0.5)).xy);
 }
 
-void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, out vec3 R, out vec3 M)
+void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, vec3 world_offset, out vec3 R, out vec3 M)
 {
 	float Ls = escape(p, D, radius);
 
@@ -201,7 +201,7 @@ void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, 
 	}
 }
 
-void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, out vec3 R, out vec3 M, out vec3 Mc)
+void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, vec3 world_offset, out vec3 R, out vec3 M, out vec3 Mc)
 {
 	float Ls = escape(p, D, radius);
 
@@ -217,7 +217,7 @@ void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, 
 			float dls = u0s * exp2(j + nseed);
 			float ls = - u0s * (1.0 - exp2(j + nseed + 1));
 			vec3 ps = p + D * ls;
-			depth_in.y += densitiesCloud(ps) * dls;
+			depth_in.y += densitiesCloud(ps, world_offset) * dls;
 		}
 
 		vec3 A0 = exp(-(bR * depth_in.x + bM * depth_in.y));
@@ -233,7 +233,7 @@ void inScatter(vec3 p, vec3 D, float radius, vec2 depth, vec2 des, float nseed, 
 }
 
 // this can be explained: http://www.scratchapixel.com/lessons/3d-advanced-lessons/simulating-the-colors-of-the-sky/atmospheric-scattering/
-vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
+vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed, vec3 world_offset) {
 	if (d.y < 0.0) d.y = 0.0;
 	
 	float L = min(lmax, escape(o, d, Ra));
@@ -274,14 +274,14 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 
 		vec2 des;
 		densities(p, des);
-		des.y += densitiesCloud(p);
+		des.y += densitiesCloud(p, world_offset);
 
 		des *= vec2(dl);
 		depth += des;
 
 		vec3 Ri, Mi, Mci;
-		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi); R += Ri; M += Mi;
-		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi); R_moon += Ri; M_moon += Mi;
+		inScatter(p, Ds, Ra, depth, des, nseed, world_offset, Ri, Mi); R += Ri; M += Mi;
+		inScatter(p, -Ds, Ra, depth, des, nseed, world_offset, Ri, Mi); R_moon += Ri; M_moon += Mi;
 	}
 
 	float u0 = - (L - cloudMaxL - 1.0) / (1.0 - exp2(steps));
@@ -299,8 +299,8 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 		depth += des;
 
 		vec3 Ri, Mi;
-		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi); R += Ri; M += Mi;
-		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi); R_moon += Ri; M_moon += Mi;
+		inScatter(p, Ds, Ra, depth, des, nseed, world_offset, Ri, Mi); R += Ri; M += Mi;
+		inScatter(p, -Ds, Ra, depth, des, nseed, world_offset, Ri, Mi); R_moon += Ri; M_moon += Mi;
 	}
 
 #ifdef DISABLE_MIE
@@ -316,7 +316,49 @@ vec4 scatter(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 	return max(vec4(0.0), vec4(color, transmittance));
 }
 
-vec4 scatterClouds(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
+float scatterTransmittance(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed, vec3 world_offset) {
+	if (d.y < 0.0) d.y = 0.0;
+	
+	float L = min(lmax, escape(o, d, Ra));
+
+	float cloudMaxL = min(lmax, escape(o, d, R0 + cloudAltitude + cloudDepth));
+	float cloudMinL = 0.0;//min(lmax, escape(o, d, R0 + cloudAltitude - cloudDepth));
+
+	float depth = 0.0;
+
+	for (int i = 0; i < CLOUD_STEPS; ++i) {
+		float dl, l;
+
+		dl = (cloudMaxL - cloudMinL) / float(CLOUD_STEPS);
+		l = cloudMinL + dl * float(i + nseed * 2.0 - 1.0);
+
+		vec3 p = o + d * l;
+
+		vec2 des;
+		densities(p, des);
+		des.y += densitiesCloud(p, world_offset);
+
+		depth += des.y * dl;
+	}
+
+	float u0 = - (L - cloudMaxL - 1.0) / (1.0 - exp2(steps));
+	for (int i = 0; i < steps; ++i) {
+		float dl, l;
+
+		dl = u0 * exp2(i + nseed);
+		l = cloudMaxL - u0 * (1.0 - exp2(i + nseed + 1));
+
+		vec3 p = o + d * l;
+
+		vec2 des;
+		densities(p, des);
+		depth += des.y * dl;
+	}
+
+	return exp(-(bM.x * depth));
+}
+
+vec4 scatterClouds(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed, vec3 world_offset) {
 	if (d.y < 0.0) d.y = 0.0;
 	
 	float L = min(lmax, escape(o, d, Ra));
@@ -363,8 +405,8 @@ vec4 scatterClouds(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 		depth += des;
 
 		vec3 Ri, Mi;
-		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi); R += Ri; M += Mi;
-		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi); R_moon += Ri; M_moon += Mi;
+		inScatter(p, Ds, Ra, depth, des, nseed, world_offset, Ri, Mi); R += Ri; M += Mi;
+		inScatter(p, -Ds, Ra, depth, des, nseed, world_offset, Ri, Mi); R_moon += Ri; M_moon += Mi;
 	}
 
 	for (int i = 0; i < CLOUD_STEPS; ++i) {
@@ -377,14 +419,14 @@ vec4 scatterClouds(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 
 		vec2 des;
 		densities(p, des);
-		des.y += densitiesCloud(p);
+		des.y += densitiesCloud(p, world_offset);
 
 		des *= vec2(dl);
 		depth += des;
 
 		vec3 Ri, Mi, Mci;
-		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi, Mci); R += Ri; M += Mi; Mc += Mci;
-		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi, Mci); R_moon += Ri; M_moon += Mi; Mc_moon += Mci;
+		inScatter(p, Ds, Ra, depth, des, nseed, world_offset, Ri, Mi, Mci); R += Ri; M += Mi; Mc += Mci;
+		inScatter(p, -Ds, Ra, depth, des, nseed, world_offset, Ri, Mi, Mci); R_moon += Ri; M_moon += Mi; Mc_moon += Mci;
 	}
 
 	float u0 = - (L - cloudMaxL - 1.0) / (1.0 - exp2(steps));
@@ -402,8 +444,8 @@ vec4 scatterClouds(vec3 o, vec3 d, vec3 Ds, float lmax, float nseed) {
 		depth += des;
 
 		vec3 Ri, Mi;
-		inScatter(p, Ds, Ra, depth, des, nseed, Ri, Mi); R += Ri; M += Mi;
-		inScatter(p, -Ds, Ra, depth, des, nseed, Ri, Mi); R_moon += Ri; M_moon += Mi;
+		inScatter(p, Ds, Ra, depth, des, nseed, world_offset, Ri, Mi); R += Ri; M += Mi;
+		inScatter(p, -Ds, Ra, depth, des, nseed, world_offset, Ri, Mi); R_moon += Ri; M_moon += Mi;
 	}
 
 	vec3 color = I * (max(vec3(0.0), R) * bR * phaseR + max(vec3(0.0), M) * bM * phaseM + max(vec3(0.0), Mc) * bMc);
