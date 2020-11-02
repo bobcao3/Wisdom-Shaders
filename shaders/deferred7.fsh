@@ -49,7 +49,7 @@ void main() {
 #endif
         
         composite += color.rgb * Ld.rgb;
-        // composite = Ld.rgb;
+        composite = Ld.rgb;
     }
 
 /* DRAWBUFFERS:05 */

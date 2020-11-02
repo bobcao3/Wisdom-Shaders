@@ -92,6 +92,8 @@ void main() {
     vec3 V = normalize(-view_pos);
     vec3 world_pos = view2world(view_pos);
 
+    float subsurface = decoded_b.b * 16.0;
+
     vec3 composite_diffuse = vec3(0.0);
 
     if (proj_pos.z < 0.99999) {
@@ -143,7 +145,7 @@ void main() {
 
                 int lod = 3;
                 float start_bias = clamp(0.1 / ray_trace_dir.z, 0.0, 1.0);
-                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 2.0, 0.3, i, lod, specular.r > 0.8);
+                ivec2 reflected = raytrace(view_pos, vec2(iuv), ray_trace_dir, stride, 1.45, subsurface > 0.5 ? 0.3 : 6.0, i, lod, specular.r > 0.8);
                 
                 vec3 diffuse = vec3(0.0);
                 
@@ -151,7 +153,7 @@ void main() {
                     lod = min(3, lod);
                     vec3 currDirect = texelFetch(colortex0, reflected >> lod, lod).rgb;
                     
-                    vec4 lastComposite = texelFetch(colortex3, reflected >> lod, lod).rgba;
+                    vec4 lastComposite = texelFetch(colortex3, reflected >> (lod + 1), lod).rgba;
 
                     if (abs(lastComposite.a - view_pos.z) < 4.0) {
                         currDirect = (currDirect + lastComposite.rgb) * 0.5;
@@ -188,7 +190,7 @@ void main() {
             vec2 iprev_uv = floor(prev_uv_texels);
             prev_uv += 0.5 * invWidthHeight;
 
-            if (prev_uv.x <= 0.001 || prev_uv.x >= 0.999 || prev_uv.y <= 0.001 || prev_uv.y >= 0.999)
+            if (prev_uv.x <= 0.001 || prev_uv.x >= 0.5 || prev_uv.y <= 0.001 || prev_uv.y >= 0.5)
             {
                 composite_diffuse = Ld;
             }

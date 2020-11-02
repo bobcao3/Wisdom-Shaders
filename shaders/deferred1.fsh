@@ -46,11 +46,12 @@ void main() {
     if (biomeCategory == 16) {
         skybox = vec4(fromGamma(fogColor), 0.0);
     }
-    else if (iuv.x >= (int(viewWidth) >> 1) && iuv.x <= (int(viewWidth) >> 1) + (int(viewWidth) >> 2) && iuv.y < (int(viewHeight) >> 1) + 3)
+    else if (iuv.x >= (int(viewWidth) >> 1) && iuv.y < (int(viewHeight) >> 1) + 3)
+    // else if (iuv.x >= (int(viewWidth) >> 1) && iuv.x <= (int(viewWidth) >> 1) + (int(viewWidth) >> 2) && iuv.y < (int(viewHeight) >> 1) + 3)
     {
         ivec2 adj_iuv = iuv;
         adj_iuv.x -= int(viewWidth) >> 1;
-        adj_iuv *= ivec2(4, 2);
+        adj_iuv *= ivec2(2, 2);
 
         bool shouldRender = false;
         shouldRender = shouldRender || (texelFetchOffset(depthtex0, adj_iuv, 0, ivec2(-4, 0)).r >= 1.0);
@@ -86,8 +87,8 @@ void main() {
             vec2 prev_uv = (proj_pos_prev.xy * 0.5 + 0.5);
             if (prev_uv.x > 0.0 && prev_uv.x < 1.0 && prev_uv.y > 0.0 && prev_uv.y < 1.0)
             {
-                prev_uv = prev_uv * vec2(0.25, 0.5) + vec2(0.5, 0.0) + 0.5 * invWidthHeight;
-                prev_uv = clamp(prev_uv, vec2(0.5, 0.0) + invWidthHeight * 0.5, vec2(0.75, 0.5) - invWidthHeight * 2.0);
+                prev_uv = prev_uv * vec2(0.5, 0.5) + vec2(0.5, 0.0) + 0.5 * invWidthHeight;
+                prev_uv = clamp(prev_uv, vec2(0.5, 0.0) + invWidthHeight * 0.5, vec2(1.0, 0.5) - invWidthHeight * 2.0);
                 ivec2 iprev_uv = ivec2(prev_uv * vec2(viewWidth, viewHeight));
 
                 vec4 prevSkyBox00 = texelFetchOffset(gaux4, iprev_uv, 0, ivec2(0, 0));
