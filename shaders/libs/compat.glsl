@@ -7,7 +7,10 @@
 #define inout in
 #endif
 
+// Define WISDOM_DISABLE_HALF for the full-precision fallback (26.1/Iris compatibility).
+#ifndef WISDOM_DISABLE_HALF
 #define USE_HALF
+#endif
 
 #if (defined(USE_HALF) && defined(MC_GL_EXT_shader_explicit_arithmetic_types_float16))
 
