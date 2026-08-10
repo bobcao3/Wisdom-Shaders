@@ -48,7 +48,7 @@ void main() {
     viewPos = vpos.xyz;
 
     layer = mc_Entity.x;
-    isWater = mc_Entity.y;
+    isWater = (mc_Entity.y > 0.0 || mc_Entity.x == 8.0) ? 1.0 : -1.0;
 
     gl_Position.st += JitterSampleOffset(frameCounter) * invWidthHeight * gl_Position.w;
 
@@ -98,7 +98,7 @@ void main() {
     vec3 spos_cascaded = shadowProjCascaded(world2shadowProj(wpos), s, ds);
     float shadows = shadowTexSmooth(shadowtex1, spos_cascaded, ds, 0.0);
 
-    if (isWater == 0)
+    if (isWater > 0.0)
     {
         c.a = 1.0;
 
@@ -205,12 +205,12 @@ void main() {
         sky = isEyeInWater == 1 ? vec3(0.0) : texture(gaux4, project_skybox2uv(dir)).rgb * skyLight;
     }
 
-    if (isWater == 0)
+    if (isWater > 0.0)
     {
         sky *= fresnelSchlick(dot(mirrorDir, surfaceNormal), vec3(0.02));
     }
 
-    if (isWater != 0 || isEyeInWater == 0)
+    if (isWater <= 0.0 || isEyeInWater == 0)
     {
         c.rgb += specular_brdf_ggx_oren_schlick(sun_I * shadows, 0.2, vec3(0.02), shadowLightPosition * 0.01, surfaceNormal, V) * clamp(1.0 / c.a, 1.0, 10.0);
     }
