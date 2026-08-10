@@ -143,7 +143,7 @@ void main() {
             for (int i = 0; i < 3; i++) {
                 gl_Position = emit_pos[i];
                 color = vcolor[i];
-                uv = vuv[i];
+                uv = f16vec2(vuv[i]);
                 cascade = int(n);
                 EmitVertex();
             }

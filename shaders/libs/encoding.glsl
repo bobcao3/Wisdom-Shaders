@@ -9,8 +9,8 @@
 vec3 normalDecode(uint e) {
     f16vec2 encodedNormal = f16vec2(unpackUnorm2x16(e));
 	encodedNormal = encodedNormal * float16_t(4.0) - float16_t(2.0);
-	float16_t f = dot(encodedNormal, encodedNormal);
-	float16_t g = sqrt(float16_t(1.0) - f * float16_t(0.25));
+	float16_t f = float16_t(dot(encodedNormal, encodedNormal));
+	float16_t g = float16_t(sqrt(float16_t(1.0) - f * float16_t(0.25)));
 	return vec3(encodedNormal * g, float16_t(1.0) - f * float16_t(0.5));
 }
 

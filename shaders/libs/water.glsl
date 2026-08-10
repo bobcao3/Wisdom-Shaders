@@ -54,12 +54,12 @@ float getwave(vec3 p, in float lod, int iterations) {
 
 float getpeaks(vec3 p, in float lod, int min_iter, int iterations) {
 	float freq = SEA_FREQ;
-	float16_t amp = 1.0;
+	float16_t amp = float16_t(1.0);
 	float choppy = SEA_CHOPPY;
 	vec2 fuv = p.xz * 2.0 - p.y * 2.0 - frameTimeCounter * vec2(0.1, 0.5); fuv.x *= 0.75;
 
 	float wave_speed = frameTimeCounter * SEA_SPEED;
-    float16_t total_height = 1.0;
+    float16_t total_height = float16_t(1.0);
 
 	float16_t h = float16_t(0.0);
 	for(int i = 0; i < iterations * lod; i++) {
@@ -67,12 +67,12 @@ float getpeaks(vec3 p, in float lod, int min_iter, int iterations) {
 
         if (i + 1 >= iterations * lod)
         {
-            amp *= fract(float16_t(iterations * lod));
+            amp *= float16_t(fract(float16_t(iterations * lod)));
         }
 
         if (i >= min_iter)
         {
-    		h += smoothstep(float16_t(0.95), float16_t(1.0), d) * amp;
+            h += float16_t(smoothstep(float16_t(0.95), float16_t(1.0), d)) * amp;
         }
 	
     	fuv *= octave_m; freq *= 1.9; amp *= float16_t(height_mul[i]); //wave_speed *= 0.5;
