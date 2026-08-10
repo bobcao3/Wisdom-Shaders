@@ -25,7 +25,6 @@
 
 #include "compat.glsl"
 
-#pragma optimize(on)
 
 #define NORMALS
 

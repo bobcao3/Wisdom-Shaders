@@ -24,7 +24,6 @@
 #version 120
 #include "compat.glsl"
 
-#pragma optimize(on)
 
 varying vec2 texcoord;
 

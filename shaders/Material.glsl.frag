@@ -98,7 +98,7 @@ struct Mask {
 	bool is_particle;
 };
 
-void init_mask(inout Mask m, in float flag) {
+void init_mask(out Mask m, in float flag) {
 	m.flag = flag;
 	m.is_particle = (flag > 0.44 && flag < 0.46);
 	float ndep = texture2D(depthtex1, texcoord).r;

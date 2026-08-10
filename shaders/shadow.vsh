@@ -23,7 +23,6 @@
 
 #version 120
 
-#pragma optimize(on)
 
 #define SHADOW_MAP_BIAS 0.85
 const float negBias = 1.0f - SHADOW_MAP_BIAS;

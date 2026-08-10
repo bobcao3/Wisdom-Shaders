@@ -23,7 +23,6 @@
 
 #version 120
 #include "compat.glsl"
-#pragma optimize(on)
 
 uniform sampler2D_color texture;
 

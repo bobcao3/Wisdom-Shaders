@@ -26,7 +26,6 @@
 
 #include "compat.glsl"
 
-#pragma optimize(on)
 
 //#define SMOOTH_TEXTURE
 
@@ -101,7 +100,7 @@ vec2 atlas_offset(in vec2 coord, in vec2 offset) {
 	return offsetCoord;
 }
 
-//#define PARALLAX_SELF_SHADOW
+#define PARALLAX_SELF_SHADOW
 #ifdef PARALLAX_SELF_SHADOW
 varying vec3 sun;
 float parallax_lit = 1.0;

@@ -1,6 +1,5 @@
 #version 120
 #include "compat.glsl"
-#pragma optimize (on)
 
 const int RGB8 = 0, R11F_G11F_B10F = 1, RGB10_A2 = 2, RGBA16 = 3, RGBA8 = 4, RG16 = 5;
 

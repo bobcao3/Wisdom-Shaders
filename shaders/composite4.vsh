@@ -23,7 +23,6 @@
 
 #version 120
 
-#pragma optimize(on)
 
 varying vec2 texcoord;
 

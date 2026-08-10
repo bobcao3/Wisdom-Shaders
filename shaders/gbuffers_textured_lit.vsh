@@ -22,7 +22,6 @@
 // =============================================================================
 
 #version 120
-#pragma optimize(on)
 
 uniform mat4 gbufferModelViewInverse;
 

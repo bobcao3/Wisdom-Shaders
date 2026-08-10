@@ -22,7 +22,6 @@
 // =============================================================================
 
 #version 120
-#pragma optimize(on)
 
 varying vec4 color;
 varying vec2 normal;
