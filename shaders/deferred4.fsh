@@ -1,5 +1,4 @@
 #version 420 compatibility
-#pragma optimize(on)
 
 /* DRAWBUFFERS:5 */
 

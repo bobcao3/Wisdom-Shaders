@@ -1,5 +1,4 @@
 #version 420 compatibility
-#pragma optimize(on)
 
 flat out float exposure;
 

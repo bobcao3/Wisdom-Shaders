@@ -30,9 +30,7 @@ void main() {
     if (depth < 1.0) {
         float total_weights = 0.000316;
         
-        #pragma optionNV (unroll all)
         for (int i = 0; i < 3; i++) {
-            #pragma optionNV (unroll all)
             for (int j = 0; j < 3; j++) {
                 ivec2 uv_s = iuv + ivec2(i - 1, j - 1) * STRIDE;
                 vec3 ld_s = texelFetch(SRC_TEXTURE, uv_s, 0).rgb;

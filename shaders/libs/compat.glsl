@@ -9,13 +9,20 @@
 
 #define USE_HALF
 
-#if (defined(USE_HALF) && defined(MC_GL_NV_gpu_shader5))
+#if (defined(USE_HALF) && defined(MC_GL_EXT_shader_explicit_arithmetic_types_float16))
 
-#extension GL_NV_gpu_shader5 : enable
+// Standard half-precision types.
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
+
+#elif (defined(USE_HALF) && defined(MC_GL_NV_gpu_shader5))
+
+// NVIDIA half-precision types.
+#extension GL_NV_gpu_shader5 : require
 
 #elif (defined(USE_HALF) && defined(MC_GL_AMD_gpu_shader_half_float))
 
-#extension GL_AMD_gpu_shader_half_float : enable
+// AMD half-precision types.
+#extension GL_AMD_gpu_shader_half_float : require
 
 #define int8_t int
 #define int16_t int
@@ -23,6 +30,7 @@
 
 #else
 
+// Full-precision fallback.
 #define float32_t float
 #define f32vec2 vec2
 #define f32vec3 vec3
