@@ -1,3 +1,5 @@
+#include "Animation.glsl"
+
 // sea
 #define SEA_HEIGHT 0.2 // [0.1 0.2 0.3]
 
@@ -42,15 +44,15 @@ float16_t getwave(vec3 p, in float lod) {
 	float16_t freq = SEA_FREQ;
 	float16_t amp = SEA_HEIGHT;
 	float16_t choppy = SEA_CHOPPY;
-	f16vec2 uv = p.xz - vec2(frameTimeCounter * 0.5, 0.0); uv.x *= 0.75;
+	f16vec2 uv = p.xz - f16vec2(animationOffset(vec2(0.5, 0.0))); uv.x *= 0.75;
 
-	float16_t wave_speed = frameTimeCounter * SEA_SPEED;
+	f16vec2 wave_offset = f16vec2(animationOffset(vec2(float(SEA_SPEED))));
 
 	float16_t d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY; i++) {
-		d = sea_octave_micro((uv+wave_speed)*freq,choppy);
+		d = sea_octave_micro((uv + wave_offset)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= -1.1;
+		uv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_offset *= -1.1;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
@@ -61,15 +63,15 @@ float16_t getwave2(vec3 p, in float16_t lod) {
 	float16_t freq = SEA_FREQ;
 	float16_t amp = SEA_HEIGHT;
 	float16_t choppy = SEA_CHOPPY;
-	f16vec2 uv = p.xz - vec2(frameTimeCounter * 0.5, 0.0); uv.x *= 0.75;
+	f16vec2 uv = p.xz - f16vec2(animationOffset(vec2(0.5, 0.0))); uv.x *= 0.75;
 
-	float16_t wave_speed = frameTimeCounter * SEA_SPEED;
+	f16vec2 wave_offset = f16vec2(animationOffset(vec2(float(SEA_SPEED))));
 
 	float16_t d, h = 0.0;
 	for(int i = 0; i < ITER_GEOMETRY2; i++) {
-		d = sea_octave_micro((uv+wave_speed)*freq,choppy);
+		d = sea_octave_micro((uv + wave_offset)*freq,choppy);
 		h += d * amp;
-		uv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_speed *= -1.1;
+		uv *= octave_m; freq *= 1.9; amp *= height_mul[i]; wave_offset *= -1.1;
 		choppy = mix(choppy,1.0,0.2);
 	}
 
@@ -77,12 +79,9 @@ float16_t getwave2(vec3 p, in float16_t lod) {
 }
 
 f16vec3 get_water_normal(in f16vec3 wwpos, in float16_t displacement, in float16_t lod, in f16vec3 dir) {
-	f16vec3 w1 = vec3(0.01, dir.y * getwave2(wwpos + vec3(0.01, 0.0, 0.0), lod), 0.0);
-	f16vec3 w2 = vec3(0.0, dir.y * getwave2(wwpos + vec3(0.0, 0.0, 0.01), lod), 0.01);
-	f16vec3 w0 = displacement * dir;
-	#define tangent w1 - w0
-	#define bitangent w2 - w0
-	return normalize(cross(bitangent, tangent));
+	f16vec3 w1 = vec3(0.01, dir.y * (getwave2(wwpos + vec3(0.01, 0, 0), lod) - displacement), 0.0);
+	f16vec3 w2 = vec3(0.0, dir.y * (getwave2(wwpos + vec3(0, 0, 0.01), lod) - displacement), 0.01);
+	return normalize(cross(w2, w1));
 }
 
 #ifdef WATER_PARALLAX

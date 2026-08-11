@@ -1,6 +1,8 @@
 #ifndef _INCLUDE_ATMOS
 #define _INCLUDE_ATMOS
 
+#include "Animation.glsl"
+
 const f16vec3 skyRGB = vec3(0.1502, 0.4056, 1.0);
 
 void calc_fog(in float depth, in float start, in float end, inout vec3 original, in vec3 col) {
@@ -51,18 +53,18 @@ f16vec4 calc_clouds(in f16vec3 sphere, in f16vec3 cam, float16_t dotS) {
 	if (sphere.y < 0.0) return f16vec4(0.0);
 
 	f16vec3 c = sphere / max(sphere.y, 0.001) * 768.0;
-	c += noise((c.xz + cam.xz) * 0.001 + frameTimeCounter * 0.01) * 200.0 / sphere.y;
+	c += noise((c.xz + cam.xz) * 0.001 + f16vec2(animationOffset(vec2(0.0025)))) * 200.0 / sphere.y;
 	f16vec2 uv = (c.xz + cam.xz);
 
-	uv.x += frameTimeCounter * 10.0;
+	uv += f16vec2(animationOffset(vec2(2.5, 0.0)));
 	uv *= 0.002;
 	uv.y *= 0.75;
 	float16_t n  = noise(uv * f16vec2(0.5, 1.0)) * 0.5;
 		uv += f16vec2(n * 0.5, 0.3) * octave_c; uv *= 3.0;
 		  n += noise(uv) * 0.25;
-		uv += f16vec2(n * 0.9, 0.2) * octave_c + f16vec2(frameTimeCounter * 0.1, 0.2); uv *= 3.01;
+		uv += f16vec2(n * 0.9, 0.2) * octave_c + f16vec2(animationOffset(vec2(0.025, 0.0))) + f16vec2(0.0, 0.2); uv *= 3.01;
 		  n += noise(uv) * 0.105;
-		uv += f16vec2(n * 0.4, 0.1) * octave_c + f16vec2(frameTimeCounter * 0.03, 0.1); uv *= 3.02;
+		uv += f16vec2(n * 0.4, 0.1) * octave_c + f16vec2(animationOffset(vec2(0.0075, 0.0))) + f16vec2(0.0, 0.1); uv *= 3.02;
 		  n += noise(uv) * 0.0625;
 	n = smoothstep(0.0, 1.0, n + cloud_coverage);
 
@@ -81,11 +83,11 @@ float16_t cloud_depth_map(in f16vec2 uv) {
 	float16_t n  = noise(uv * f16vec2(0.6, 1.0));
 	uv += f16vec2(0.5, 0.3); uv *= 2.0; uv = octave_c * uv;
 	 n += noise(uv) * 0.5;
-	uv += f16vec2(0.9, 0.2) * octave_c + f16vec2(frameTimeCounter * 0.1, 0.2); uv *= 2.01; uv = octave_c * uv;
+	uv += f16vec2(0.9, 0.2) * octave_c + f16vec2(animationOffset(vec2(0.025, 0.0))) + f16vec2(0.0, 0.2); uv *= 2.01; uv = octave_c * uv;
 	 n += noise(uv) * 0.25;
-	uv += f16vec2(0.4, 0.1) * octave_c + f16vec2(frameTimeCounter * 0.03, 0.1); uv *= 2.02; uv = octave_c * uv;
+	uv += f16vec2(0.4, 0.1) * octave_c + f16vec2(animationOffset(vec2(0.0075, 0.0))) + f16vec2(0.0, 0.1); uv *= 2.02; uv = octave_c * uv;
 	 n += noise(uv) * 0.125;
-	uv += f16vec2(0.2, 0.05) * octave_c + f16vec2(frameTimeCounter * 0.01, 0.1); uv *= 2.03;
+	uv += f16vec2(0.2, 0.05) * octave_c + f16vec2(animationOffset(vec2(0.0025, 0.0))) + f16vec2(0.0, 0.1); uv *= 2.03;
 	 n += noise(uv) * 0.0625;
 	uv += f16vec2(0.1, 0.025) * octave_c; uv *= 2.04;
 	 n += noise(uv) * 0.03125;

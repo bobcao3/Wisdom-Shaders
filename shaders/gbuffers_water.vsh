@@ -24,6 +24,7 @@
 #version 120
 
 attribute vec4 mc_Entity;
+attribute vec4 at_tangent;
 
 uniform sampler2D noisetex;
 
@@ -35,7 +36,11 @@ uniform float frameTimeCounter;
 const float PI = 3.14159f;
 
 varying vec2 normal;
+varying vec3 viewNormal;
+varying vec3 tangent;
+varying vec3 bitangent;
 varying vec4 coords;
+varying float blockLight;
 
 uniform bool isEyeInWater;
 
@@ -55,8 +60,12 @@ VSH {
 	pos = gl_ModelViewMatrix * pos;
 	gl_Position = gl_ProjectionMatrix * pos;
 	
-	normal = normalEncode(gl_NormalMatrix * gl_Normal);
+	viewNormal = normalize(gl_NormalMatrix * normalize(gl_Normal));
+	tangent = normalize(gl_NormalMatrix * normalize(at_tangent.xyz));
+	bitangent = normalize(cross(tangent, viewNormal)) * sign(at_tangent.w);
+	normal = normalEncode(viewNormal);
 	
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
 	skyLight = (gl_TextureMatrix[1] * gl_MultiTexCoord1).y;
+	blockLight = (gl_TextureMatrix[1] * gl_MultiTexCoord1).x;
 }

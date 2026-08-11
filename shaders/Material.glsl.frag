@@ -51,7 +51,8 @@ void material_build(
 
 	mat.roughness = clamp(1.0 - specular.r, 0.0001f, 0.9999f);
 	mat.metalic = clamp(specular.g, 0.0001f, 0.9999f);
-	mat.emmisive = clamp(specular.b, 0.0f, 1.0f);
+	// labPBR reserves 255 in the emissive channel as the no-emission sentinel.
+	mat.emmisive = specular.b >= 0.995f ? 0.0f : clamp(specular.b, 0.0f, 1.0f);
 }
 
 void material_sample(out Material mat, in vec2 uv) {

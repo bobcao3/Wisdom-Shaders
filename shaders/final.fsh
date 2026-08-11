@@ -1,4 +1,12 @@
-#version 120
+#version 430 compatibility
+#define SSBO_AUTO_EXPOSURE
+const uint EXPOSURE_STATE_MAGIC = 0x41575833u;
+layout(std430, binding = 0) readonly buffer ExposureState {
+	float adaptedExposure;
+	float targetExposure;
+	float medianLuminance;
+	uint initialized;
+} exposureState;
 #include "compat.glsl"
 
 varying vec2 tex;
@@ -10,6 +18,7 @@ vec2 texcoord = tex;
 #define BLOOM
 
 #include "CompositeUniform.glsl.frag"
+#include "Animation.glsl"
 #include "Utilities.glsl.frag"
 #include "Effects.glsl.frag"
 
@@ -80,8 +89,13 @@ void main() {
 	float real_strength = rainStrength * smoothstep(0.8, 1.0, float(eyeBrightness.y) / 240.0);
 	if (rainStrength > 0.0) {
 		vec2 adj_tex = texcoord * vec2(aspectRatio, 1.0);
-		float n = noise((adj_tex + vec2(0.1, 1.0) * frameTimeCounter) * 2.0);
-		n -= 0.6 * abs(noise((adj_tex * 2.0 + vec2(0.1, 1.0) * frameTimeCounter) * 3.0));
+		vec2 rain_offset = animationOffset(vec2(0.1, 1.25));
+		float fallRampPhase = animationPhase(1800.0);
+		const float fallRampAngularSpeed = 3.14159265359;
+		// Sinusoidal velocity pulse begins at the original speed, accelerates downward, then smoothly recovers while remaining downward.
+		rain_offset.y += (1.25 / fallRampAngularSpeed) * (1.0 - cos(fallRampPhase));
+		float n = noise((adj_tex * 1.0 + rain_offset) * 2.0);
+		n -= 0.6 * abs(noise((adj_tex * 2.0 + rain_offset) * 3.0));
 		n *= (n * n) * (n * n);
 		n *= real_strength * 0.007;
 		vec2 uv = texcoord + vec2(n, -n);
@@ -108,7 +122,7 @@ void main() {
 
 	#ifdef BLOOM
 	vec3 b = bloom(color);
-	color += max(vec3(0.0), b) * exposure * (1.0 + float(isEyeInWater));
+	color += max(vec3(0.0), b) * (1.0 + float(isEyeInWater));
 	#endif
 
 	#ifdef LF

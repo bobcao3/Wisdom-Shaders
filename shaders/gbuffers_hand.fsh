@@ -58,16 +58,12 @@ void main() {
 	vec4 t = texture2D(texture, texcoord);
 
 	gl_FragData[0] = t * color;
-	vec2 n2 = normalEncode(normal);
+	vec2 n2 = normalEncode(normalize(normal));
 	#ifdef NORMALS
 		vec3 normal2 = texture2D(normals, texcoord).xyz * 2.0 - 1.0;
 		const float bumpmult = 0.5;
 		normal2 = normal2 * bumpmult + vec3(0.0f, 0.0f, 1.0f - bumpmult);
-		mat3 tbnMatrix = mat3(
-			tangent.x, binormal.x, normal.x,
-			tangent.y, binormal.y, normal.y,
-			tangent.z, binormal.z, normal.z);
-		normal2 = normal2 * tbnMatrix;
+		normal2 = normalize(mat3(tangent, binormal, normal) * normal2);
 		vec2 d = normalEncode(normal2);
 		if (!(d.x > 0.0 && d.y > 0.0)) d = n2;
 		gl_FragData[1] = vec4(d, 0.3, 1.0);
@@ -82,7 +78,9 @@ void main() {
 	#ifdef CONTINUUM2_TEXTURE_FORMAT
 	gl_FragData[2] = vec4(texture2D(specular, texcoord).brg, 1.0);
 	#else
-	gl_FragData[2] = vec4(texture2D(specular, texcoord).rgb, 1.0);
+	vec4 labpbr_specular = texture2D(specular, texcoord);
+	// labPBR emission alpha is moved to blue because deferred alpha stores the material flag.
+	gl_FragData[2] = vec4(labpbr_specular.rg, labpbr_specular.a, labpbr_specular.a);
 	#endif
 	#endif
 	gl_FragData[3] = vec4(lmcoord, n2);

@@ -33,6 +33,7 @@ option.ParallaxOcclusion=Parallax Occlusion Mapping
 option.maxSteps=Max POM Steps
 option.maxSteps.comment=The higher steps it has, higher quality it got, with lower performance.
 option.scale=POM Scale
+option.scale.comment=Maximum parallax depth in block units.
 option.TILE_RESOLUTION=Texture Resolution
 
 option.WATER_PARALLAX=Water Parallax
@@ -54,7 +55,10 @@ option.DIRTY_LENS_TEXTURE.comment=Need newer Optifine's texture loading function
 option.SCREEN_RAIN_DROPS=Rain Drops on Camera
 
 option.EXPOSURE=Exposure
-option.AVERAGE_EXPOSURE=Average Exposure
+option.AGX_TONEMAP=AgX Tone Mapping
+option.AGX_TONEMAP.comment=BT.2020 AgX display transform with an sRGB output.
+option.AVERAGE_EXPOSURE=Centre-Weighted Auto Exposure
+option.AVERAGE_EXPOSURE.comment=Uses partial visual adaptation from centre-weighted scene luminance with global highlight protection.
 option.BLACK_AND_WHITE=Black and White Filter
 option.PRIME_RENDER=Prime Render
 option.ambientOcclusionLevel=Vanilla Edge Occlusion

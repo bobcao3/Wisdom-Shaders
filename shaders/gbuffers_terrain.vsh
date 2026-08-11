@@ -35,6 +35,9 @@ attribute vec4 at_tangent;
 uniform mat4 gbufferModelViewInverse;
 uniform float rainStrength;
 uniform float frameTimeCounter;
+uniform vec3 cameraPosition;
+
+#include "Animation.glsl"
 
 varying f16vec4 color;
 varying vec4 coords;
@@ -64,13 +67,6 @@ varying vec2 n2;
 varying f16vec3 tangentpos;
 #endif
 
-#define PARALLAX_SELF_SHADOW
-#ifdef PARALLAX_SELF_SHADOW
-varying vec3 sun;
-
-uniform vec3 shadowLightPosition;
-#endif
-
 #define WAVING_FOILAGE
 
 #define hash(p) fract(mod(p.x, 1.0) * 73758.23f - p.y)
@@ -78,37 +74,38 @@ uniform vec3 shadowLightPosition;
 void main() {
 	color = gl_Color;
 	
-	normal = gl_NormalMatrix * gl_Normal;
+	normal = normalize(gl_NormalMatrix * normalize(gl_Normal));
 
-	tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
-    binormal = cross(tangent, normal);
+	tangent = normalize(gl_NormalMatrix * normalize(at_tangent.xyz));
+    binormal = normalize(cross(tangent, normal)) * sign(at_tangent.w);
 
 	vec4 position = gl_Vertex;
+	vec3 animation_position = (gbufferModelViewInverse * gl_ModelViewMatrix * position).xyz + cameraPosition;
+	animation_position = floor(animation_position * 64.0 + 0.5) / 64.0;
 	float blockId = mc_Entity.x;
 	flag = 0.7;
 
 	#ifdef WAVING_FOILAGE
 	float maxStrength = 1.0 + rainStrength * 0.5;
-	float time = frameTimeCounter * 3.0;
+	float time = animationPhase(1720.0);
 	#endif
 
 	if (blockId == 31.0 || blockId == 37.0 || blockId == 38.0 || blockId == 59.0 || blockId == 141.0 || blockId == 142.0) {
 		#ifdef WAVING_FOILAGE
 		if (gl_MultiTexCoord0.t < mc_midTexCoord.t) {
-			float rand_ang = hash(position.xz);
+			float rand_ang = hash(animation_position.xz);
 			float reset = cos(rand_ang * 10.0 + time * 0.1);
 			reset = max( reset * reset, max(rainStrength, 0.1));
-			position.x += (sin(rand_ang * 10.0 + time + position.y) * 0.2) * (reset * maxStrength);
+			position.x += (sin(rand_ang * 10.0 + time + animation_position.y) * 0.2) * (reset * maxStrength);
 		}
 		#endif
-		color.a *= 0.4;
 		flag = 0.50;
 	} else if(mc_Entity.x == 18.0 || mc_Entity.x == 106.0 || mc_Entity.x == 161.0 || mc_Entity.x == 175.0) {
 		#ifdef WAVING_FOILAGE
-		float rand_ang = hash(position.xz);
+		float rand_ang = hash(animation_position.xz);
 		float reset = cos(rand_ang * 10.0 + time * 0.1);
 		reset = max( reset * reset, max(rainStrength, 0.1));
-		position.xyz += (sin(rand_ang * 5.0 + time + position.y) * 0.035 + 0.035) * (reset * maxStrength) * tangent;
+		position.xyz += (sin(rand_ang * 5.0 + time + animation_position.y) * 0.035 + 0.035) * (reset * maxStrength) * tangent;
 		#endif
 		flag = 0.50;
 	} else if (blockId == 83.0 || blockId == 39 || blockId == 40 || blockId == 6.0 || blockId == 104 || blockId == 105 || blockId == 115) flag = 0.51;
@@ -122,9 +119,6 @@ void main() {
 	#ifdef ParallaxOcclusion
 	f16mat3 TBN = f16mat3(tangent, binormal, normal);
 	tangentpos = normalize(wpos * TBN);
-	#ifdef PARALLAX_SELF_SHADOW
-	sun = TBN * normalize(shadowLightPosition);
-	#endif
 	#endif
 	
 	#ifndef NORMALS

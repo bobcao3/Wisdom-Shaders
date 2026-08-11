@@ -28,11 +28,47 @@
 varying vec2 texcoord;
 
 uniform sampler2D composite;
+uniform sampler2D colortex10;
+
+const bool compositeMipmapEnabled = true;
 
 uniform float viewWidth;
 uniform float viewHeight;
 
 float luma(in vec3 color) { return dot(color,vec3(0.2126, 0.7152, 0.0722)); }
+
+void compositeWeather(inout vec4 color) {
+	vec4 packedWeather = texture2D(colortex10, texcoord.xy);
+	float coverage = packedWeather.a;
+	if (coverage <= 1.0 / 255.0) return;
+
+	float emissiveCoverage = clamp(packedWeather.r, 0.0, 1.0);
+	vec3 packedData = packedWeather.rgb / coverage;
+	float emissive = clamp(packedData.r, 0.0, 1.0);
+	float Y = packedData.g;
+	float Cb = packedData.b;
+	const float Kr = 0.2126;
+	const float Kb = 0.0722;
+	float weatherR = Y;
+	float weatherB = Y + (Cb - 0.5) * 2.0 * (1.0 - Kb);
+	float weatherG = (Y - Kr * weatherR - Kb * weatherB) / (1.0 - Kr - Kb);
+	vec3 weatherColor = pow(max(vec3(weatherR, weatherG, weatherB), vec3(0.0)), vec3(2.2));
+
+	float rainCoverage = coverage * (1.0 - emissive);
+	if (rainCoverage > 0.0) {
+		vec3 broadScene = texture2DLod(composite, texcoord.xy, 4.0).rgb * 0.15;
+		broadScene += texture2DLod(composite, texcoord.xy, 5.0).rgb * 0.30;
+		broadScene += texture2DLod(composite, texcoord.xy, 6.0).rgb * 0.55;
+		vec3 rainLit = weatherColor * (0.35 + 0.25 * luma(broadScene)) + broadScene * 0.45;
+		float regionalBrightness = max(luma(broadScene), 0.0);
+		float rainBrightness = max(luma(rainLit), 1e-5);
+		rainLit *= min(1.0, 1.3 * regionalBrightness / rainBrightness);
+		color.rgb = mix(color.rgb, color.rgb * 0.75 + rainLit, rainCoverage * 0.65);
+	}
+
+	float emissiveRamp = smoothstep(0.2, 0.85, emissiveCoverage);
+	color.rgb += weatherColor * emissiveCoverage * emissiveRamp * 8.0;
+}
 
 //#define SSEDAA
 
@@ -68,5 +104,6 @@ void main() {
 	
 	color = (color + Scene1 + Scene2 + Scene3 + Scene4) * 0.2f;
 	#endif
+	compositeWeather(color);
 	gl_FragData[0] = color;
 }

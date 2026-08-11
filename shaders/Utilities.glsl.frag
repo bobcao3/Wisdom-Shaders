@@ -37,6 +37,7 @@ float16_t noise(f16vec2 p) {
 uniform int worldTime;
 uniform float rainStrength;
 uniform float frameTimeCounter;
+#include "Animation.glsl"
 uniform int moonPhase;
 
 uniform float wetness;
@@ -61,9 +62,10 @@ void calcCommons() {
 	const vec3 suncolor_midnight = vec3(0.34, 0.5, 0.6) * 0.2;
 
 	float day = wTimeF / 24000.0;
-	float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day) + frameTimeCounter * 0.0001;
-	cloud_coverage = mix(noise(vec2(day_cycle, 0.0)) * 0.3 + 0.1, 0.7, max(rainStrength, wetness));
-	wind_speed = mix(noise(vec2(day_cycle * 2.0, 0.0)) * 0.5 + 1.0, 2.0, rainStrength);
+	float day_cycle = mix(float(moonPhase), mod(float(moonPhase + 1), 8.0), day);
+	vec2 weather_position = vec2(day_cycle, 0.0) + animationOffset(vec2(0.000025, 0.0));
+	cloud_coverage = mix(noise(weather_position) * 0.3 + 0.1, 0.7, max(rainStrength, wetness));
+	wind_speed = mix(noise(weather_position * vec2(2.0, 1.0)) * 0.5 + 1.0, 2.0, rainStrength);
 
 	suncolor = suncolor_sunrise * TimeSunrise + suncolor_noon * TimeNoon + suncolor_sunset * TimeSunset + suncolor_midnight * TimeMidnight;
 	suncolor *= 1.0 - cloud_coverage;
@@ -125,6 +127,7 @@ const vec3 agamma = vec3(0.7 / gamma);
 float luma(in vec3 color) { return dot(color,vec3(0.2126, 0.7152, 0.0722)); }
 
 #define EXPOSURE 1.4 // [1.0 1.2 1.4 1.6 1.8]
+#define AGX_TONEMAP
 
 #define VIGNETTE
 #ifdef VIGNETTE
@@ -136,23 +139,56 @@ vec3 vignette(vec3 color) {
 }
 #endif
 
+#ifdef AGX_TONEMAP
+vec3 agx_lut_sample(vec3 coord) {
+	const float lut_size = 33.0;
+	const vec2 lut_dimensions = vec2(1089.0, 33.0);
+	vec3 position = clamp(coord, 0.0, 1.0) * (lut_size - 1.0);
+	float blue0 = floor(position.b);
+	float blue1 = min(blue0 + 1.0, lut_size - 1.0);
+	vec2 uv0 = (vec2(blue0 * lut_size + position.r, position.g) + 0.5) / lut_dimensions;
+	vec2 uv1 = (vec2(blue1 * lut_size + position.r, position.g) + 0.5) / lut_dimensions;
+	return mix(texture2D(agxLut, uv0).rgb, texture2D(agxLut, uv1).rgb, fract(position.b));
+}
+
+vec3 agx_tonemap(vec3 color) {
+	const mat3 linear_srgb_to_linear_rec2020 = mat3(
+		vec3(0.6274, 0.0691, 0.0164),
+		vec3(0.3293, 0.9195, 0.0880),
+		vec3(0.0433, 0.0113, 0.8956)
+	);
+	const mat3 agx_inset = mat3(
+		vec3(0.856627153315983, 0.137318972929847, 0.111898212999950),
+		vec3(0.095121240538159, 0.761241990602591, 0.076799418603190),
+		vec3(0.048251606145858, 0.101439036467562, 0.811302368396859)
+	);
+	const float min_ev = -12.4739311883324;
+	const float max_ev = 4.02606881166759;
+	color = linear_srgb_to_linear_rec2020 * color;
+	color = agx_inset * max(color, vec3(0.0));
+	color = clamp((log2(max(color, vec3(1e-10))) - min_ev) / (max_ev - min_ev), 0.0, 1.0);
+	return agx_lut_sample(color);
+}
+#endif
+
 void tonemap(inout vec3 color, float adapted_lum) {
 	color *= adapted_lum;
-
-	const float a = 2.51f;
-	const float b = 0.03f;
-	const float c = 2.43f;
-	const float d = 0.59f;
-	const float e = 0.14f;
-	color = (color*(a*color+b))/(color*(c*color+d)+e);
-	//color = clamp(color, vec3(0.0), vec3(1.0));
-	//color = pow(color, vec3(1.07, 1.04, 1.0));
 
 	#ifdef VIGNETTE
 	color = vignette(color);
 	#endif
 
+	#ifdef AGX_TONEMAP
+	color = agx_tonemap(color);
+	#else
+	const float a = 2.51f;
+	const float b = 0.03f;
+	const float c = 2.43f;
+	const float d = 0.59f;
+	const float e = 0.14f;
+	color = (color * (a * color + b)) / (color * (c * color + d) + e);
 	color = pow(color, agamma);
+	#endif
 }
 
 //==============================================================================
@@ -162,6 +198,11 @@ void tonemap(inout vec3 color, float adapted_lum) {
 #define AVERAGE_EXPOSURE
 #ifdef AVERAGE_EXPOSURE
 float get_exposure() {
+#ifdef SSBO_AUTO_EXPOSURE
+	if (exposureState.initialized == EXPOSURE_STATE_MAGIC && !isnan(exposureState.adaptedExposure) && !isinf(exposureState.adaptedExposure) && exposureState.adaptedExposure > 0.0)
+		return EXPOSURE * exposureState.adaptedExposure;
+	return EXPOSURE;
+#else
 	float basic_exp = EXPOSURE * (1.8 - clamp(pow(eyeBrightnessSmooth.y / 240.0, 6.0) * luma(suncolor), 0.0, 1.2));
 
 	#ifdef BLOOM
@@ -173,6 +214,7 @@ float get_exposure() {
 	basic_exp = mix(basic_exp, max(0.1, basic_exp + avr_exp), 0.8);
 
 	return basic_exp;
+#endif
 }
 #else
 float get_exposure() {

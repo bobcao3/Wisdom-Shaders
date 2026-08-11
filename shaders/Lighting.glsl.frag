@@ -224,7 +224,8 @@ vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceTh
 
 	float oren = light_PBR_oren_diffuse(-mat.nvpos, Li.L, mat.N, mat.roughness, NdotL, NdotV);
 	float att = max(0.0, Li.light.attenuation * oren);
-	att += 0.9 * (1.0 - att) * max(0.0, pow(1.0 - subSurfaceThick, 3.0) * (0.5 + 0.5 * dot(Li.L, mat.nvpos)));
+	// Transmission must respect source attenuation.
+	att += 0.9 * Li.light.attenuation * (1.0 - att) * max(0.0, pow(1.0 - subSurfaceThick, 3.0) * (0.5 + 0.5 * dot(Li.L, mat.nvpos)));
 	vec3 radiance = att * Li.light.color;
 
 	vec3 F0 = vec3(0.01);
@@ -243,6 +244,22 @@ vec3 light_calc_PBR(in LightSourcePBR Li, in Material mat, in float subSurfaceTh
 	vec3 specular = nominator / denominator;
 
 	return (kD / PI * mat.albedo + specular) * radiance;
+}
+
+vec3 light_calc_PBR_diffuse(in LightSourcePBR Li, in Material mat) {
+	float NdotV = Positive(dot(mat.N, -mat.nvpos));
+	float NdotL = Positive(dot(mat.N, Li.L));
+
+	float oren = light_PBR_oren_diffuse(-mat.nvpos, Li.L, mat.N, mat.roughness, NdotL, NdotV);
+	vec3 radiance = max(0.0, Li.light.attenuation * oren) * Li.light.color;
+
+	vec3 F0 = mix(vec3(0.02), mat.albedo, mat.metalic);
+	vec3 H = normalize(Li.L - mat.nvpos);
+	vec3 F = light_PBR_fresnelSchlickRoughness(Positive(dot(H, -mat.nvpos)), F0, mat.roughness);
+
+	vec3 kD = max(vec3(0.0), vec3(1.0) - F) * (1.0 - mat.metalic);
+
+	return kD / PI * mat.albedo * radiance;
 }
 
 vec3 light_calc_PBR_brdf(LightSourcePBR Li, Material mat) {
@@ -309,19 +326,12 @@ vec4 ray_trace_ssr (vec3 direction, vec3 start, float metal) {
 			float flag = texture2D(gaux1, uv).a;
 			if (flag < 0.71f || flag > 0.79f) {
 				hitColor.rgb = max(vec3(0.0), texture2DLod(composite, uv, int(metal * 3.0)).rgb);
-				hitColor.a = 1.0;
+				float edgeDistance = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+				hitColor.a = smoothstep(0.0, 0.03, edgeDistance);
 			} else { hitColor.a = 0.0; }
 
 			hit = true;
 			break;
-		}
-	}
-
-	if (!hit) {
-		float flag = texture2D(gaux1, uv).a;
-		if (flag < 0.71f || flag > 0.79f) {
-			hitColor = vec4(max(vec3(0.0), texture2DLod(composite, uv, int(metal * 3.0)).rgb), 0.0);
-			hitColor.a = 1.0;
 		}
 	}
 

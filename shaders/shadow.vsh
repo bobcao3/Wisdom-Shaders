@@ -23,7 +23,6 @@
 
 #version 120
 
-
 #define SHADOW_MAP_BIAS 0.85
 const float negBias = 1.0f - SHADOW_MAP_BIAS;
 
@@ -32,6 +31,10 @@ attribute vec4 mc_midTexCoord;
 
 uniform float rainStrength;
 uniform float frameTimeCounter;
+uniform mat4 shadowModelViewInverse;
+uniform vec3 cameraPosition;
+
+#include "Animation.glsl"
 
 //uniform mat4 gbufferModelViewInverse;
 
@@ -47,17 +50,19 @@ varying float LOD;
 
 void main() {
 	vec4 position = gl_Vertex;
+	vec3 animation_position = (shadowModelViewInverse * gl_ModelViewMatrix * position).xyz + cameraPosition;
+	animation_position = floor(animation_position * 64.0 + 0.5) / 64.0;
 	color = gl_Color.rgb;
 
 	float blockId = mc_Entity.x;
 	#ifdef WAVING_SHADOW
 	if (gl_MultiTexCoord0.t < mc_midTexCoord.t && (blockId == 31.0 || blockId == 37.0 || blockId == 38.0)) {
-		float rand_ang = hash(position.xz);
+		float rand_ang = hash(animation_position.xz);
 		float maxStrength = 1.0 + rainStrength * 0.5;
-		float time = frameTimeCounter * 3.0;
+		float time = animationPhase(1720.0);
 		float reset = cos(rand_ang * 10.0 + time * 0.1);
 		reset = max( reset * reset, max(rainStrength, 0.1));
-		position.x += (sin(rand_ang * 10.0 + time + position.y) * 0.2) * (reset * maxStrength);
+		position.x += (sin(rand_ang * 10.0 + time + animation_position.y) * 0.2) * (reset * maxStrength);
 	}
 	position = gl_ProjectionMatrix * (gl_ModelViewMatrix * position);
 	#else

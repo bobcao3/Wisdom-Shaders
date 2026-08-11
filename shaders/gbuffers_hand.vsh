@@ -53,11 +53,11 @@ varying vec3 binormal;
 void main() {
 	color = gl_Color;
 	
-	normal = gl_NormalMatrix * gl_Normal;
+	normal = normalize(gl_NormalMatrix * normalize(gl_Normal));
 
 	#ifdef NORMALS
-	tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
-    binormal = cross(normal, tangent);
+	tangent = normalize(gl_NormalMatrix * normalize(at_tangent.xyz));
+    binormal = normalize(cross(tangent, normal)) * sign(at_tangent.w);
     #endif
 
 	vec4 position = gl_Vertex;

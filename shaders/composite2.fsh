@@ -12,6 +12,7 @@ const bool colortex1MipmapEnabled = true;
 //#define SPACE
 
 #include "CompositeUniform.glsl.frag"
+#include "Animation.glsl"
 #include "Utilities.glsl.frag"
 #include "Material.glsl.frag"
 #include "Lighting.glsl.frag"
@@ -121,8 +122,8 @@ void main() {
 		// Force ground wetness
 		float wetness2 = wetness * smoothstep(0.92, 1.0, mclight.y) * float(!mask.is_plant);
 		if (wetness2 > 0.0 && !(mask.is_water || mask.is_hand || mask.is_entity)) {
-			float wet = noise((land.wpos + cameraPosition).xz * 0.5 - frameTimeCounter * 0.02);
-			wet += noise((land.wpos + cameraPosition).xz * 0.6 - frameTimeCounter * 0.01) * 0.5;
+			float wet = noise((land.wpos + cameraPosition).xz * 0.5 - animationOffset(vec2(0.02)));
+			wet += noise((land.wpos + cameraPosition).xz * 0.6 - animationOffset(vec2(0.01))) * 0.5;
 			wet = clamp(wetness2 * 3.0, 0.0, 1.0) * clamp(wet * 2.0 + wetness2, 0.0, 1.0);
 			
 			if (wet > 0.0) {
@@ -131,8 +132,8 @@ void main() {
 				vec3 flat_normal = normalDecode(mclight.zw);
 				land.N = mix(land.N, flat_normal, wet);
 			
-				land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
-				land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
+				land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - animationOffset(vec2(2.0, 0.0))) * 0.05 * wet;
+				land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - animationOffset(vec2(2.0, 0.0))) * 0.05 * wet;
 				land.N = normalize(land.N);
 			}
 		}

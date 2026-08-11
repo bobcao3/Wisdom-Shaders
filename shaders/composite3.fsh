@@ -8,6 +8,7 @@ varying vec2 texcoord;
 #include "GlslConfig"
 
 #include "CompositeUniform.glsl.frag"
+#include "Animation.glsl"
 #include "Utilities.glsl.frag"
 #include "Material.glsl.frag"
 #include "Lighting.glsl.frag"
@@ -21,6 +22,8 @@ vec4 mclight = texture2D(gaux2, texcoord);
 Material glossy;
 Material land;
 LightSourcePBR sun;
+LightSource torch;
+LightSource amb;
 
 Mask mask;
 
@@ -54,8 +57,10 @@ void main() {
 		// Transperant
 		if (mask.is_trans || isEyeInWater || mask.is_particle) {
 			material_sample_water(glossy, texcoord);
+			bool is_generic_translucent = false;
 
 			float water_sky_light = 0.0;
+			float near_shore_foam = 0.0;
 		
 			if (mask.is_water) {
 				water_sky_light = pow(glossy.albedo.b, 1.0f / 2.2f) * 9.8097;
@@ -64,7 +69,7 @@ void main() {
 				glossy.roughness = 0.05;
 				glossy.metalic = 0.01;
 				
-				vec3 water_plain_normal = mat3(gbufferModelViewInverse) * glossy.N;
+				vec3 water_plain_normal = normalize(mat3(gbufferModelViewInverse) * glossy.N);
 				if (isEyeInWater) water_plain_normal = -water_plain_normal;
 				
 				float lod = pow(max(water_plain_normal.y, 0.0), 4.0);
@@ -82,9 +87,11 @@ void main() {
 				vec3 water_normal = (lod > 0.99) ? get_water_normal(glossy.wpos + cameraPosition, wave, lod, water_plain_normal) : water_plain_normal;
 				if (isEyeInWater) water_normal = -water_normal;
 				
-				glossy.N = mat3(gbufferModelView) * water_normal;
+				glossy.N = normalize(mat3(gbufferModelView) * water_normal);
 				glossy.vpos = (!mask.is_water && isEyeInWater) ? glossy.vpos : (gbufferModelView * vec4(glossy.wpos, 1.0)).xyz;
 				glossy.nvpos = normalize(glossy.vpos);
+				float water_depth = abs(land.vpos.z - glossy.vpos.z);
+				near_shore_foam = 0.3 * (1.0 - smoothstep(0.1, 0.7, water_depth)) * (1.0 + getwave((glossy.wpos + cameraPosition) * 10.0, 1.0) / SEA_HEIGHT * 0.8) * max(0.0, dot(glossy.N, lightPosition));
 				
 				// Refraction
 				#ifdef WATER_REFRACTION
@@ -112,8 +119,7 @@ void main() {
 				glossy.cdepth = length(glossy.vpos);
 				glossy.cdepthN = glossy.cdepth / far;
 			} else if (!isEyeInWater && flag < 0.98 && !mask.is_particle) {
-				glossy.roughness = 0.3;
-				glossy.metalic = 0.8;
+				is_generic_translucent = true;
 				
 				vec2 uv = texcoord;
 				#ifdef GLASS_REFRACTION
@@ -133,11 +139,14 @@ void main() {
 				color += texture2DLod(composite, uv, 1.0).rgb * 0.3;
 				color += texture2DLod(composite, uv, 2.0).rgb * 0.5;
 				
-				float n = noise((glossy.wpos.xz + cameraPosition.xz) * 0.06) * 0.05;
-				glossy.N.x += n;
-				glossy.N.y -= n;
-				glossy.N.z += n;
-				glossy.N = normalize(glossy.N);
+				vec3 player_normal = normalize(mat3(gbufferModelViewInverse) * glossy.N);
+				vec3 world_position = glossy.wpos + cameraPosition;
+				vec3 tangent = normalize(cross(abs(player_normal.y) < 0.999 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0), player_normal));
+				vec3 bitangent = cross(player_normal, tangent);
+				vec2 noise_coord = vec2(dot(world_position, tangent), dot(world_position, bitangent)) * 0.25;
+				vec2 normal_noise = vec2(noise(noise_coord), noise(noise_coord + vec2(17.0, 59.0))) * 2.0 - 1.0;
+				player_normal = normalize(player_normal + (tangent * normal_noise.x + bitangent * normal_noise.y) * 0.009);
+				glossy.N = normalize(mat3(gbufferModelView) * player_normal);
 				
 				color = color * glossy.albedo * 2.0;
 			} else {
@@ -145,7 +154,22 @@ void main() {
 			}
 		
 			float shadow = 1.0;
-			if (!isEyeInWater && flag < 0.98) shadow = light_fetch_shadow_fast(shadowtex1, light_shadow_autobias(land.cdepthN), wpos2shadowpos(glossy.wpos));
+			if (!isEyeInWater && flag < 0.98) shadow = light_fetch_shadow_fast(shadowtex1, light_shadow_autobias(glossy.cdepthN), wpos2shadowpos(glossy.wpos));
+
+			if (is_generic_translucent) {
+				float translucentBlocklight = texture2D(colortex9, texcoord).r;
+				float translucentSkylight = speculardata.b;
+				#ifdef MODERN
+				torch.color = vec3(0.016f, 0.012f, 0.011f) * 10.0f;
+				#else
+				torch.color = vec3(0.2435f, 0.0921f, 0.01053f) * 3.0f;
+				#endif
+				torch.color = mix(vec3(luma(torch.color)), torch.color, 0.2);
+				torch.attenuation = light_mclightmap_attenuation(translucentBlocklight);
+				amb.color = ambient;
+				amb.attenuation = light_mclightmap_simulated_GI(translucentSkylight, lightPosition, glossy.N);
+				color += (light_calc_diffuse(torch, glossy) + light_calc_diffuse(amb, glossy)) * clamp(glossy.opaque, 0.0, 1.0);
+			}
 		
 			// Render
 			if (mask.is_water || isEyeInWater) {
@@ -168,7 +192,9 @@ void main() {
 				sun.light.attenuation = 1.0 - shadow;
 				sun.L = lightPosition;
 			
+				if (is_generic_translucent) color += light_calc_PBR_diffuse(sun, glossy) * clamp(glossy.opaque, 0.0, 1.0);
 				color += light_calc_PBR_brdf(sun, glossy);
+				if (mask.is_water) color += near_shore_foam * suncolor * water_sky_light * 0.2 * (0.2 + (1.0 - shadow) * 0.8);
 				
 				land = glossy;
 			}
@@ -179,8 +205,8 @@ void main() {
 			// Force ground wetness
 			float wetness2 = wetness * smoothstep(0.92, 1.0, mclight.y) * float(!mask.is_plant);
 			if (wetness2 > 0.0 && !(mask.is_water || mask.is_hand || mask.is_entity)) {
-				float wet = noise((land.wpos + cameraPosition).xz * 0.5 - frameTimeCounter * 0.02);
-				wet += noise((land.wpos + cameraPosition).xz * 0.6 - frameTimeCounter * 0.01) * 0.5;
+				float wet = noise((land.wpos + cameraPosition).xz * 0.5 - animationOffset(vec2(0.02)));
+				wet += noise((land.wpos + cameraPosition).xz * 0.6 - animationOffset(vec2(0.01))) * 0.5;
 				wet = clamp(wetness2 * 3.0, 0.0, 1.0) * clamp(wet * 2.0 + wetness2, 0.0, 1.0);
 				
 				if (wet > 0.0) {
@@ -193,8 +219,8 @@ void main() {
 				
 					color *= 1.0 - wet * 0.6;
 				
-					land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
-					land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - vec2(frameTimeCounter * 2.0, 0.0)) * 0.05 * wet;
+					land.N.x += noise((land.wpos.xz + cameraPosition.xz) * 5.0 - animationOffset(vec2(2.0, 0.0))) * 0.05 * wet;
+					land.N.y -= noise((land.wpos.xz + cameraPosition.xz) * 6.0 - animationOffset(vec2(2.0, 0.0))) * 0.05 * wet;
 					land.N = normalize(land.N);
 
 					color = mix(color, color * 0.3, wet * (1.0 - abs(dot(land.nvpos, land.N))));
@@ -210,7 +236,9 @@ void main() {
 			vec4 glossy_reflect = ray_trace_ssr(viewRef, land.vpos, land.roughness);
 			vec3 skyReflect = vec3(0.0);
 			if (!isEyeInWater && glossy_reflect.a < 0.95) skyReflect = calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0 + vec3(0.0, cameraPosition.y + land.wpos.y, 0.0), viewRef, cameraPosition + land.wpos.xyz);
-			vec3 ibl = mix(skyReflect * smoothstep(0.0, 0.5, mclight.y), glossy_reflect.rgb, glossy_reflect.a);
+			float skylight = mask.is_glass ? speculardata.b : mclight.y;
+			float sky_visibility = smoothstep(0.0, 0.5, skylight);
+			vec3 ibl = mix(skyReflect * sky_visibility, glossy_reflect.rgb, glossy_reflect.a);
 			#else
 			vec3 ibl = isEyeInWater ? vec3(0.0) : calc_sky((mat3(gbufferModelViewInverse) * viewRef) * 512.0, viewRef, cameraPosition + land.wpos.xyz);
 			#endif

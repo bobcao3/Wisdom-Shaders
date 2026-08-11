@@ -18,12 +18,16 @@ uniform bool isEyeInWater;
 
 uniform sampler2D gcolor;
 uniform sampler2D colortex1;
+uniform sampler2D colortex8;
+uniform sampler2D colortex9;
+uniform sampler2D colortex10;
 uniform sampler2D gnormal;
 uniform sampler2D composite;
 uniform sampler2D gaux1;
 uniform sampler2D gaux2;
 uniform sampler2D gaux3;
 uniform sampler2D gaux4;
+uniform sampler2D agxLut;
 
 uniform sampler2D depthtex0;
 uniform sampler2D depthtex1;
